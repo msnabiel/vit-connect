@@ -18,10 +18,16 @@ struct MarksBySemesterView: View {
         return g.keys.sorted().map { ($0, g[$0] ?? []) }
     }
 
+    private static let semesterPickerHorizontalPadding: CGFloat = 16
+    private static let semesterPickerTopPadding: CGFloat = 10
+    private static let semesterPickerBottomPadding: CGFloat = 8
+
     var body: some View {
-        List {
-            if !choices.isEmpty {
-                Section {
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
+            VStack(spacing: 0) {
+                if !choices.isEmpty {
                     Menu {
                         ForEach(choices) { s in
                             Button(s.name) {
@@ -43,62 +49,80 @@ struct MarksBySemesterView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(Color(uiColor: .systemBlue))
                         }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
+                        )
                     }
+                    .padding(.horizontal, Self.semesterPickerHorizontalPadding)
+                    .padding(.top, Self.semesterPickerTopPadding)
+                    .padding(.bottom, Self.semesterPickerBottomPadding)
                 }
-            } else {
-                Section {
-                    Text("No semesters loaded. Sign in to VTOP, sync, then pull to refresh.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
 
-            if semesterId.isEmpty {
-                Section {
-                    Text("Select a semester to load mark components.")
-                        .foregroundColor(.secondary)
-                }
-            } else if dataManager.marksReportRows.isEmpty {
-                Section {
-                    Text("No mark rows for this semester. Tap refresh or try another term.")
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                ForEach(groupedMarks, id: \.code) { sec in
-                    Section(header: Text(sectionHeader(code: sec.code, rows: sec.rows))
-                        .foregroundColor(.indigo)) {
-                        ForEach(sec.rows.sorted(by: { $0.markTitle.localizedCaseInsensitiveCompare($1.markTitle) == .orderedAscending })) { row in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(row.markTitle)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundColor(.primary)
+                List {
+                    if choices.isEmpty {
+                        Section {
+                            Text("No semesters loaded. Sign in to VTOP, sync, then pull to refresh.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    } else if semesterId.isEmpty {
+                        Section {
+                            Text("Select a semester to load mark components.")
+                                .foregroundColor(.secondary)
+                        }
+                    } else if dataManager.marksReportRows.isEmpty {
+                        Section {
+                            Text("No mark rows for this semester. Tap refresh or try another term.")
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        ForEach(groupedMarks, id: \.code) { sec in
+                            Section(header: Text(sectionHeader(code: sec.code, rows: sec.rows))
+                                .foregroundColor(.indigo)) {
+                                ForEach(sec.rows.sorted(by: { $0.markTitle.localizedCaseInsensitiveCompare($1.markTitle) == .orderedAscending })) { row in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(row.markTitle)
+                                            .font(.body.weight(.semibold))
+                                            .foregroundColor(.primary)
 
-                                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                    Text("Scored \(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(Color.green.opacity(0.92))
-                                    Text("·")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.secondary)
-                                    Text("Weight \(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(Color.orange.opacity(0.95))
-                                    if !row.status.isEmpty {
-                                        Text("·")
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundColor(.secondary)
-                                        Text(row.status)
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundColor(statusTextColor(row.status))
+                                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                            Text("Scored \(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundColor(Color.green.opacity(0.92))
+                                            Text("·")
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundColor(.secondary)
+                                            Text("Weight \(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundColor(Color.orange.opacity(0.95))
+                                            if !row.status.isEmpty {
+                                                Text("·")
+                                                    .font(.subheadline.weight(.medium))
+                                                    .foregroundColor(.secondary)
+                                                Text(row.status)
+                                                    .font(.subheadline.weight(.medium))
+                                                    .foregroundColor(statusTextColor(row.status))
+                                            }
+                                        }
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.78)
                                     }
+                                    .padding(.vertical, 4)
                                 }
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.78)
                             }
-                            .padding(.vertical, 4)
                         }
                     }
                 }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
             }
         }
         .navigationTitle("Marks")

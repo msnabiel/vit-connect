@@ -93,18 +93,22 @@ struct HomeView: View {
 struct DataLoadingOverlay: View {
     let message: String
 
-    var body: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                .scaleEffect(1.2)
+    private var line: String {
+        let t = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? "Syncing…" : t
+    }
 
-            Text(message)
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            VTOPSmoothSyncArrow(isRunning: true, font: .system(size: 16, weight: .medium), foreground: .white)
+            Text(line)
                 .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
         .background(
             Capsule()
                 .fill(Color.black.opacity(0.8))
@@ -175,38 +179,42 @@ struct HomeTabView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Greeting Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text(greetingEmoji)
-                                .font(.system(size: 30))
-                                .accessibilityHidden(true)
-                            Text(greeting)
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.primary)
-                        }
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        OfflineDataBanner(showSyncMetadata: false)
+                        // Greeting Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                Text(greetingEmoji)
+                                    .font(.system(size: 30))
+                                    .accessibilityHidden(true)
+                                Text(greeting)
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
 
-                        Text(dataManager.studentProfile.map(\.displayNameWithSalutation) ?? authViewModel.username)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.secondary)
+                            Text(dataManager.studentProfile.map(\.displayNameWithSalutation) ?? authViewModel.username)
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.secondary)
 
-                        if let semester = dataManager.selectedSemester?.name {
-                            Text(semester)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.accentColor)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.accentColor.opacity(0.1))
-                                )
+                            if let semester = dataManager.selectedSemester?.name {
+                                Text(semester)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.accentColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.accentColor.opacity(0.1))
+                                    )
+                            }
                         }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .padding(.bottom, 8)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 6)
+                        .padding(.bottom, 8)
 
                     // Academic Performance Cards
                     HStack(spacing: 12) {
@@ -320,8 +328,14 @@ struct HomeTabView: View {
                                 }
                             }
                             .padding()
-                            .background(Color(uiColor: .secondarySystemBackground))
-                            .cornerRadius(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
+                            )
                         }
                         .buttonStyle(.plain)
 
@@ -407,13 +421,17 @@ struct HomeTabView: View {
                     }
 
                     Spacer()
+                    }
+                    .padding(.bottom, 16)
                 }
-                .padding(.vertical)
+                .scrollContentBackground(.hidden)
+                .refreshable {
+                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                        dataManager.refreshHomeSummary { cont.resume() }
+                    }
+                }
             }
-            .refreshable {
-                dataManager.syncAll()
-            }
-            .navigationBarTitle("VTOP Chennai", displayMode: .inline)
+            .navigationBarTitle("VIT Chennai", displayMode: .inline)
             .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -639,104 +657,102 @@ struct AttendanceTabView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
+        )
+    }
+
+    private static let semesterPickerHorizontalPadding: CGFloat = 16
+    private static let semesterPickerTopPadding: CGFloat = 10
+    private static let semesterPickerBottomPadding: CGFloat = 8
+
+    @ViewBuilder
+    private var semesterPickerMenu: some View {
+        Menu {
+            ForEach(semesterChoices) { sem in
+                Button(sem.name) {
+                    attendanceSemesterId = sem.id
+                    if attendancePickerPrimed {
+                        dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text("Semester — \(attendanceSemesterDisplayName)")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(Color(uiColor: .systemBlue))
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
+            )
+        }
     }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if dataManager.attendance.isEmpty {
-                    VStack(spacing: 0) {
-                        if !semesterChoices.isEmpty {
-                            Menu {
-                                ForEach(semesterChoices) { sem in
-                                    Button(sem.name) {
-                                        attendanceSemesterId = sem.id
-                                        if attendancePickerPrimed {
-                                            dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Text("Semester — \(attendanceSemesterDisplayName)")
-                                        .font(.body.weight(.medium))
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.72)
-                                    Spacer(minLength: 8)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(Color(uiColor: .systemBlue))
-                                }
-                                .padding(.vertical, 10)
-                                .padding(.horizontal, 12)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(uiColor: .secondarySystemBackground))
-                                )
-                            }
-                            .padding()
-                        }
-
-                        Spacer(minLength: 0)
-
-                        EmptyStateView(
-                            icon: "calendar.badge.exclamationmark",
-                            title: "No attendance yet",
-                            message: "Choose a semester above, or pull down to refresh."
-                        )
-
-                        Spacer(minLength: 0)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+                Group {
+                    if dataManager.attendance.isEmpty {
+                        VStack(spacing: 0) {
                             if !semesterChoices.isEmpty {
-                                Menu {
-                                    ForEach(semesterChoices) { sem in
-                                        Button(sem.name) {
-                                            attendanceSemesterId = sem.id
-                                            if attendancePickerPrimed {
-                                                dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
-                                            }
-                                        }
-                                    }
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Text("Semester — \(attendanceSemesterDisplayName)")
-                                            .font(.body.weight(.medium))
-                                            .foregroundColor(.primary)
-                                            .lineLimit(1)
-                                            .minimumScaleFactor(0.72)
-                                        Spacer(minLength: 8)
-                                        Image(systemName: "chevron.up.chevron.down")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundColor(Color(uiColor: .systemBlue))
-                                    }
-                                    .padding(.vertical, 10)
-                                    .padding(.horizontal, 12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .fill(Color(uiColor: .secondarySystemBackground))
+                                semesterPickerMenu
+                                    .padding(.horizontal, Self.semesterPickerHorizontalPadding)
+                                    .padding(.top, Self.semesterPickerTopPadding)
+                                    .padding(.bottom, Self.semesterPickerBottomPadding)
+                            }
+
+                            Spacer(minLength: 0)
+
+                            EmptyStateView(
+                                icon: "calendar.badge.exclamationmark",
+                                title: "No attendance yet",
+                                message: "Choose a semester above, or pull down to refresh."
+                            )
+
+                            Spacer(minLength: 0)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                if !semesterChoices.isEmpty {
+                                    semesterPickerMenu
+                                }
+
+                                overallAttendanceStrip
+
+                                ForEach(dataManager.attendance) { attendance in
+                                    AttendanceCard(
+                                        course: attendance.matchingCatalogCourse(in: dataManager.courses),
+                                        attendance: attendance
                                     )
                                 }
                             }
-
-                            overallAttendanceStrip
-
-                            ForEach(dataManager.attendance) { attendance in
-                                AttendanceCard(
-                                    course: attendance.matchingCatalogCourse(in: dataManager.courses),
-                                    attendance: attendance
-                                )
-                            }
+                            .padding(.horizontal, Self.semesterPickerHorizontalPadding)
+                            .padding(.top, Self.semesterPickerTopPadding)
+                            .padding(.bottom, 16)
                         }
-                        .padding()
+                        .scrollContentBackground(.hidden)
                     }
                 }
             }
@@ -974,10 +990,6 @@ struct ProfileTabView: View {
                         Label("Exam Schedule", systemImage: "calendar.and.person")
                     }
 
-                    NavigationLink(destination: SpotlightView().environmentObject(dataManager)) {
-                        Label("Announcements", systemImage: "megaphone.fill")
-                    }
-
                     NavigationLink(destination: EventHubView().environmentObject(dataManager)) {
                         Label("Event hub", systemImage: "calendar.badge.clock")
                     }
@@ -998,6 +1010,31 @@ struct ProfileTabView: View {
                 }
 
                 Section(header: Text("Profile & sync")) {
+                    if dataManager.lastSuccessfulSyncAt != nil || dataManager.cachePersistedAt != nil {
+                        VStack(alignment: .leading, spacing: 6) {
+                            if let sync = dataManager.lastSuccessfulSyncAt {
+                                Label {
+                                    Text("Last successful sync: \(sync.formatted(date: .abbreviated, time: .shortened))")
+                                        .font(.subheadline)
+                                } icon: {
+                                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            if let cached = dataManager.cachePersistedAt {
+                                Label {
+                                    Text("Data saved on device: \(cached.formatted(date: .abbreviated, time: .shortened))")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                } icon: {
+                                    Image(systemName: "internaldrive.fill")
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+
                     NavigationLink(destination: FullStudentProfileView().environmentObject(dataManager)) {
                         Label("Full profile", systemImage: "person.text.rectangle")
                     }
@@ -1010,19 +1047,18 @@ struct ProfileTabView: View {
                     Button(action: {
                         authViewModel.triggerSync()
                     }) {
-                        HStack {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.accentColor)
-                                .rotationEffect(.degrees(dataManager.isLoading ? 360 : 0))
-                                .animation(
-                                    dataManager.isLoading ?
-                                    Animation.linear(duration: 1.0).repeatForever(autoreverses: false) :
-                                    .default,
-                                    value: dataManager.isLoading
-                                )
-                            Text(dataManager.isLoading ? "Syncing..." : "Full Sync Data")
-                                .foregroundColor(.primary)
-                            Spacer()
+                        HStack(alignment: .center, spacing: 8) {
+                            VTOPSmoothSyncArrow(
+                                isRunning: dataManager.isLoading,
+                                font: .body.weight(.medium),
+                                foreground: .primary
+                            )
+                            Text(dataManager.isLoading ? "Syncing…" : "Full Sync Data")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                            Spacer(minLength: 0)
                         }
                     }
                     .disabled(dataManager.isLoading)

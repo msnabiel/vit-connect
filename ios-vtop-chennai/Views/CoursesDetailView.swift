@@ -41,7 +41,9 @@ struct CoursesDetailView: View {
         .navigationTitle("Courses")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
-            dataManager.syncAll()
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                dataManager.refreshCoursesWithAttendance { cont.resume() }
+            }
         }
     }
 }

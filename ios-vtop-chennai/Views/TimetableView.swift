@@ -120,8 +120,9 @@ struct TimetableView: View {
                                 cont.resume()
                             }
                         } else {
-                            dataManager.syncAll()
-                            cont.resume()
+                            dataManager.refreshSemesterPicklist {
+                                cont.resume()
+                            }
                         }
                     }
                 }

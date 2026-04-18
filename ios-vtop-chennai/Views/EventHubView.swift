@@ -10,6 +10,8 @@ struct EventHubToolbarLink: View {
                 .font(.body.weight(.medium))
                 .foregroundStyle(.primary)
         }
+        .buttonStyle(.plain)
+        .tint(.primary)
         .accessibilityLabel("Event hub")
     }
 }
@@ -29,6 +31,8 @@ struct TimetableToolbarLink: View {
                 .font(.body.weight(.medium))
                 .foregroundStyle(.primary)
         }
+        .buttonStyle(.plain)
+        .tint(.primary)
         .accessibilityLabel("Timetable")
     }
 }

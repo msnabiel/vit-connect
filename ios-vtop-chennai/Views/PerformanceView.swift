@@ -96,7 +96,9 @@ struct PerformanceView: View {
                 .padding(.bottom, 20)
             }
             .refreshable {
-                dataManager.syncAll()
+                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                    dataManager.refreshMarksForSelectedSemester { cont.resume() }
+                }
             }
             .navigationTitle("Performance")
             .navigationBarTitleDisplayMode(.inline)

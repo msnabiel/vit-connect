@@ -14,12 +14,18 @@ struct GradeHistoryView: View {
         }
     }
 
-    private var grouped: [(section: String, rows: [GradeHistoryCourseRow])] {
+    private struct GradeHistorySectionGroup: Identifiable {
+        let id: String
+        let title: String
+        let rows: [GradeHistoryCourseRow]
+    }
+
+    private var grouped: [GradeHistorySectionGroup] {
         let rows = overviewRows
         let order = Dictionary(grouping: rows, by: { $0.sectionTitle })
         return rows.map(\.sectionTitle).uniqued().compactMap { title in
             guard let r = order[title] else { return nil }
-            return (title, r)
+            return GradeHistorySectionGroup(id: title, title: title, rows: r)
         }
     }
 
@@ -27,14 +33,20 @@ struct GradeHistoryView: View {
         overviewRows.count
     }
 
-    private var gradeLetterCounts: [(grade: String, count: Int)] {
+    private struct GradeLetterCountRow: Identifiable {
+        let id: String
+        let grade: String
+        let count: Int
+    }
+
+    private var gradeLetterCounts: [GradeLetterCountRow] {
         var m: [String: Int] = [:]
         for r in overviewRows {
             let g = r.grade.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
             if g.isEmpty || g == "-" { continue }
             m[g, default: 0] += 1
         }
-        return m.map { ($0.key, $0.value) }.sorted { lhs, rhs in
+        return m.map { GradeLetterCountRow(id: $0.key, grade: $0.key, count: $0.value) }.sorted { lhs, rhs in
             if lhs.count != rhs.count { return lhs.count > rhs.count }
             return lhs.grade < rhs.grade
         }
@@ -91,8 +103,8 @@ struct GradeHistoryView: View {
                             .foregroundColor(.secondary)
                     }
                 } else {
-                    ForEach(Array(grouped.enumerated()), id: \.offset) { _, group in
-                        Section(header: Text(group.section)) {
+                    ForEach(grouped) { group in
+                        Section(header: Text(group.title)) {
                             ForEach(group.rows) { row in
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack(alignment: .firstTextBaseline) {
@@ -168,19 +180,21 @@ struct GradeHistoryView: View {
 
     private var compactGradeCountTable: some View {
         VStack(spacing: 0) {
-            ForEach(Array(gradeLetterCounts.enumerated()), id: \.offset) { idx, item in
-                HStack(alignment: .firstTextBaseline) {
-                    Text(item.grade)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(gradeLetterColor(item.grade))
-                        .frame(width: 36, alignment: .leading)
-                    Spacer(minLength: 8)
-                    Text("\(item.count)")
-                        .font(.caption.monospacedDigit())
-                }
-                .padding(.vertical, 3)
-                if idx < gradeLetterCounts.count - 1 {
-                    Divider()
+            ForEach(gradeLetterCounts) { item in
+                VStack(spacing: 0) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(item.grade)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(gradeLetterColor(item.grade))
+                            .frame(width: 36, alignment: .leading)
+                        Spacer(minLength: 8)
+                        Text("\(item.count)")
+                            .font(.caption.monospacedDigit())
+                    }
+                    .padding(.vertical, 3)
+                    if item.id != gradeLetterCounts.last?.id {
+                        Divider()
+                    }
                 }
             }
         }

@@ -66,7 +66,11 @@ struct AttendanceDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
         )
     }
 
@@ -101,7 +105,11 @@ struct AttendanceDetailView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color(uiColor: .secondarySystemBackground))
+                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
                             )
                         }
                         .padding()
@@ -148,7 +156,11 @@ struct AttendanceDetailView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(uiColor: .secondarySystemBackground))
+                                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
                                 )
                             }
                         }
@@ -168,10 +180,16 @@ struct AttendanceDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .refreshable {
-            if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
-                dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
-            } else {
-                dataManager.syncAll()
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
+                    dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false) {
+                        cont.resume()
+                    }
+                } else {
+                    dataManager.loadAttendanceSemesterPicklist {
+                        cont.resume()
+                    }
+                }
             }
         }
         .navigationTitle("Attendance")
@@ -405,7 +423,11 @@ struct AttendanceCard: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
         )
     }
 

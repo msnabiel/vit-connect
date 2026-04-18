@@ -56,7 +56,9 @@ struct StaffInformationView: View {
                         }
                     }
                     .refreshable {
-                        dataManager.syncAll()
+                        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                            dataManager.refreshStaffInformation { cont.resume() }
+                        }
                     }
                 }
             }

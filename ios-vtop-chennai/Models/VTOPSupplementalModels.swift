@@ -2,9 +2,11 @@ import Foundation
 
 // MARK: - Profile (accordion-style sections from StudentProfileAllView)
 
-struct ProfileKeyValueRow: Codable, Hashable {
+struct ProfileKeyValueRow: Codable, Hashable, Identifiable {
     let key: String
     let value: String
+
+    var id: String { "\(key)|\(value)" }
 }
 
 struct ProfileAccordionSectionData: Codable, Hashable, Identifiable {
