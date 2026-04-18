@@ -176,7 +176,6 @@ struct AttendanceDetailView: View {
         }
         .navigationTitle("Attendance")
         .navigationBarTitleDisplayMode(.inline)
-        .vtopNavLeadingIcon()
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 TimetableToolbarLink()

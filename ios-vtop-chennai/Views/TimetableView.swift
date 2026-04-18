@@ -9,6 +9,12 @@ struct TimetableView: View {
 
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
+    /// Weekday indices starting with **today** on the leading edge (then wrapping Sun→Sat).
+    private var orderedWeekdayIndices: [Int] {
+        let today = Calendar.current.component(.weekday, from: Date()) - 1
+        return (0..<7).map { (today + $0) % 7 }
+    }
+
     private var semesterMenuTitle: String {
         dataManager.selectedSemester?.name ?? "Choose semester"
     }
@@ -49,18 +55,18 @@ struct TimetableView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(0..<7, id: \.self) { index in
+                    ForEach(orderedWeekdayIndices, id: \.self) { dayIndex in
                         Button {
-                            selectedDay = index
+                            selectedDay = dayIndex
                         } label: {
                             VStack(spacing: 4) {
-                                Text(weekdays[index])
-                                    .font(.system(size: 14, weight: selectedDay == index ? .bold : .medium))
-                                    .foregroundColor(selectedDay == index ? .white : .primary)
+                                Text(weekdays[dayIndex])
+                                    .font(.system(size: 14, weight: selectedDay == dayIndex ? .bold : .medium))
+                                    .foregroundColor(selectedDay == dayIndex ? .white : .primary)
 
-                                if isToday(dayIndex: index) {
+                                if isToday(dayIndex: dayIndex) {
                                     Circle()
-                                        .fill(selectedDay == index ? Color.white : Color.accentColor)
+                                        .fill(selectedDay == dayIndex ? Color.white : Color.accentColor)
                                         .frame(width: 6, height: 6)
                                 } else {
                                     Circle()
@@ -72,7 +78,7 @@ struct TimetableView: View {
                             .padding(.vertical, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(selectedDay == index ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
+                                    .fill(selectedDay == dayIndex ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
                             )
                         }
                         .buttonStyle(.plain)

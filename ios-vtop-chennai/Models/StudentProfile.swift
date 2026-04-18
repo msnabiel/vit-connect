@@ -17,6 +17,8 @@ struct StudentProfile: Codable, Identifiable {
     var overallAttendance: Int?
     var semester: String?
     var semesterId: String?
+    /// From VTOP profile (e.g. Male / Female); used for salutation on home, etc.
+    var gender: String?
 
     init(
         name: String,
@@ -31,7 +33,8 @@ struct StudentProfile: Codable, Identifiable {
         gpa: String? = nil,
         overallAttendance: Int? = nil,
         semester: String? = nil,
-        semesterId: String? = nil
+        semesterId: String? = nil,
+        gender: String? = nil
     ) {
         self.id = UUID()
         self.name = name
@@ -47,5 +50,25 @@ struct StudentProfile: Codable, Identifiable {
         self.overallAttendance = overallAttendance
         self.semester = semester
         self.semesterId = semesterId
+        self.gender = gender
+    }
+}
+
+extension StudentProfile {
+    /// "Mr." / "Mrs." from VTOP gender when unambiguous; otherwise no prefix.
+    var salutationPrefix: String? {
+        guard let gender else { return nil }
+        let g = gender.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if g.isEmpty { return nil }
+        if g == "female" || g == "f" || g.hasPrefix("female") { return "Mrs." }
+        if g == "male" || g == "m" || (g.hasPrefix("male") && !g.contains("female")) { return "Mr." }
+        return nil
+    }
+
+    var displayNameWithSalutation: String {
+        let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !n.isEmpty else { return name }
+        guard let p = salutationPrefix else { return n }
+        return "\(p) \(n)"
     }
 }

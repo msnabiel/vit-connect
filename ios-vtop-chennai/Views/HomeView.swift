@@ -188,7 +188,7 @@ struct HomeTabView: View {
                                 .foregroundColor(.primary)
                         }
 
-                        Text(dataManager.studentProfile?.name ?? authViewModel.username)
+                        Text(dataManager.studentProfile.map(\.displayNameWithSalutation) ?? authViewModel.username)
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.secondary)
 
@@ -904,7 +904,7 @@ struct ProfileTabView: View {
                     Section(header: Text("Student Information")) {
                         HStack {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(profile.name)
+                                Text(profile.displayNameWithSalutation)
                                     .font(.system(size: 18, weight: .bold))
 
                                 if let semester = profile.semester {

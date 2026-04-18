@@ -267,6 +267,7 @@ class DataManager: ObservableObject {
             var profile = {
                 name: null, cgpa: 0, totalCredits: 0, creditsRegistered: null,
                 registrationNumber: null, vitEmail: null, programBranch: null, schoolName: null,
+                gender: null,
                 profileSections: [], gradeHistorySections: [],
                 debug: '', rawResponse: '', rawProfileAllView: ''
             };
@@ -290,6 +291,7 @@ class DataManager: ObservableObject {
                     else if (low.indexOf('vit') >= 0 && low.indexOf('email') >= 0) profile.vitEmail = val;
                     else if (low.indexOf('program') >= 0 || low.indexOf('branch') >= 0) profile.programBranch = val;
                     else if (low.indexOf('school name') >= 0) profile.schoolName = val;
+                    else if (low === 'gender' || (low.indexOf('gender') >= 0 && low.indexOf('identity') < 0 && low.indexOf('prefer') < 0)) profile.gender = val;
                 });
                 var cells = $r.find('td');
                 for (var i = 0; i < cells.length; i++) {
@@ -310,7 +312,11 @@ class DataManager: ObservableObject {
                         if (tds.length >= 2) {
                             var k = tds.eq(0).text().replace(/\\s+/g, ' ').trim();
                             var v = tds.eq(1).text().replace(/\\s+/g, ' ').trim();
-                            if (k && k.length < 200) rows.push({ k: k, v: v });
+                            if (k && k.length < 200) {
+                                var kl = k.toLowerCase();
+                                if (kl === 'gender' || (kl.indexOf('gender') === 0 && kl.length <= 16)) profile.gender = v;
+                                rows.push({ k: k, v: v });
+                            }
                         }
                     });
                     if (title && rows.length) profile.profileSections.push({ title: title, rows: rows });
@@ -594,6 +600,7 @@ class DataManager: ObservableObject {
             let vitEmail = dict["vitEmail"] as? String
             let programBranch = dict["programBranch"] as? String
             let schoolName = dict["schoolName"] as? String
+            let gender = dict["gender"] as? String
 
             var accordionSections: [ProfileAccordionSectionData]?
             if let rawSections = dict["profileSections"] as? [[String: Any]] {
@@ -650,7 +657,8 @@ class DataManager: ObservableObject {
                     schoolName: schoolName,
                     accordionSections: accordionSections,
                     semester: self.selectedSemester?.name,
-                    semesterId: self.selectedSemester?.id
+                    semesterId: self.selectedSemester?.id,
+                    gender: gender
                 )
                 let dedupedGrades = Self.deduplicateGradeHistoryRows(gradeRows)
                 self.gradeHistoryRows = dedupedGrades
