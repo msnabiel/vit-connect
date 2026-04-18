@@ -46,6 +46,13 @@ extension View {
     func vtopNavLeadingIcon() -> some View {
         modifier(VTOPNavLeadingIconModifier())
     }
+
+    /// Solid navigation bar so top-of-screen views (e.g. offline banner) never show through a translucent bar.
+    func vtopOpaqueNavigationBar() -> some View {
+        self
+            .toolbarBackground(Color(uiColor: .systemBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+    }
 }
 
 // MARK: - Sync arrow (smooth spin while `DataManager.isLoading`)

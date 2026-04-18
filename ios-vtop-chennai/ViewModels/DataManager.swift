@@ -62,8 +62,10 @@ class DataManager: ObservableObject {
     private var authorizedID: String?
     private var csrfToken: String?
     private var syncDebounceItem: DispatchWorkItem?
+    /// Set for the lifetime of one `extractSessionData` → … → `finishDataFetching` chain. Only `performSyncAll` starts a chain with this true so post-login fetches never touch UserDefaults quota.
+    private var countsCurrentSessionTowardManualFullSyncQuota = false
 
-    /// Rolling window for counting successful full fetches (`finishDataFetching`). Post-login `extractSessionData` is not counted here until it completes the same chain.
+    /// Rolling window for manual full-sync completions recorded in `finishDataFetching` when `countsCurrentSessionTowardManualFullSyncQuota` is true.
     private static let fullSyncQuotaWindow: TimeInterval = 3600
     private static let fullSyncQuotaMaxPerWindow = 3
     private static let fullSyncCompletionTimesKey = "vtop_fullSyncCompletionTimes"
@@ -166,6 +168,7 @@ class DataManager: ObservableObject {
     /// Stops sync UI (toolbar spin, overlay) without implying a session error.
     private func clearSyncProgress() {
         DispatchQueue.main.async {
+            self.countsCurrentSessionTowardManualFullSyncQuota = false
             self.isLoading = false
             self.loadingMessage = ""
         }
@@ -174,6 +177,7 @@ class DataManager: ObservableObject {
     /// Called when CSRF / authorized ID cannot be read from the WebView after retries (expired session, blank page, etc.).
     private func reportSessionExtractionFailed() {
         DispatchQueue.main.async {
+            self.countsCurrentSessionTowardManualFullSyncQuota = false
             self.lastDataFetchFailureReason = "VTOP session is not available. Sign out and sign in again to sync."
             self.isLoading = false
             self.loadingMessage = ""
@@ -181,7 +185,11 @@ class DataManager: ObservableObject {
     }
 
     // MARK: - Extract Session Data
-    func extractSessionData(attempt: Int = 1) {
+    /// - Parameter incrementManualFullSyncQuotaOnCompletion: Pass `true` only from `performSyncAll` so a successful `finishDataFetching` appends to the hourly manual full-sync quota. Post-login / background calls use the default `false` (quota counters in UserDefaults are unchanged).
+    func extractSessionData(attempt: Int = 1, incrementManualFullSyncQuotaOnCompletion: Bool = false) {
+        if attempt == 1 {
+            countsCurrentSessionTowardManualFullSyncQuota = incrementManualFullSyncQuotaOnCompletion
+        }
         logger.info("🔑 Extracting session data (attempt \(attempt)/5)...", context: "DataManager")
 
         let script = """
@@ -2986,7 +2994,10 @@ class DataManager: ObservableObject {
             self.isLoading = false
             self.loadingMessage = ""
             self.lastDataFetchFailureReason = nil
-            Self.recordFullSyncCompleted(at: completedAt)
+            if self.countsCurrentSessionTowardManualFullSyncQuota {
+                Self.recordFullSyncCompleted(at: completedAt)
+                self.countsCurrentSessionTowardManualFullSyncQuota = false
+            }
             self.lastSuccessfulSyncAt = completedAt
             self.persistCache()
             self.logger.success("🎉 All data fetched successfully!", context: "DataManager")
@@ -3175,7 +3186,7 @@ class DataManager: ObservableObject {
         lastDataFetchFailureReason = nil
         isLoading = true
         loadingMessage = "Syncing…"
-        extractSessionData()
+        extractSessionData(attempt: 1, incrementManualFullSyncQuotaOnCompletion: true)
     }
 
     // MARK: - Load Cached Data

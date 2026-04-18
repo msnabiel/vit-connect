@@ -184,7 +184,7 @@ struct HomeTabView: View {
                     .ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        OfflineDataBanner(showSyncMetadata: false)
+                        OfflineDataBanner(showSyncMetadata: true)
                         // Greeting Section
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -708,56 +708,75 @@ struct AttendanceTabView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Color(uiColor: .systemGroupedBackground)
-                    .ignoresSafeArea()
-                Group {
-                    if dataManager.attendance.isEmpty {
-                        VStack(spacing: 0) {
-                            if !semesterChoices.isEmpty {
-                                semesterPickerMenu
-                                    .padding(.horizontal, Self.semesterPickerHorizontalPadding)
-                                    .padding(.top, Self.semesterPickerTopPadding)
-                                    .padding(.bottom, Self.semesterPickerBottomPadding)
-                            }
-
-                            Spacer(minLength: 0)
-
-                            EmptyStateView(
-                                icon: "calendar.badge.exclamationmark",
-                                title: "No attendance yet",
-                                message: "Choose a semester above, or pull down to refresh."
-                            )
-
-                            Spacer(minLength: 0)
+            VStack(spacing: 0) {
+                OfflineDataBanner(showSyncMetadata: false)
+                ZStack(alignment: .top) {
+                    Color(uiColor: .systemGroupedBackground)
+                        .ignoresSafeArea(edges: [.horizontal, .bottom])
+                    VStack(spacing: 0) {
+                        if !semesterChoices.isEmpty {
+                            semesterPickerMenu
+                                .padding(.horizontal, Self.semesterPickerHorizontalPadding)
+                                .padding(.top, Self.semesterPickerTopPadding)
+                                .padding(.bottom, Self.semesterPickerBottomPadding)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 16) {
-                                if !semesterChoices.isEmpty {
-                                    semesterPickerMenu
-                                }
 
-                                overallAttendanceStrip
-
-                                ForEach(dataManager.attendance) { attendance in
-                                    AttendanceCard(
-                                        course: attendance.matchingCatalogCourse(in: dataManager.courses),
-                                        attendance: attendance
+                        List {
+                            if dataManager.attendance.isEmpty {
+                                Section {
+                                    EmptyStateView(
+                                        icon: "calendar.badge.exclamationmark",
+                                        title: "No attendance yet",
+                                        message: "Choose a semester above, or pull down to refresh."
                                     )
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 24)
+                                }
+                                .listRowBackground(Color.clear)
+                            } else {
+                                Section {
+                                    overallAttendanceStrip
+                                }
+                                .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                                .listRowBackground(Color.clear)
+
+                                Section {
+                                    ForEach(dataManager.attendance) { attendance in
+                                        AttendanceCard(
+                                            course: attendance.matchingCatalogCourse(in: dataManager.courses),
+                                            attendance: attendance
+                                        )
+                                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                        .listRowBackground(Color.clear)
+                                        .listRowSeparator(.hidden)
+                                    }
                                 }
                             }
-                            .padding(.horizontal, Self.semesterPickerHorizontalPadding)
-                            .padding(.top, Self.semesterPickerTopPadding)
-                            .padding(.bottom, 16)
                         }
+                        .listStyle(.insetGrouped)
                         .scrollContentBackground(.hidden)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationTitle("Attendance")
+            .navigationBarTitleDisplayMode(.inline)
+            .vtopOpaqueNavigationBar()
+            .refreshable {
+                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                    if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
+                        dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false) {
+                            cont.resume()
+                        }
+                    } else {
+                        dataManager.loadAttendanceSemesterPicklist {
+                            cont.resume()
+                        }
                     }
                 }
             }
-            .navigationTitle("Attendance")
-            .navigationBarTitleDisplayMode(.inline)
             .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -795,17 +814,23 @@ struct PerformanceTabView: View {
 
     var body: some View {
         NavigationStack {
-            MarksBySemesterView()
-                .environmentObject(dataManager)
-                .vtopNavLeadingIcon()
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        TimetableToolbarLink()
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        MainSyncToolbarButton()
-                    }
+            VStack(spacing: 0) {
+                OfflineDataBanner(showSyncMetadata: false)
+                MarksBySemesterView()
+                    .environmentObject(dataManager)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .vtopOpaqueNavigationBar()
+            .vtopNavLeadingIcon()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    TimetableToolbarLink()
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    MainSyncToolbarButton()
+                }
+            }
         }
     }
 }
@@ -914,7 +939,9 @@ struct ProfileTabView: View {
 
     var body: some View {
         NavigationView {
-            List {
+            VStack(spacing: 0) {
+                OfflineDataBanner(showSyncMetadata: false)
+                List {
                 // Student Info Section
                 if let profile = dataManager.studentProfile {
                     Section(header: Text("Student Information")) {
@@ -1103,8 +1130,11 @@ struct ProfileTabView: View {
                         }
                     }
                 }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationBarTitle("Profile", displayMode: .inline)
+            .vtopOpaqueNavigationBar()
             .alert("Sign out?", isPresented: $confirmSignOut) {
                 Button("Cancel", role: .cancel) {}
                 Button("Sign Out", role: .destructive) {

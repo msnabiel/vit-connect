@@ -23,9 +23,9 @@ struct MarksBySemesterView: View {
     private static let semesterPickerBottomPadding: CGFloat = 8
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Color(uiColor: .systemGroupedBackground)
-                .ignoresSafeArea()
+                .ignoresSafeArea(edges: [.horizontal, .bottom])
             VStack(spacing: 0) {
                 if !choices.isEmpty {
                     Menu {
@@ -123,10 +123,13 @@ struct MarksBySemesterView: View {
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle("Marks")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopOpaqueNavigationBar()
         .refreshable {
             await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
                 if semesterId.isEmpty {
