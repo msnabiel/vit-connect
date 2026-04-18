@@ -23,6 +23,8 @@ class DataManager: ObservableObject {
     /// Semester options from `examinations/StudentMarkView` (marks report; independent of `marks` from sync chain).
     @Published var marksReportSemesterOptions: [Semester] = []
     @Published var marksReportRows: [MarkReportRow] = []
+    /// Last `semesterSubId` used for marks-by-semester (persisted for restore).
+    @Published var marksReportSemesterId: String?
 
     /// All-semester grade rows from `StudentGradeHistory` (distinct from semester `cumulativeMarks`).
     @Published var gradeHistoryRows: [GradeHistoryCourseRow] = []
@@ -209,6 +211,7 @@ class DataManager: ObservableObject {
                 if let firstSemester = semesters.first {
                     self.selectSemester(firstSemester)
                 }
+                self.persistCache()
             }
         }
     }
@@ -251,6 +254,7 @@ class DataManager: ObservableObject {
             self.loadingMessage = "Loading profile..."
         }
 
+        // `tryParseGradeTable` matches StudentGradeHistory markup in `Views/grades/grade.txt` (customTable, dual tableHeader rows, tableContent, detailsView rows skipped).
         let script = """
         (function() {
             var profile = {
@@ -651,6 +655,7 @@ class DataManager: ObservableObject {
 
                 self.logger.success("✅ Profile loaded - Name: \(name), CGPA: \(cgpa), Credits: \(totalCredits), grade history rows: \(dedupedGrades.count) (raw \(gradeRows.count))", context: "DataManager")
 
+                self.persistCache()
                 // Continue to next step
                 self.fetchCoursesAndTimetable()
             }
@@ -881,6 +886,7 @@ class DataManager: ObservableObject {
                 self.courses = courses
                 self.timetable = timetable
                 self.logger.success("✅ Loaded \(courses.count) courses and \(timetable.count) timetable slots", context: "DataManager")
+                self.persistCache()
                 self.fetchAttendance()
             }
         }
@@ -1125,6 +1131,7 @@ class DataManager: ObservableObject {
                     }
                 }
                 self.logger.success("✅ Loaded \(marks.count) marks and \(cumulativeMarks.count) grades", context: "DataManager")
+                self.persistCache()
                 self.fetchExams()
             }
         }
@@ -1194,6 +1201,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.attendanceSemesterOptions = list
                 self.logger.success("✅ Attendance semester picklist: \(list.count) options", context: "DataManager")
+                self.persistCache()
                 completion?()
             }
         }
@@ -1252,6 +1260,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.marksReportSemesterOptions = list
                 self.logger.success("✅ Marks semester picklist: \(list.count) options", context: "DataManager")
+                self.persistCache()
                 completion?()
             }
         }
@@ -1392,7 +1401,9 @@ class DataManager: ObservableObject {
             }
             DispatchQueue.main.async {
                 self.marksReportRows = rows
+                self.marksReportSemesterId = semesterSubId
                 self.logger.success("✅ Marks report: \(rows.count) entries", context: "DataManager")
+                self.persistCache()
                 completion?()
             }
         }
@@ -1609,6 +1620,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.attendance = attendance
                 self.logger.success("✅ Loaded attendance for \(attendance.count) courses", context: "DataManager")
+                self.persistCache()
                 if continueAfterMarks {
                     self.fetchMarks()
                 } else {
@@ -1715,6 +1727,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.exams = exams
                 self.logger.success("✅ Loaded \(exams.count) exams", context: "DataManager")
+                self.persistCache()
                 self.fetchStaff()
             }
         }
@@ -1958,6 +1971,7 @@ class DataManager: ObservableObject {
                 self.deanPortraitData = deanPhoto
                 self.hodPortraitData = hodPhoto
                 self.logger.success("✅ Loaded \(staff.count) staff, \(credentials.count) portal credential(s), \(ranks.count) rank row(s)", context: "DataManager")
+                self.persistCache()
                 self.fetchSpotlight()
             }
         }
@@ -2064,6 +2078,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.spotlights = spotlights
                 self.logger.success("✅ Loaded \(spotlights.count) announcements", context: "DataManager")
+                self.persistCache()
                 self.fetchReceipts()
             }
         }
@@ -2176,8 +2191,35 @@ class DataManager: ObservableObject {
         DispatchQueue.main.async {
             self.isLoading = false
             self.loadingMessage = ""
+            self.persistCache()
             self.logger.success("🎉 All data fetched successfully!", context: "DataManager")
         }
+    }
+
+    private func persistCache() {
+        VTOPDataCache.persistSnapshot(
+            studentProfile: studentProfile,
+            gradeHistoryRows: gradeHistoryRows,
+            courses: courses,
+            timetable: timetable,
+            attendance: attendance,
+            marks: marks,
+            cumulativeMarks: cumulativeMarks,
+            exams: exams,
+            staff: staff,
+            semesters: semesters,
+            selectedSemester: selectedSemester,
+            attendanceSemesterOptions: attendanceSemesterOptions,
+            marksReportSemesterOptions: marksReportSemesterOptions,
+            marksReportRows: marksReportRows,
+            marksReportSemesterId: marksReportSemesterId,
+            spotlights: spotlights,
+            receipts: receipts,
+            portalCredentials: portalCredentials,
+            rankEntries: rankEntries,
+            deanPortraitData: deanPortraitData,
+            hodPortraitData: hodPortraitData
+        )
     }
 
     // MARK: - Sync All Data
@@ -2200,28 +2242,9 @@ class DataManager: ObservableObject {
 
     // MARK: - Load Cached Data
     func loadCachedData() {
-        logger.info("📂 Loading cached data from UserDefaults...", context: "DataManager")
-
-        // Load student profile
-        if let name = UserDefaults.standard.string(forKey: "name") {
-            let cgpa = UserDefaults.standard.double(forKey: "cgpa")
-            let totalCredits = UserDefaults.standard.double(forKey: "totalCredits")
-            let semester = UserDefaults.standard.string(forKey: "semester")
-
-            DispatchQueue.main.async {
-                self.studentProfile = StudentProfile(
-                    name: name,
-                    cgpa: cgpa,
-                    totalCredits: totalCredits,
-                    semester: semester
-                )
-                self.logger.success("✅ Loaded cached student profile: \(name)", context: "DataManager")
-            }
-        }
-
-        // Note: For full offline support, we should also load courses, attendance, etc.
-        // from UserDefaults or CoreData. For now, just loading the basic profile.
-        logger.info("💡 Tip: Pull to refresh or use Sync Data to fetch latest data", context: "DataManager")
+        logger.info("📂 Restoring cached VTOP snapshot from UserDefaults...", context: "DataManager")
+        VTOPDataCache.restoreInto(self)
+        logger.info("💡 Sign in and sync to refresh after the snapshot loads.", context: "DataManager")
     }
 
     // MARK: - Helper: Get WebView

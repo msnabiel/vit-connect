@@ -18,11 +18,12 @@ struct MarksBySemesterView: View {
             if !choices.isEmpty {
                 Section {
                     Picker("Semester", selection: $semesterId) {
-                        Text("Choose semester").tag("")
                         ForEach(choices) { s in
                             Text(s.name).tag(s.id)
                         }
                     }
+                    .pickerStyle(.menu)
+                    .tint(Color(uiColor: .systemBlue))
                     .onChange(of: semesterId) { _, newId in
                         guard pickerPrimed, !newId.isEmpty else { return }
                         dataManager.refreshMarksReport(semesterSubId: newId, completion: nil)
@@ -48,22 +49,36 @@ struct MarksBySemesterView: View {
                 }
             } else {
                 ForEach(groupedMarks, id: \.code) { sec in
-                    Section(header: Text(sectionHeader(code: sec.code, rows: sec.rows))) {
+                    Section(header: Text(sectionHeader(code: sec.code, rows: sec.rows))
+                        .foregroundColor(.indigo)) {
                         ForEach(sec.rows.sorted(by: { $0.markTitle.localizedCaseInsensitiveCompare($1.markTitle) == .orderedAscending })) { row in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(row.markTitle)
                                     .font(.subheadline.weight(.semibold))
-                                HStack {
-                                    Text("Scored \(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
-                                    Spacer()
-                                    Text("Weight \(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
+                                    .foregroundColor(.primary)
+
+                                HStack(spacing: 0) {
+                                    Text("Scored ")
+                                        .font(.caption)
                                         .foregroundColor(.secondary)
+                                    Text("\(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundColor(Color.green.opacity(0.92))
                                 }
-                                .font(.caption)
+
+                                HStack(spacing: 0) {
+                                    Text("Weight ")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("\(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundColor(Color.orange.opacity(0.95))
+                                }
+
                                 if !row.status.isEmpty {
                                     Text(row.status)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundColor(statusTextColor(row.status))
                                 }
                             }
                             .padding(.vertical, 2)
@@ -104,6 +119,13 @@ struct MarksBySemesterView: View {
         }
     }
 
+    private func statusTextColor(_ status: String) -> Color {
+        let s = status.lowercased()
+        if s.contains("present") { return Color.blue }
+        if s.contains("absent") { return Color.red.opacity(0.9) }
+        return Color.secondary
+    }
+
     private func sectionHeader(code: String, rows: [MarkReportRow]) -> String {
         if let t = rows.first?.courseTitle, !t.isEmpty {
             return "\(code) — \(t)"
@@ -122,8 +144,14 @@ struct MarksBySemesterView: View {
     private func reloadPicklist(completion: (() -> Void)? = nil) {
         dataManager.loadMarksSemesterPicklist {
             let c = dataManager.marksReportSemesterOptions
-            if semesterId.isEmpty, let first = c.first {
-                semesterId = first.id
+            if semesterId.isEmpty {
+                if let sid = dataManager.marksReportSemesterId, c.contains(where: { $0.id == sid }) {
+                    semesterId = sid
+                } else if let sid = dataManager.selectedSemester?.id, c.contains(where: { $0.id == sid }) {
+                    semesterId = sid
+                } else if let first = c.first {
+                    semesterId = first.id
+                }
             }
             pickerPrimed = true
             if !semesterId.isEmpty {

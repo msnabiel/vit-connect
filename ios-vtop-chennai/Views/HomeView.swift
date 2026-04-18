@@ -521,6 +521,10 @@ struct AttendanceTabView: View {
         return fromPage.isEmpty ? dataManager.semesters : fromPage
     }
 
+    private var attendanceSemesterDisplayName: String {
+        semesterChoices.first(where: { $0.id == attendanceSemesterId })?.name ?? "Choose semester"
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -530,9 +534,20 @@ struct AttendanceTabView: View {
                             Text("Semester")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundColor(.secondary)
-                            Picker("Semester", selection: $attendanceSemesterId) {
+                            Picker(selection: $attendanceSemesterId) {
                                 ForEach(semesterChoices) { sem in
                                     Text(sem.name).tag(sem.id)
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Text(attendanceSemesterDisplayName)
+                                        .font(.body.weight(.medium))
+                                        .foregroundColor(Color(uiColor: .systemBlue))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.65)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundColor(Color(uiColor: .systemBlue))
                                 }
                             }
                             .pickerStyle(.menu)
@@ -801,7 +816,12 @@ struct ProfileTabView: View {
 
                 Section(header: Text("Profile & sync")) {
                     NavigationLink(destination: FullStudentProfileView().environmentObject(dataManager)) {
-                        Label("Full profile from VTOP", systemImage: "person.text.rectangle")
+                        Label("Full profile", systemImage: "person.text.rectangle")
+                    }
+
+                    // Replace with your real form URL when ready.
+                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSf_replaceWithRealFormId/viewform")!) {
+                        Label("Bugs & suggestions", systemImage: "ladybug.fill")
                     }
 
                     Button(action: {
@@ -823,6 +843,15 @@ struct ProfileTabView: View {
                         }
                     }
                     .disabled(dataManager.isLoading)
+                }
+
+                Section(header: Text("Legal")) {
+                    NavigationLink(destination: PrivacyPolicyView()) {
+                        Label("Privacy policy", systemImage: "hand.raised.fill")
+                    }
+                    NavigationLink(destination: TermsAndConditionsView()) {
+                        Label("Terms and conditions", systemImage: "doc.plaintext")
+                    }
                 }
 
                 Section {

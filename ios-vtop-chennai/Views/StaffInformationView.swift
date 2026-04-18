@@ -6,47 +6,26 @@ struct StaffInformationView: View {
     @State private var selectedTab: StaffType = .proctor
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                if dataManager.staff.isEmpty {
-                    EmptyStateView(
-                        icon: "person.3.fill",
-                        message: "No staff information available"
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    HStack(spacing: 0) {
-                        ForEach([StaffType.proctor, StaffType.dean, StaffType.hod], id: \.self) { type in
-                            Button(action: {
-                                withAnimation(.spring(response: 0.3)) {
-                                    selectedTab = type
-                                }
-                            }) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: iconForType(type))
-                                        .font(.system(size: 20))
-
-                                    Text(type.rawValue.capitalized)
-                                        .font(.system(size: 14, weight: .semibold))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .foregroundColor(selectedTab == type ? .accentColor : .secondary)
-                                .background(
-                                    VStack {
-                                        Spacer()
-                                        Rectangle()
-                                            .fill(selectedTab == type ? Color.accentColor : Color.clear)
-                                            .frame(height: 3)
-                                    }
-                                )
-                            }
-                        }
+        Group {
+            if dataManager.staff.isEmpty {
+                EmptyStateView(
+                    icon: "person.3.fill",
+                    message: "No staff information available"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 0) {
+                    Picker("Role", selection: $selectedTab) {
+                        Text("Proctor").tag(StaffType.proctor)
+                        Text("Dean").tag(StaffType.dean)
+                        Text("HoD").tag(StaffType.hod)
                     }
-                    .background(Color(uiColor: .secondarySystemBackground))
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
 
                     ScrollView {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 12) {
                             leadershipPortrait
 
                             let staffEntries = dataManager.staff.filter { $0.type == selectedTab }
@@ -57,22 +36,22 @@ struct StaffInformationView: View {
                                         SkeletonListRow()
                                     }
                                 }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 16)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
                             } else if staffEntries.isEmpty {
                                 EmptyStateView(
                                     icon: "person.fill.questionmark",
                                     message: "No \(selectedTab.rawValue.lowercased()) information available"
                                 )
-                                .padding(.top, 48)
+                                .padding(.top, 32)
                             } else {
                                 LazyVStack(spacing: 10) {
                                     ForEach(staffEntries) { staff in
                                         StaffInfoRow(staff: staff)
                                     }
                                 }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 16)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
                             }
                         }
                     }
@@ -81,9 +60,9 @@ struct StaffInformationView: View {
                     }
                 }
             }
-            .navigationTitle("Staff Information")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("Staff Information")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     @ViewBuilder
@@ -112,15 +91,7 @@ struct StaffInformationView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 12)
-    }
-
-    private func iconForType(_ type: StaffType) -> String {
-        switch type {
-        case .proctor: return "person.fill.checkmark"
-        case .dean: return "person.fill.badge.plus"
-        case .hod: return "person.fill.badge.minus"
-        }
+        .padding(.top, 8)
     }
 }
 
@@ -208,6 +179,8 @@ struct StaffInfoRow: View {
 }
 
 #Preview {
-    StaffInformationView()
-        .environmentObject(DataManager())
+    NavigationStack {
+        StaffInformationView()
+            .environmentObject(DataManager())
+    }
 }

@@ -89,7 +89,7 @@ struct CumulativeMark: Codable, Identifiable, Hashable {
 
 // MARK: - Marks report (doStudentMarkView by semester — separate from timetable `marks`)
 
-struct MarkReportRow: Identifiable, Hashable {
+struct MarkReportRow: Codable, Identifiable, Hashable {
     let id: Int
     let courseCode: String
     let courseTitle: String?

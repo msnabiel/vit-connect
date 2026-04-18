@@ -5,16 +5,15 @@ struct ExamScheduleView: View {
     @State private var selectedExamIndex: Int = 0
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                if dataManager.exams.isEmpty {
-                    EmptyStateView(
-                        icon: "calendar.badge.exclamationmark",
-                        message: "No exam schedule available"
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    // Exam selector
+        Group {
+            if dataManager.exams.isEmpty {
+                EmptyStateView(
+                    icon: "calendar.badge.exclamationmark",
+                    message: "No exam schedule available"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 0) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             ForEach(Array(dataManager.exams.enumerated()), id: \.offset) { index, exam in
@@ -42,11 +41,10 @@ struct ExamScheduleView: View {
                             }
                         }
                         .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, 12)
                     }
                     .background(Color(uiColor: .systemBackground))
 
-                    // Exam details
                     TabView(selection: $selectedExamIndex) {
                         ForEach(Array(dataManager.exams.enumerated()), id: \.offset) { index, exam in
                             ExamDetailCard(exam: exam, course: dataManager.courses.first(where: { $0.id == exam.courseId }))
@@ -57,9 +55,9 @@ struct ExamScheduleView: View {
                     .tabViewStyle(.page(indexDisplayMode: .never))
                 }
             }
-            .navigationTitle("Exam Schedule")
-            .navigationBarTitleDisplayMode(.inline)
         }
+        .navigationTitle("Exam Schedule")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -70,9 +68,7 @@ struct ExamDetailCard: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Course info
                 VStack(spacing: 12) {
-                    // Exam type badge
                     HStack {
                         Spacer()
 
@@ -101,11 +97,9 @@ struct ExamDetailCard: View {
                         }
                     }
                 }
-                .padding(.top, 20)
+                .padding(.top, 12)
 
-                // Exam details
                 VStack(spacing: 16) {
-                    // Date & Time (placeholder - we'll show venue for now since we don't have date parsing)
                     if let venue = exam.venue {
                         InfoRow(
                             icon: "mappin.circle.fill",
@@ -115,7 +109,6 @@ struct ExamDetailCard: View {
                         )
                     }
 
-                    // Seat location
                     if let seatLocation = exam.seatLocation {
                         InfoRow(
                             icon: "person.crop.square.fill",
@@ -125,7 +118,6 @@ struct ExamDetailCard: View {
                         )
                     }
 
-                    // Seat number
                     if let seatNumber = exam.seatNumber {
                         InfoRow(
                             icon: "number.circle.fill",
@@ -135,7 +127,6 @@ struct ExamDetailCard: View {
                         )
                     }
 
-                    // Course type
                     if let course = course {
                         InfoRow(
                             icon: "book.fill",
@@ -154,7 +145,6 @@ struct ExamDetailCard: View {
                 }
                 .padding(.horizontal, 4)
 
-                // Important note
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -222,6 +212,8 @@ struct InfoRow: View {
 }
 
 #Preview {
-    ExamScheduleView()
-        .environmentObject(DataManager())
+    NavigationStack {
+        ExamScheduleView()
+            .environmentObject(DataManager())
+    }
 }
