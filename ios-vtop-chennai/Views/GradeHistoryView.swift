@@ -68,6 +68,11 @@ struct GradeHistoryView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
+                                if let em = row.examMonth, !em.isEmpty {
+                                    Text(em)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                             .padding(.vertical, 4)
                         }

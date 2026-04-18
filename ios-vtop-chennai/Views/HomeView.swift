@@ -772,6 +772,10 @@ struct ProfileTabView: View {
                         Label("Grade history (all semesters)", systemImage: "chart.bar.doc.horizontal")
                     }
 
+                    NavigationLink(destination: MarksBySemesterView().environmentObject(dataManager)) {
+                        Label("Marks by semester", systemImage: "doc.text.magnifyingglass")
+                    }
+
                     NavigationLink(destination: ExamScheduleView().environmentObject(dataManager)) {
                         Label("Exam Schedule", systemImage: "calendar")
                     }

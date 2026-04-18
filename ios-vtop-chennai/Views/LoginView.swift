@@ -298,7 +298,7 @@ struct LoginView: View {
                     viewModel.isLoading = false
                 }
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.height(320), .medium])
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $viewModel.showReCaptchaWebView) {

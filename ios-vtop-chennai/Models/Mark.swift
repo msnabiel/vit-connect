@@ -86,3 +86,18 @@ struct CumulativeMark: Codable, Identifiable, Hashable {
         lhs.id == rhs.id
     }
 }
+
+// MARK: - Marks report (doStudentMarkView by semester — separate from timetable `marks`)
+
+struct MarkReportRow: Identifiable, Hashable {
+    let id: Int
+    let courseCode: String
+    let courseTitle: String?
+    let markTitle: String
+    let maxMark: Double
+    let weightagePercent: Double
+    let scoredMark: Double
+    let weightageMark: Double
+    let status: String
+    let classAverage: Double?
+}

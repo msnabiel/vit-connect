@@ -20,6 +20,10 @@ class DataManager: ObservableObject {
     /// Semester options from `academics/common/StudentAttendance` (attendance dropdown; may include more terms than timetable).
     @Published var attendanceSemesterOptions: [Semester] = []
 
+    /// Semester options from `examinations/StudentMarkView` (marks report; independent of `marks` from sync chain).
+    @Published var marksReportSemesterOptions: [Semester] = []
+    @Published var marksReportRows: [MarkReportRow] = []
+
     /// All-semester grade rows from `StudentGradeHistory` (distinct from semester `cumulativeMarks`).
     @Published var gradeHistoryRows: [GradeHistoryCourseRow] = []
     @Published var portalCredentials: [VTOPPortalCredential] = []
@@ -303,9 +307,80 @@ class DataManager: ObservableObject {
             }
 
             function tryParseGradeTable($table) {
+                var blob = ($table.text() || '').toLowerCase();
+                if (blob.indexOf('attendance') >= 0 && blob.indexOf('attended classes') >= 0) return null;
+                var $directRows = $table.children('tbody').length ? $table.children('tbody').children('tr') : $table.children('tr');
+                function parseCustomGradeTable() {
+                    var bestHr = null, bestN = 0;
+                    $directRows.filter('.tableHeader').each(function() {
+                        var $r = $(this);
+                        var cells = $r.children('td, th');
+                        if (cells.length < 5) return;
+                        var tx = ($r.text() || '').toLowerCase();
+                        if (tx.indexOf('grade') < 0) return;
+                        if (tx.indexOf('course') < 0 || tx.indexOf('code') < 0) return;
+                        if (cells.length > bestN) { bestN = cells.length; bestHr = $r; }
+                    });
+                    if (!bestHr || !bestHr.length) return null;
+                    var heads = [];
+                    bestHr.children('td, th').each(function() {
+                        heads.push(($(this).text() || '').toLowerCase().replace(/\\s+/g, ' ').trim());
+                    });
+                    var codeIdx = -1, titleIdx = -1, gradeIdx = -1, credIdx = -1, examIdx = -1;
+                    for (var hi = 0; hi < heads.length; hi++) {
+                        var h = heads[hi];
+                        if (h.indexOf('course') >= 0 && h.indexOf('code') >= 0) codeIdx = hi;
+                        else if (h.indexOf('course title') >= 0 || (h.indexOf('course') >= 0 && h.indexOf('title') >= 0)) titleIdx = hi;
+                        else if (h === 'grade' || (h.indexOf('grade') >= 0 && h.indexOf('point') < 0 && h.indexOf('cgpa') < 0 && h.indexOf('gpa') < 0 && h.indexOf('history') < 0)) {
+                            if (gradeIdx < 0) gradeIdx = hi;
+                        } else if (h.indexOf('credit') >= 0 && h.indexOf('registered') < 0) credIdx = hi;
+                        else if (h.indexOf('exam month') >= 0 || (h.indexOf('exam') >= 0 && h.indexOf('month') >= 0)) examIdx = hi;
+                    }
+                    if (codeIdx < 0 || gradeIdx < 0) return null;
+                    var out = [];
+                    $directRows.each(function() {
+                        var $tr = $(this);
+                        if (!$tr.is('.tableContent') || $tr.hasClass('tableContent-level1')) return;
+                        var idAttr = $tr.attr('id') || '';
+                        if (idAttr.indexOf('detailsView') === 0) return;
+                        var st = (($tr.attr('style') || '').replace(/\\s/g, '')).toLowerCase();
+                        if (st.indexOf('display:none') >= 0) return;
+                        var $tds = $tr.children('td');
+                        if ($tds.length < 3) return;
+                        if ($tds.first().attr('colspan')) return;
+                        var code = $tds.eq(codeIdx).text().trim();
+                        var grade = $tds.eq(gradeIdx).text().trim();
+                        if (!code || code.toLowerCase().indexOf('course') >= 0) return;
+                        if (!/^[A-Z]{2,}\\d/i.test(code.replace(/\\s/g, ''))) return;
+                        if (grade === '' || grade === '-') return;
+                        var title = titleIdx >= 0 ? $tds.eq(titleIdx).text().trim() : null;
+                        var cr = credIdx >= 0 ? parseFloat($tds.eq(credIdx).text().replace(/[^0-9.]/g, '')) : NaN;
+                        var exm = examIdx >= 0 ? $tds.eq(examIdx).text().trim() : null;
+                        out.push({
+                            courseCode: code,
+                            courseTitle: title || null,
+                            credits: isNaN(cr) ? null : cr,
+                            grade: grade,
+                            examMonth: exm || null
+                        });
+                    });
+                    return out.length ? out : null;
+                }
+                var custom = parseCustomGradeTable();
+                if (custom) return custom;
                 var $headerCells = $table.find('thead tr').last().find('th, td');
-                if (!$headerCells.length) $headerCells = $table.find('tr').first().find('th, td');
-                if (!$headerCells.length) return null;
+                if (!$headerCells.length) {
+                    $table.find('tr').each(function() {
+                        var $cells = $(this).children('th, td');
+                        if ($cells.length < 8) return;
+                        var j = ($(this).text() || '').toLowerCase();
+                        if (j.indexOf('grade') < 0) return;
+                        if (j.indexOf('course') < 0 && j.indexOf('code') < 0) return;
+                        $headerCells = $cells;
+                        return false;
+                    });
+                }
+                if (!$headerCells || !$headerCells.length) return null;
                 var heads = [];
                 $headerCells.each(function() {
                     heads.push($(this).text().toLowerCase().replace(/\\s+/g, ' ').trim());
@@ -314,7 +389,7 @@ class DataManager: ObservableObject {
                 if (joined.indexOf('grade') < 0) return null;
                 if (joined.indexOf('course') < 0 && joined.indexOf('code') < 0) return null;
                 if (joined.indexOf('attendance') >= 0 && joined.indexOf('attended classes') >= 0) return null;
-                var codeIdx = -1, titleIdx = -1, gradeIdx = -1, credIdx = -1;
+                var codeIdx = -1, titleIdx = -1, gradeIdx = -1, credIdx = -1, examIdx = -1;
                 for (var hi = 0; hi < heads.length; hi++) {
                     var h = heads[hi];
                     if (h.indexOf('course') >= 0 && h.indexOf('code') >= 0) codeIdx = hi;
@@ -322,6 +397,7 @@ class DataManager: ObservableObject {
                     else if (h === 'grade' || (h.indexOf('grade') >= 0 && h.indexOf('point') < 0 && h.indexOf('cgpa') < 0 && h.indexOf('gpa') < 0)) {
                         if (gradeIdx < 0) gradeIdx = hi;
                     } else if (h.indexOf('credit') >= 0 && h.indexOf('registered') < 0) credIdx = hi;
+                    else if (h.indexOf('exam month') >= 0 || (h.indexOf('exam') >= 0 && h.indexOf('month') >= 0)) examIdx = hi;
                 }
                 if (codeIdx < 0) return null;
                 if (gradeIdx < 0) {
@@ -343,11 +419,13 @@ class DataManager: ObservableObject {
                     if (grade === '' || grade === '-') return;
                     var title = titleIdx >= 0 ? $tds.eq(titleIdx).text().trim() : null;
                     var cr = credIdx >= 0 ? parseFloat($tds.eq(credIdx).text().replace(/[^0-9.]/g, '')) : NaN;
+                    var exm = examIdx >= 0 ? $tds.eq(examIdx).text().trim() : null;
                     out.push({
                         courseCode: code,
                         courseTitle: title || null,
                         credits: isNaN(cr) ? null : cr,
-                        grade: grade
+                        grade: grade,
+                        examMonth: exm || null
                     });
                 });
                 return out.length ? out : null;
@@ -541,7 +619,8 @@ class DataManager: ObservableObject {
                             courseCode: code,
                             courseTitle: ctitle,
                             credits: cred,
-                            grade: grade
+                            grade: grade,
+                            examMonth: r["examMonth"] as? String
                         ))
                         ghCounter += 1
                     }
@@ -580,7 +659,7 @@ class DataManager: ObservableObject {
 
     /// Coerces NSNumber / Double / String from WKWebView JSON to `Double?`.
     private static func doubleIfPresent(_ any: Any?) -> Double? {
-        guard let any else { return nil }
+        guard let any, !(any is NSNull) else { return nil }
         if let d = any as? Double { return d }
         if let n = any as? NSNumber { return n.doubleValue }
         if let s = any as? String { return Double(s.trimmingCharacters(in: .whitespacesAndNewlines)) }
@@ -589,7 +668,7 @@ class DataManager: ObservableObject {
 
     /// Merges duplicate course rows (same section + code), preferring a real letter grade over “-” and richer metadata.
     private static func deduplicateGradeHistoryRows(_ rows: [GradeHistoryCourseRow]) -> [GradeHistoryCourseRow] {
-        struct Key: Hashable { let section: String; let code: String }
+        struct Key: Hashable { let section: String; let code: String; let examMonthNorm: String }
         func gradeScore(_ g: String) -> Int {
             let t = g.trimmingCharacters(in: .whitespacesAndNewlines)
             if t.isEmpty || t == "-" { return 0 }
@@ -600,7 +679,8 @@ class DataManager: ObservableObject {
         var best: [Key: GradeHistoryCourseRow] = [:]
         var order: [Key] = []
         for r in rows {
-            let k = Key(section: r.sectionTitle, code: r.courseCode)
+            let em = (r.examMonth ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let k = Key(section: r.sectionTitle, code: r.courseCode, examMonthNorm: em)
             if best[k] == nil {
                 order.append(k)
                 best[k] = r
@@ -621,7 +701,8 @@ class DataManager: ObservableObject {
                 courseCode: r.courseCode,
                 courseTitle: r.courseTitle,
                 credits: r.credits,
-                grade: r.grade
+                grade: r.grade,
+                examMonth: r.examMonth
             )
         }
     }
@@ -1118,6 +1199,205 @@ class DataManager: ObservableObject {
         }
     }
 
+    /// Loads semester options from `examinations/StudentMarkView` for the marks-by-semester screen.
+    func loadMarksSemesterPicklist(completion: (() -> Void)? = nil) {
+        guard let authorizedID = authorizedID,
+              let csrfToken = csrfToken,
+              let webView = self.webView else {
+            completion?()
+            return
+        }
+
+        let script = """
+        (function() {
+            var result = { semesters: [] };
+            $.ajax({
+                type: 'POST',
+                url: '/vtop/examinations/StudentMarkView',
+                data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                async: false,
+                success: function(res) {
+                    $(res).find('select#semesterSubId option, select[name="semesterSubId"] option').each(function() {
+                        var v = ($(this).attr('value') || '').trim();
+                        var t = $(this).text().replace(/\\s+/g, ' ').trim();
+                        if (v) result.semesters.push({ id: v, name: t });
+                    });
+                }
+            });
+            return result;
+        })();
+        """
+
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            guard let self else {
+                completion?()
+                return
+            }
+            if let error = error {
+                self.logger.error("Marks picklist: \(error.localizedDescription)", context: "DataManager")
+                completion?()
+                return
+            }
+            guard let dict = result as? [String: Any],
+                  let rows = dict["semesters"] as? [[String: Any]] else {
+                completion?()
+                return
+            }
+            let list: [Semester] = rows.compactMap { r in
+                guard let id = r["id"] as? String, !id.isEmpty,
+                      let name = r["name"] as? String else { return nil }
+                return Semester(id: id, name: name)
+            }
+            DispatchQueue.main.async {
+                self.marksReportSemesterOptions = list
+                self.logger.success("✅ Marks semester picklist: \(list.count) options", context: "DataManager")
+                completion?()
+            }
+        }
+    }
+
+    /// Fetches `doStudentMarkView` for one semester and parses nested mark tables (Chennai `customTable` layout).
+    func refreshMarksReport(semesterSubId: String, completion: (() -> Void)? = nil) {
+        guard let authorizedID = authorizedID,
+              let csrfToken = csrfToken,
+              let webView = self.webView,
+              !semesterSubId.isEmpty else {
+            completion?()
+            return
+        }
+
+        DispatchQueue.main.async {
+            self.loadingMessage = "Loading marks report…"
+        }
+
+        let script = """
+        (function() {
+            var result = { marksReport: [], rawDoStudentMarkView: '' };
+            var idCounter = 1;
+            var postBody = '_csrf=' + encodeURIComponent('\(csrfToken)') +
+                '&semesterSubId=' + encodeURIComponent('\(semesterSubId)') +
+                '&authorizedID=' + encodeURIComponent('\(authorizedID)');
+            $.ajax({
+                type: 'POST',
+                url: '/vtop/examinations/doStudentMarkView',
+                data: postBody,
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                async: false,
+                success: function(res) {
+                    result.rawDoStudentMarkView = res;
+                    var $doc = $(res);
+                    var $mtable = $doc.find('#fixedTableContainer table.customTable').first();
+                    if (!$mtable.length) {
+                        $doc.find('table.customTable').each(function() {
+                            if ($(this).find('tr.tableContent-level1').length) { $mtable = $(this); return false; }
+                        });
+                    }
+                    if (!$mtable.length) return;
+                    var kids = $mtable.children('tbody').length ? $mtable.children('tbody').children('tr') : $mtable.children('tr');
+                    var arr = kids.get();
+                    for (var i = 0; i < arr.length; i++) {
+                        var $tr = $(arr[i]);
+                        if ($tr.hasClass('tableHeader')) continue;
+                        if (!$tr.hasClass('tableContent')) continue;
+                        var $tds = $tr.children('td');
+                        if ($tds.length < 9) continue;
+                        var courseCode = $tds.eq(2).text().replace(/\\s+/g, ' ').trim();
+                        var courseTitle = $tds.eq(3).text().replace(/\\s+/g, ' ').trim();
+                        if (i + 1 < arr.length) {
+                            var $n = $(arr[i + 1]);
+                            var $nc = $n.children('td');
+                            if ($n.hasClass('tableContent') && $nc.length === 1 && $nc.attr('colspan')) {
+                                $n.find('tr.tableContent-level1').each(function() {
+                                    var c = $(this).children('td');
+                                    if (c.length < 7) return;
+                                    var markTitle = c.eq(1).text().replace(/\\s+/g, ' ').trim();
+                                    if (!markTitle) return;
+                                    var maxMark = parseFloat(c.eq(2).text()) || 0;
+                                    var wpct = parseFloat(c.eq(3).text()) || 0;
+                                    var status = c.eq(4).text().replace(/\\s+/g, ' ').trim();
+                                    var sm = parseFloat(c.eq(5).text()) || 0;
+                                    var wm = parseFloat(c.eq(6).text()) || 0;
+                                    var avgStr = c.eq(7).text().trim();
+                                    var avg = parseFloat(avgStr);
+                                    if (isNaN(avg)) avg = null;
+                                    result.marksReport.push({
+                                        id: idCounter++,
+                                        courseCode: courseCode,
+                                        courseTitle: courseTitle || null,
+                                        markTitle: markTitle,
+                                        maxMark: maxMark,
+                                        weightagePercent: wpct,
+                                        scoredMark: sm,
+                                        weightageMark: wm,
+                                        status: status,
+                                        classAverage: avg
+                                    });
+                                });
+                                i++;
+                            }
+                        }
+                    }
+                }
+            });
+            return result;
+        })();
+        """
+
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            guard let self else {
+                completion?()
+                return
+            }
+            DispatchQueue.main.async {
+                self.loadingMessage = ""
+            }
+            if let error = error {
+                self.logger.error("Marks report: \(error.localizedDescription)", context: "DataManager")
+                completion?()
+                return
+            }
+            guard let dict = result as? [String: Any] else {
+                completion?()
+                return
+            }
+            let raw = dict["rawDoStudentMarkView"] as? String
+            self.debugPrintFullVTOPResponse("doStudentMarkView(marksReport)", raw)
+
+            let rowsData = dict["marksReport"] as? [[String: Any]] ?? []
+            var rows: [MarkReportRow] = []
+            for r in rowsData {
+                guard let id = Self.intFromJSON(r["id"]),
+                      let courseCode = r["courseCode"] as? String,
+                      let markTitle = r["markTitle"] as? String else { continue }
+                let courseTitle = r["courseTitle"] as? String
+                let maxMark = Self.doubleIfPresent(r["maxMark"]) ?? 0
+                let weightagePercent = Self.doubleIfPresent(r["weightagePercent"]) ?? 0
+                let scoredMark = Self.doubleIfPresent(r["scoredMark"]) ?? 0
+                let weightageMark = Self.doubleIfPresent(r["weightageMark"]) ?? 0
+                let status = r["status"] as? String ?? ""
+                let classAverage = Self.doubleIfPresent(r["classAverage"])
+                rows.append(MarkReportRow(
+                    id: id,
+                    courseCode: courseCode,
+                    courseTitle: courseTitle,
+                    markTitle: markTitle,
+                    maxMark: maxMark,
+                    weightagePercent: weightagePercent,
+                    scoredMark: scoredMark,
+                    weightageMark: weightageMark,
+                    status: status,
+                    classAverage: classAverage
+                ))
+            }
+            DispatchQueue.main.async {
+                self.marksReportRows = rows
+                self.logger.success("✅ Marks report: \(rows.count) entries", context: "DataManager")
+                completion?()
+            }
+        }
+    }
+
     private func fetchAttendance(continueAfterMarks: Bool = true, semesterSubId: String? = nil) {
         logger.info("📊 Fetching attendance...", context: "DataManager")
 
@@ -1154,19 +1434,54 @@ class DataManager: ObservableObject {
                 success: function(res) {
                     result.rawProcessViewStudentAttendance = res;
                     var $doc = $(res);
-                    var $table = $doc.find('table').filter(function() {
-                        var t = $(this).find('th').map(function() { return $(this).text().toLowerCase(); }).get().join('|');
-                        return t.indexOf('course code') >= 0 && t.indexOf('attended classes') >= 0;
-                    }).first();
+                    function compactThText($tbl) {
+                        var parts = [];
+                        $tbl.find('th').each(function() {
+                            parts.push(($(this).text() || '').toLowerCase().replace(/\\s+/g, ''));
+                        });
+                        return parts.join('');
+                    }
+                    function attendanceTableMatches($tbl) {
+                        var c = compactThText($tbl);
+                        var courseOk = c.indexOf('coursecode') >= 0 || (c.indexOf('course') >= 0 && c.indexOf('code') >= 0);
+                        var attOk = (c.indexOf('attended') >= 0 && c.indexOf('class') >= 0) || c.indexOf('attendedclasses') >= 0;
+                        var totOk = (c.indexOf('total') >= 0 && c.indexOf('class') >= 0) || c.indexOf('totalclasses') >= 0;
+                        return courseOk && attOk && totOk;
+                    }
+                    var $table = $doc.find('#getStudentDetails table').first();
+                    if (!$table.length || !attendanceTableMatches($table)) {
+                        $table = $doc.find('table').filter(function() { return attendanceTableMatches($(this)); }).first();
+                    }
                     if (!$table.length) return;
 
                     var headers = [];
-                    $table.find('thead tr').last().find('th').each(function() {
-                        headers.push($(this).text().replace(/\\s+/g, ' ').trim().toLowerCase());
-                    });
+                    var $theadLast = $table.find('thead tr').last();
+                    if ($theadLast.length) {
+                        $theadLast.find('th, td').each(function() {
+                            headers.push($(this).text().replace(/\\s+/g, ' ').trim().toLowerCase());
+                        });
+                    }
+                    if (!headers.length) {
+                        $table.find('tr').each(function() {
+                            var $cells = $(this).children('th, td');
+                            if ($cells.length < 8) return;
+                            var rowTxt = ($cells.text() || '').toLowerCase().replace(/\\s+/g, ' ');
+                            if (rowTxt.indexOf('course') < 0 || rowTxt.indexOf('attended') < 0) return;
+                            $cells.each(function() {
+                                headers.push($(this).text().replace(/\\s+/g, ' ').trim().toLowerCase());
+                            });
+                            return false;
+                        });
+                    }
                     function col(sub) {
                         for (var i = 0; i < headers.length; i++) {
                             if (headers[i].indexOf(sub) >= 0) return i;
+                        }
+                        if (sub === 'course code') {
+                            for (var j = 0; j < headers.length - 1; j++) {
+                                var merged = (headers[j] + ' ' + headers[j + 1]).replace(/\\s+/g, ' ');
+                                if (merged.indexOf('course code') >= 0) return j;
+                            }
                         }
                         return -1;
                     }
@@ -1179,8 +1494,11 @@ class DataManager: ObservableObject {
                     var iReg = col('registration');
                     var iAttDate = col('attendance date');
                     var iAttended = col('attended classes');
+                    if (iAttended < 0) iAttended = col('attended');
                     var iTotal = col('total classes');
+                    if (iTotal < 0) iTotal = col('total class');
                     var iPct = col('attendance percentage');
+                    if (iPct < 0) iPct = col('percentage');
                     var iStatus = col('status');
                     if (iCode < 0 || iAttended < 0 || iTotal < 0) return;
 

@@ -28,6 +28,8 @@ struct GradeHistoryCourseRow: Codable, Hashable, Identifiable, Sendable {
     let courseTitle: String?
     let credits: Double?
     let grade: String
+    /// Declared exam month from VTOP when available (disambiguates repeated section titles).
+    let examMonth: String?
 }
 
 // MARK: - Portal credentials (viewStudentCredentials)

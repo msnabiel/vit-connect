@@ -20,52 +20,72 @@ struct BackgroundSyncView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if authViewModel.showCaptcha, let captchaImage = authViewModel.captchaImage {
                     ScrollView {
-                        VStack(spacing: 24) {
-                            Text("Verification Required")
-                                .font(.system(size: 24, weight: .bold))
-
-                            Text("Please enter the captcha to continue syncing")
-                                .font(.system(size: 14))
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Verification required")
+                                .font(.system(size: 18, weight: .bold))
+                            Text("Enter the captcha to continue syncing.")
+                                .font(.caption)
                                 .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
 
-                            // Captcha image
-                            Image(uiImage: captchaImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: 200)
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-
-                            // Captcha input
-                            TextField("Enter Captcha", text: $captchaText)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .autocapitalization(.allCharacters)
-                                .disableAutocorrection(true)
-                                .font(.system(size: 16, weight: .medium))
-                                .padding(.horizontal, 40)
-
-                            Button(action: {
-                                authViewModel.submitLogin(captchaText: captchaText)
-                                captchaText = ""
-                            }) {
-                                Text("Submit")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(captchaText.isEmpty ? Color.gray : Color.accentColor)
-                                    )
+                            ViewThatFits(in: .horizontal) {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Image(uiImage: captchaImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 140, height: 76)
+                                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(uiColor: .secondarySystemBackground)))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        TextField("Captcha", text: $captchaText)
+                                            .textFieldStyle(.roundedBorder)
+                                            .autocapitalization(.allCharacters)
+                                            .disableAutocorrection(true)
+                                            .font(.system(size: 16, weight: .medium))
+                                        Button(action: {
+                                            authViewModel.submitLogin(captchaText: captchaText)
+                                            captchaText = ""
+                                        }) {
+                                            Text("Submit")
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundColor(.white)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                                .background(RoundedRectangle(cornerRadius: 10).fill(captchaText.isEmpty ? Color.gray : Color.accentColor))
+                                        }
+                                        .disabled(captchaText.isEmpty)
+                                    }
+                                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                                }
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Image(uiImage: captchaImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 76)
+                                        .background(RoundedRectangle(cornerRadius: 8).fill(Color(uiColor: .secondarySystemBackground)))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                                    TextField("Captcha", text: $captchaText)
+                                        .textFieldStyle(.roundedBorder)
+                                        .autocapitalization(.allCharacters)
+                                        .disableAutocorrection(true)
+                                        .font(.system(size: 16, weight: .medium))
+                                    Button(action: {
+                                        authViewModel.submitLogin(captchaText: captchaText)
+                                        captchaText = ""
+                                    }) {
+                                        Text("Submit")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                            .background(RoundedRectangle(cornerRadius: 10).fill(captchaText.isEmpty ? Color.gray : Color.accentColor))
+                                    }
+                                    .disabled(captchaText.isEmpty)
+                                }
                             }
-                            .disabled(captchaText.isEmpty)
-                            .padding(.horizontal, 40)
                         }
-                        .padding(.vertical, 40)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 20)
                     }
                 } else if let errorMessage = authViewModel.errorMessage {
                     VStack(spacing: 16) {
