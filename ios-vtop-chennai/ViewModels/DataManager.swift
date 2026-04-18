@@ -14,6 +14,8 @@ class DataManager: ObservableObject {
     @Published var staff: [Staff] = []
     @Published var spotlights: [Spotlight] = []
     @Published var receipts: [Receipt] = []
+    /// Campus calendar from `/vtop/get/scheduled/events`.
+    @Published var scheduledEventRows: [VTOPScheduledEventRow] = []
     @Published var semesters: [Semester] = []
     @Published var selectedSemester: Semester?
 
@@ -2091,6 +2093,7 @@ class DataManager: ObservableObject {
         guard let authorizedID = authorizedID,
               let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
+            fetchScheduledEvents()
             return
         }
 
@@ -2143,14 +2146,14 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch receipts: \(error.localizedDescription)", context: "DataManager")
-                self.finishDataFetching()
+                self.fetchScheduledEvents()
                 return
             }
 
             guard let dict = result as? [String: Any],
                   let receiptsData = dict["receipts"] as? [[String: Any]] else {
                 self.logger.error("Invalid receipts response", context: "DataManager")
-                self.finishDataFetching()
+                self.fetchScheduledEvents()
                 return
             }
 
@@ -2181,8 +2184,174 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.receipts = receipts
                 self.logger.success("✅ Loaded \(receipts.count) receipts", context: "DataManager")
+                self.fetchScheduledEvents()
+            }
+        }
+    }
+
+    // MARK: - Scheduled events (Event hub)
+    private func fetchScheduledEvents() {
+        evaluateScheduledEvents { [weak self] rows in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.scheduledEventRows = rows
+                if !rows.isEmpty {
+                    self.logger.success("✅ Loaded \(rows.count) scheduled event row(s)", context: "DataManager")
+                }
                 self.finishDataFetching()
             }
+        }
+    }
+
+    func refreshScheduledEvents(completion: (() -> Void)? = nil) {
+        evaluateScheduledEvents { [weak self] rows in
+            guard let self else {
+                completion?()
+                return
+            }
+            DispatchQueue.main.async {
+                self.scheduledEventRows = rows
+                self.persistCache()
+                if !rows.isEmpty {
+                    self.logger.success("✅ Event hub: \(rows.count) row(s)", context: "DataManager")
+                }
+                completion?()
+            }
+        }
+    }
+
+    private func evaluateScheduledEvents(completion: @escaping ([VTOPScheduledEventRow]) -> Void) {
+        guard let authorizedID = authorizedID,
+              let csrfToken = csrfToken,
+              let webView = webView else {
+            completion([])
+            return
+        }
+
+        let script = """
+        (function() {
+            var result = { rows: [], rawScheduledEvents: '' };
+            var idCounter = 1;
+            $.ajax({
+                type: 'POST',
+                url: '/vtop/get/scheduled/events',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                data: {
+                    authorizedID: '\(authorizedID)',
+                    _csrf: '\(csrfToken)',
+                    x: new Date().toUTCString()
+                },
+                async: false,
+                success: function(res) {
+                    result.rawScheduledEvents = res;
+                    // Multiple sibling root nodes: $(res) only keeps the first — wrap so every card is found.
+                    var $doc = $('<div>').html(res);
+                    var lastSectionBanner = '';
+                    $doc.find('.card.lightGoldenbackground2').each(function() {
+                        var $card = $(this);
+                        var sectionBanner = '';
+                        $card.find('.card-title').each(function() {
+                            var t = $(this).text().replace(/\\s+/g, ' ').trim();
+                            if (t) { sectionBanner = t; return false; }
+                        });
+                        if (!sectionBanner) { sectionBanner = lastSectionBanner; }
+                        else { lastSectionBanner = sectionBanner; }
+                        var $leftCol = $card.find('.col-2.border-bottom').first();
+                        var dayNum = $leftCol.find('.h5').first().text().trim();
+                        var monthY = '';
+                        $leftCol.find('div').each(function() {
+                            var cls = $(this).attr('class') || '';
+                            if (cls.indexOf('subtitle') >= 0) {
+                                monthY = $(this).text().replace(/\\s+/g, ' ').trim();
+                                return false;
+                            }
+                        });
+                        var groupKey = (sectionBanner || 'Events') + '|' + dayNum + '|' + monthY;
+                        var $rightCol = $card.find('.col-10.border-bottom').first();
+                        $rightCol.find('.card-body').each(function() {
+                            var $b = $(this);
+                            var plain = $b.text().replace(/\\s+/g, ' ').trim();
+                            if ($b.hasClass('text-secondary') && plain.indexOf('No events') >= 0) {
+                                result.rows.push({
+                                    id: 'ev' + (idCounter++),
+                                    groupKey: groupKey,
+                                    sectionBanner: sectionBanner,
+                                    day: dayNum,
+                                    monthYear: monthY,
+                                    title: null,
+                                    detailLine: '',
+                                    venue: '',
+                                    isPlaceholder: true
+                                });
+                                return;
+                            }
+                            var title = $b.find('span.card-title').first().text().replace(/\\s+/g, ' ').trim();
+                            if (!title) {
+                                title = $b.find('.card-title').first().text().replace(/\\s+/g, ' ').trim();
+                            }
+                            var dates = $b.find('.card-text.fst-italic').first().text().replace(/\\s+/g, ' ').trim();
+                            var venue = $b.find('small.text-dark').first().text().trim();
+                            if (title) {
+                                result.rows.push({
+                                    id: 'ev' + (idCounter++),
+                                    groupKey: groupKey,
+                                    sectionBanner: sectionBanner,
+                                    day: dayNum,
+                                    monthYear: monthY,
+                                    title: title,
+                                    detailLine: dates || '',
+                                    venue: venue || '',
+                                    isPlaceholder: false
+                                });
+                            }
+                        });
+                    });
+                }
+            });
+            return result;
+        })();
+        """
+
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            guard let self else {
+                completion([])
+                return
+            }
+            if let error = error {
+                self.logger.error("Scheduled events: \(error.localizedDescription)", context: "DataManager")
+                completion([])
+                return
+            }
+            guard let dict = result as? [String: Any] else {
+                completion([])
+                return
+            }
+            self.debugPrintFullVTOPResponse("get/scheduled/events", dict["rawScheduledEvents"] as? String)
+
+            let rowsData = dict["rows"] as? [[String: Any]] ?? []
+            let rows: [VTOPScheduledEventRow] = rowsData.compactMap { r in
+                guard let id = r["id"] as? String,
+                      let groupKey = r["groupKey"] as? String,
+                      let sectionBanner = r["sectionBanner"] as? String,
+                      let day = r["day"] as? String,
+                      let monthYear = r["monthYear"] as? String else { return nil }
+                let isPlaceholder = (r["isPlaceholder"] as? Bool) ?? (r["isPlaceholder"] as? NSNumber)?.boolValue ?? false
+                let title = r["title"] as? String
+                let detailLine = r["detailLine"] as? String ?? ""
+                let venue = r["venue"] as? String ?? ""
+                return VTOPScheduledEventRow(
+                    id: id,
+                    groupKey: groupKey,
+                    sectionBanner: sectionBanner,
+                    day: day,
+                    monthYear: monthYear,
+                    title: title,
+                    detailLine: detailLine,
+                    venue: venue,
+                    isPlaceholder: isPlaceholder
+                )
+            }
+            completion(rows)
         }
     }
 
@@ -2215,6 +2384,7 @@ class DataManager: ObservableObject {
             marksReportSemesterId: marksReportSemesterId,
             spotlights: spotlights,
             receipts: receipts,
+            scheduledEventRows: scheduledEventRows,
             portalCredentials: portalCredentials,
             rankEntries: rankEntries,
             deanPortraitData: deanPortraitData,

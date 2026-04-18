@@ -22,9 +22,14 @@ struct MarksBySemesterView: View {
         List {
             if !choices.isEmpty {
                 Section {
-                    Picker(selection: $semesterId) {
+                    Menu {
                         ForEach(choices) { s in
-                            Text(s.name).tag(s.id)
+                            Button(s.name) {
+                                semesterId = s.id
+                                if pickerPrimed {
+                                    dataManager.refreshMarksReport(semesterSubId: s.id, completion: nil)
+                                }
+                            }
                         }
                     } label: {
                         HStack(spacing: 8) {
@@ -38,12 +43,6 @@ struct MarksBySemesterView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundColor(Color(uiColor: .systemBlue))
                         }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(Color(uiColor: .systemBlue))
-                    .onChange(of: semesterId) { _, newId in
-                        guard pickerPrimed, !newId.isEmpty else { return }
-                        dataManager.refreshMarksReport(semesterSubId: newId, completion: nil)
                     }
                 }
             } else {
@@ -104,7 +103,6 @@ struct MarksBySemesterView: View {
         }
         .navigationTitle("Marks by semester")
         .navigationBarTitleDisplayMode(.inline)
-        .vtopNavLeadingIcon()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {

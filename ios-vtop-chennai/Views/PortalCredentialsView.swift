@@ -93,7 +93,6 @@ struct PortalCredentialsView: View {
         .listSectionSpacing(.compact)
         .navigationTitle("Portal access")
         .navigationBarTitleDisplayMode(.inline)
-        .vtopNavLeadingIcon()
     }
 }
 

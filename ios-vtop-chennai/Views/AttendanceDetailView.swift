@@ -1,35 +1,45 @@
 import SwiftUI
 
 struct AttendanceDetailView: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
-                    if dataManager.attendance.isEmpty {
-                        EmptyStateView(
-                            icon: "calendar.badge.exclamationmark",
-                            title: "No Attendance Data",
-                            message: "Attendance data will appear here once loaded"
-                        )
-                        .padding()
-                    } else {
+        Group {
+            if dataManager.attendance.isEmpty {
+                EmptyStateView(
+                    icon: "calendar.badge.exclamationmark",
+                    title: "No Attendance Data",
+                    message: "Attendance will appear here after it loads from sync."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .padding()
+            } else {
+                ScrollView {
+                    VStack(spacing: 16) {
                         ForEach(dataManager.attendance) { attendance in
                             let course = dataManager.courses.first(where: { $0.code == attendance.courseCode })
                                 ?? dataManager.courses.first(where: { $0.id == attendance.courseId })
                             AttendanceCard(course: course, attendance: attendance)
                         }
                     }
+                    .padding()
                 }
-                .padding()
             }
-            .refreshable {
-                dataManager.syncAll()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .refreshable {
+            dataManager.syncAll()
+        }
+        .navigationTitle("Attendance")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                EventHubToolbarLink()
             }
-            .navigationTitle("Attendance")
-            .navigationBarTitleDisplayMode(.inline)
-            .vtopNavLeadingIcon()
+            ToolbarItem(placement: .navigationBarTrailing) {
+                MainSyncToolbarButton()
+            }
         }
     }
 }
@@ -54,13 +64,23 @@ struct AttendanceCard: View {
         }
     }
 
-    /// Extra absences (each adds one class to total, attended unchanged) while keeping attendance ≥ 75%.
-    private var maxMissesWhileStayingAt75: Int {
+    /// Extra missed classes (attended −1 each, total unchanged) while keeping percentage ≥ 75%.
+    private var maxSkipsWhileStayingAt75: Int {
         let a = attendance.attended
         let t = attendance.total
-        guard t > 0 else { return 0 }
-        let raw = Double(a) / 0.75 - Double(t)
-        return max(0, Int(floor(raw + 1e-9)))
+        guard t > 0, a > 0 else { return 0 }
+        var k = 0
+        while a - (k + 1) >= 0 {
+            let pct = Double(a - k - 1) / Double(t) * 100.0
+            if pct + 1e-6 < 75.0 { break }
+            k += 1
+        }
+        return k
+    }
+
+    private func pctIfMissOneMore(attended: Int, total: Int) -> Double {
+        guard total > 0 else { return 0 }
+        return Double(max(0, attended - 1)) / Double(total) * 100.0
     }
 
     private var isBelow75: Bool {
@@ -72,12 +92,29 @@ struct AttendanceCard: View {
         if isBelow75 {
             return "Below 75%. Attend more to recover; skipping classes will make it harder to reach the bar."
         }
-        if maxMissesWhileStayingAt75 == 0 {
-            return "At the 75% edge: even one more absence may drop you below 75% (if you don’t attend those classes)."
+        let a = attendance.attended
+        let t = attendance.total
+        let maxSkips = maxSkipsWhileStayingAt75
+        if maxSkips == 0 {
+            let p = pctIfMissOneMore(attended: a, total: t)
+            return String(
+                format: "At the 75%% bar: one more missed class puts you at %.2f%% (%d/%d).",
+                p,
+                max(0, a - 1),
+                t
+            )
         }
-        let n = maxMissesWhileStayingAt75
+        let n = maxSkips
         let noun = n == 1 ? "class" : "classes"
-        return "You can miss up to \(n) more \(noun) and still stay at or above 75% (assuming you don’t attend any of them)."
+        let p = pctIfMissOneMore(attended: a, total: t)
+        return String(
+            format: "You can miss up to %d more %@ and stay at or above 75%%. If you miss one, you’d be at %.2f%% (%d/%d).",
+            n,
+            noun,
+            p,
+            max(0, a - 1),
+            t
+        )
     }
 
     var body: some View {
@@ -192,6 +229,9 @@ struct AttendanceCard: View {
 }
 
 #Preview {
-    AttendanceDetailView()
-        .environmentObject(DataManager())
+    NavigationStack {
+        AttendanceDetailView()
+            .environmentObject(AuthenticationViewModel())
+            .environmentObject(DataManager())
+    }
 }

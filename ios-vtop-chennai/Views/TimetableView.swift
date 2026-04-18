@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TimetableView: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
     @State private var selectedDay = Calendar.current.component(.weekday, from: Date()) - 1 // 0 = Sunday
 
@@ -68,7 +69,14 @@ struct TimetableView: View {
         }
         .navigationTitle("Timetable")
         .navigationBarTitleDisplayMode(.inline)
-        .vtopNavLeadingIcon()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                EventHubToolbarLink()
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                MainSyncToolbarButton()
+            }
+        }
     }
 
     private func isToday(dayIndex: Int) -> Bool {
@@ -231,6 +239,9 @@ struct TimetableSlotCard: View {
 }
 
 #Preview {
-    TimetableView()
-        .environmentObject(DataManager())
+    NavigationStack {
+        TimetableView()
+            .environmentObject(AuthenticationViewModel())
+            .environmentObject(DataManager())
+    }
 }

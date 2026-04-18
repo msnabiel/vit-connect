@@ -24,10 +24,10 @@ struct HomeView: View {
                 }
                 .tag(1)
 
-            // Performance Tab
+            // Marks (full mark report by term; replaces former Performance tab)
             PerformanceTabView()
                 .tabItem {
-                    Label("Performance", systemImage: "chart.bar.fill")
+                    Label("Marks", systemImage: "doc.text.magnifyingglass")
                 }
                 .tag(2)
 
@@ -45,6 +45,11 @@ struct HomeView: View {
             }
             .frame(width: 0, height: 0)
             .allowsHitTesting(false)
+        }
+        .environment(\.selectHomeTab) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedTab = 0
+            }
         }
         .accentColor(.blue)
         .sheet(isPresented: $showSemesterSelection) {
@@ -122,15 +127,31 @@ struct HomeTabView: View {
         }
     }
 
+    var greetingEmoji: String {
+        switch currentHour {
+        case 5..<12:
+            return "🌅"
+        case 12..<17:
+            return "☀️"
+        default:
+            return "🌙"
+        }
+    }
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     // Greeting Section
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(greeting)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.primary)
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Text(greetingEmoji)
+                                .font(.system(size: 30))
+                                .accessibilityHidden(true)
+                            Text(greeting)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.primary)
+                        }
 
                         Text(dataManager.studentProfile?.name ?? authViewModel.username)
                             .font(.system(size: 18, weight: .medium))
@@ -333,6 +354,14 @@ struct HomeTabView: View {
             }
             .navigationBarTitle("VTOP Chennai", displayMode: .inline)
             .vtopNavLeadingIcon()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EventHubToolbarLink()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    MainSyncToolbarButton()
+                }
+            }
         }
     }
 
@@ -511,8 +540,8 @@ struct TimetableSlotView: View {
 
 // MARK: - Attendance Tab
 struct AttendanceTabView: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
-    @State private var isRefreshing = false
     @State private var attendanceSemesterId: String = ""
     @State private var didLoadPicklist = false
     @State private var attendancePickerPrimed = false
@@ -528,78 +557,107 @@ struct AttendanceTabView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if !semesterChoices.isEmpty {
-                        Menu {
-                            ForEach(semesterChoices) { sem in
-                                Button(sem.name) {
-                                    attendanceSemesterId = sem.id
-                                    if attendancePickerPrimed {
-                                        dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+            Group {
+                if dataManager.attendance.isEmpty {
+                    VStack(spacing: 0) {
+                        if !semesterChoices.isEmpty {
+                            Menu {
+                                ForEach(semesterChoices) { sem in
+                                    Button(sem.name) {
+                                        attendanceSemesterId = sem.id
+                                        if attendancePickerPrimed {
+                                            dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+                                        }
                                     }
                                 }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Text("Semester — \(attendanceSemesterDisplayName)")
+                                        .font(.body.weight(.medium))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.72)
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(Color(uiColor: .systemBlue))
+                                }
+                                .padding(.vertical, 10)
+                                .padding(.horizontal, 12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Color(uiColor: .secondarySystemBackground))
+                                )
                             }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("Semester — \(attendanceSemesterDisplayName)")
-                                    .font(.body.weight(.medium))
-                                    .foregroundColor(.primary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-                                Spacer(minLength: 8)
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(Color(uiColor: .systemBlue))
-                            }
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color(uiColor: .secondarySystemBackground))
-                            )
+                            .padding()
                         }
-                    }
 
-                    if dataManager.attendance.isEmpty {
+                        Spacer(minLength: 0)
+
                         EmptyStateView(
                             icon: "calendar.badge.exclamationmark",
                             title: "No attendance yet",
-                            message: "Pick a semester above, sign in to VTOP, then pull to refresh or use the toolbar refresh."
+                            message: "Sign in, then pull to refresh or use Sync in the toolbar."
                         )
-                        .frame(maxWidth: .infinity)
-                    } else {
-                        ForEach(dataManager.attendance) { attendance in
-                            let course = dataManager.courses.first(where: { $0.code == attendance.courseCode })
-                                ?? dataManager.courses.first(where: { $0.id == attendance.courseId })
-                            AttendanceCard(course: course, attendance: attendance)
+
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            if !semesterChoices.isEmpty {
+                                Menu {
+                                    ForEach(semesterChoices) { sem in
+                                        Button(sem.name) {
+                                            attendanceSemesterId = sem.id
+                                            if attendancePickerPrimed {
+                                                dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Text("Semester — \(attendanceSemesterDisplayName)")
+                                            .font(.body.weight(.medium))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.72)
+                                        Spacer(minLength: 8)
+                                        Image(systemName: "chevron.up.chevron.down")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundColor(Color(uiColor: .systemBlue))
+                                    }
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(Color(uiColor: .secondarySystemBackground))
+                                    )
+                                }
+                            }
+
+                            ForEach(dataManager.attendance) { attendance in
+                                let course = dataManager.courses.first(where: { $0.code == attendance.courseCode })
+                                    ?? dataManager.courses.first(where: { $0.id == attendance.courseId })
+                                AttendanceCard(course: course, attendance: attendance)
+                            }
                         }
+                        .padding()
                     }
                 }
-                .padding()
             }
             .navigationTitle("Attendance")
             .navigationBarTitleDisplayMode(.inline)
             .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isRefreshing = true
-                        if attendanceSemesterId.isEmpty {
-                            dataManager.refreshAttendanceOnly()
-                        } else {
-                            dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            isRefreshing = false
-                        }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                            .animation(.linear(duration: 0.5), value: isRefreshing)
-                    }
-                    .accessibilityLabel("Refresh attendance")
+                    EventHubToolbarLink()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    MainSyncToolbarButton()
                 }
             }
             .refreshable {
@@ -632,12 +690,24 @@ struct AttendanceTabView: View {
     }
 }
 
-// MARK: - Performance Tab
+// MARK: - Marks tab (mark report by semester; former Performance tab)
 struct PerformanceTabView: View {
     @EnvironmentObject var dataManager: DataManager
 
     var body: some View {
-        PerformanceView()
+        NavigationStack {
+            MarksBySemesterView()
+                .environmentObject(dataManager)
+                .vtopNavLeadingIcon()
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        EventHubToolbarLink()
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        MainSyncToolbarButton()
+                    }
+                }
+        }
     }
 }
 
@@ -737,6 +807,8 @@ struct PerformanceCard: View {
 struct ProfileTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    @AppStorage("vtop_dark_mode") private var darkModeEnabled = false
+    @State private var confirmSignOut = false
 
     var body: some View {
         NavigationView {
@@ -787,6 +859,10 @@ struct ProfileTabView: View {
                         Label("Courses", systemImage: "book.fill")
                     }
 
+                    NavigationLink(destination: TimetableView().environmentObject(authViewModel).environmentObject(dataManager)) {
+                        Label("Timetable", systemImage: "calendar.day.timeline.left")
+                    }
+
                     NavigationLink(destination: GradeHistoryView().environmentObject(dataManager)) {
                         Label("Grade history (all semesters)", systemImage: "chart.bar.doc.horizontal")
                     }
@@ -801,6 +877,10 @@ struct ProfileTabView: View {
 
                     NavigationLink(destination: SpotlightView().environmentObject(dataManager)) {
                         Label("Announcements", systemImage: "megaphone.fill")
+                    }
+
+                    NavigationLink(destination: EventHubView().environmentObject(dataManager)) {
+                        Label("Event hub", systemImage: "calendar.badge.clock")
                     }
                 }
 
@@ -833,7 +913,7 @@ struct ProfileTabView: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(.primary)
                                 .rotationEffect(.degrees(dataManager.isLoading ? 360 : 0))
                                 .animation(
                                     dataManager.isLoading ?
@@ -841,12 +921,14 @@ struct ProfileTabView: View {
                                     .default,
                                     value: dataManager.isLoading
                                 )
-                            Text(dataManager.isLoading ? "Syncing..." : "Sync Data")
+                            Text(dataManager.isLoading ? "Syncing..." : "Full Sync Data")
                                 .foregroundColor(.primary)
                             Spacer()
                         }
                     }
                     .disabled(dataManager.isLoading)
+
+                    Toggle("Dark mode", isOn: $darkModeEnabled)
                 }
 
                 Section(header: Text("Legal")) {
@@ -859,13 +941,12 @@ struct ProfileTabView: View {
                 }
 
                 Section {
-                    Button(action: {
-                        authViewModel.signOut()
-                    }) {
+                    Button(role: .destructive) {
+                        confirmSignOut = true
+                    } label: {
                         HStack {
                             Spacer()
                             Text("Sign Out")
-                                .foregroundColor(.red)
                                 .fontWeight(.semibold)
                             Spacer()
                         }
@@ -873,6 +954,14 @@ struct ProfileTabView: View {
                 }
             }
             .navigationBarTitle("Profile", displayMode: .inline)
+            .alert("Sign out?", isPresented: $confirmSignOut) {
+                Button("Cancel", role: .cancel) {}
+                Button("Sign Out", role: .destructive) {
+                    authViewModel.signOut()
+                }
+            } message: {
+                Text("You will need to sign in again.")
+            }
         }
     }
 }

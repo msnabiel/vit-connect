@@ -85,7 +85,6 @@ struct SemesterSelectionView: View {
             }
             .navigationTitle("Semester")
             .navigationBarTitleDisplayMode(.inline)
-            .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {

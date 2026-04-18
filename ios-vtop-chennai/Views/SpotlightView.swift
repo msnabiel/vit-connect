@@ -18,68 +18,65 @@ struct SpotlightView: View {
     }
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                if dataManager.spotlights.isEmpty {
-                    EmptyStateView(
-                        icon: "megaphone.fill",
-                        message: "No announcements available"
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    // Category filter
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(categories, id: \.self) { category in
-                                Button(action: {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        selectedCategory = category
-                                    }
-                                }) {
-                                    Text(category)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal, 16)
-                                        .background(
-                                            Capsule()
-                                                .fill(selectedCategory == category ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
-                                        )
-                                        .foregroundColor(selectedCategory == category ? .white : .primary)
+        VStack(spacing: 0) {
+            if dataManager.spotlights.isEmpty {
+                EmptyStateView(
+                    icon: "megaphone.fill",
+                    message: "No announcements available"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // Category filter
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(categories, id: \.self) { category in
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3)) {
+                                    selectedCategory = category
                                 }
+                            }) {
+                                Text(category)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 16)
+                                    .background(
+                                        Capsule()
+                                            .fill(selectedCategory == category ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
+                                    )
+                                    .foregroundColor(selectedCategory == category ? .white : .primary)
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
                     }
-                    .background(Color(uiColor: .systemBackground))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                }
+                .background(Color(uiColor: .systemBackground))
 
-                    // Announcements list
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            if filteredSpotlights.isEmpty {
-                                EmptyStateView(
-                                    icon: "tray.fill",
-                                    message: "No announcements in this category"
-                                )
-                                .padding(.top, 100)
-                            } else {
-                                ForEach(filteredSpotlights) { spotlight in
-                                    SpotlightCard(spotlight: spotlight)
-                                }
+                // Announcements list
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        if filteredSpotlights.isEmpty {
+                            EmptyStateView(
+                                icon: "tray.fill",
+                                message: "No announcements in this category"
+                            )
+                            .padding(.top, 100)
+                        } else {
+                            ForEach(filteredSpotlights) { spotlight in
+                                SpotlightCard(spotlight: spotlight)
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 20)
                     }
-                    .refreshable {
-                        dataManager.syncAll()
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 20)
+                }
+                .refreshable {
+                    dataManager.syncAll()
                 }
             }
-            .navigationTitle("Announcements")
-            .navigationBarTitleDisplayMode(.large)
-            .vtopNavLeadingIcon()
         }
+        .navigationTitle("Announcements")
+        .navigationBarTitleDisplayMode(.large)
     }
 }
 

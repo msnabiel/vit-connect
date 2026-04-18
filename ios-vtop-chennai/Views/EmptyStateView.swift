@@ -21,6 +21,7 @@ struct EmptyStateView: View {
                 Text(title)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
             }
 
             Text(message)
@@ -28,6 +29,7 @@ struct EmptyStateView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
         .padding()
     }
 }

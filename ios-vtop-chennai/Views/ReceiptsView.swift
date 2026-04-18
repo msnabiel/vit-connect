@@ -16,90 +16,87 @@ struct ReceiptsView: View {
     }
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                if dataManager.isLoading && dataManager.receipts.isEmpty {
-                    // Skeleton loading
-                    VStack(spacing: 20) {
-                        SkeletonCard()
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-
-                        LazyVStack(spacing: 12) {
-                            ForEach(0..<5, id: \.self) { _ in
-                                SkeletonListRow()
-                            }
-                        }
+        ScrollView {
+            if dataManager.isLoading && dataManager.receipts.isEmpty {
+                // Skeleton loading
+                VStack(spacing: 20) {
+                    SkeletonCard()
                         .padding(.horizontal, 20)
+                        .padding(.top, 8)
+
+                    LazyVStack(spacing: 12) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            SkeletonListRow()
+                        }
                     }
-                } else if dataManager.receipts.isEmpty {
-                    EmptyStateView(
-                        icon: "doc.text.fill",
-                        message: "No payment receipts available"
-                    )
-                    .frame(maxHeight: .infinity)
-                    .padding(.top, 100)
-                } else {
-                    VStack(spacing: 20) {
-                        // Summary card
-                        HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Total Paid")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 20)
+                }
+            } else if dataManager.receipts.isEmpty {
+                EmptyStateView(
+                    icon: "doc.text.fill",
+                    message: "No payment receipts available"
+                )
+                .frame(maxHeight: .infinity)
+                .padding(.top, 100)
+            } else {
+                VStack(spacing: 20) {
+                    // Summary card
+                    HStack(spacing: 20) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Total Paid")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
 
-                                Text("₹\(formatAmount(totalAmount))")
-                                    .font(.system(size: 32, weight: .bold))
-                                    .foregroundColor(.primary)
-                            }
-
-                            Spacer()
-
-                            VStack(alignment: .trailing, spacing: 6) {
-                                Text("Receipts")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
-
-                                Text("\(dataManager.receipts.count)")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.accentColor)
-                            }
+                            Text("₹\(formatAmount(totalAmount))")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.primary)
                         }
-                        .padding(20)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color.accentColor.opacity(0.1))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1)
-                        )
-                        .padding(.horizontal, 20)
 
-                        // Grouped receipts
-                        LazyVStack(spacing: 24, pinnedViews: [.sectionHeaders]) {
-                            ForEach(groupedReceipts.keys.sorted().reversed(), id: \.self) { month in
-                                Section(header: MonthHeader(month: month)) {
-                                    VStack(spacing: 12) {
-                                        ForEach(groupedReceipts[month] ?? []) { receipt in
-                                            ReceiptRow(receipt: receipt)
-                                        }
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 6) {
+                            Text("Receipts")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            Text("\(dataManager.receipts.count)")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.1))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.accentColor.opacity(0.3), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 20)
+
+                    // Grouped receipts
+                    LazyVStack(spacing: 24, pinnedViews: [.sectionHeaders]) {
+                        ForEach(groupedReceipts.keys.sorted().reversed(), id: \.self) { month in
+                            Section(header: MonthHeader(month: month)) {
+                                VStack(spacing: 12) {
+                                    ForEach(groupedReceipts[month] ?? []) { receipt in
+                                        ReceiptRow(receipt: receipt)
                                     }
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
                     }
-                    .padding(.vertical, 20)
+                    .padding(.horizontal, 20)
                 }
+                .padding(.vertical, 12)
             }
-            .refreshable {
-                dataManager.syncAll()
-            }
-            .navigationTitle("Payment Receipts")
-            .navigationBarTitleDisplayMode(.inline)
-            .vtopNavLeadingIcon()
         }
+        .refreshable {
+            dataManager.syncAll()
+        }
+        .navigationTitle("Payment receipts")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func formatAmount(_ amount: Double) -> String {
@@ -184,7 +181,7 @@ struct ReceiptRow: View {
 }
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         ReceiptsView()
             .environmentObject(DataManager())
     }

@@ -26,6 +26,7 @@ enum VTOPDataCache {
         static let marksReportSemesterId = "vtop_cache_marksReportSemesterId_v1"
         static let spotlights = "vtop_cache_spotlights_v1"
         static let receipts = "vtop_cache_receipts_v1"
+        static let scheduledEventRows = "vtop_cache_scheduledEventRows_v1"
         static let portalCredentials = "vtop_cache_portalCredentials_v1"
         static let rankEntries = "vtop_cache_rankEntries_v1"
         static let deanPortraitData = "vtop_cache_deanPortraitData_v1"
@@ -72,6 +73,7 @@ enum VTOPDataCache {
         marksReportSemesterId: String?,
         spotlights: [Spotlight],
         receipts: [Receipt],
+        scheduledEventRows: [VTOPScheduledEventRow],
         portalCredentials: [VTOPPortalCredential],
         rankEntries: [VTOPRankEntry],
         deanPortraitData: Data?,
@@ -96,6 +98,7 @@ enum VTOPDataCache {
         }
         save(spotlights, for: Key.spotlights)
         save(receipts, for: Key.receipts)
+        save(scheduledEventRows, for: Key.scheduledEventRows)
         save(portalCredentials, for: Key.portalCredentials)
         save(rankEntries, for: Key.rankEntries)
         saveData(deanPortraitData, key: Key.deanPortraitData)
@@ -148,6 +151,7 @@ enum VTOPDataCache {
             }
             if let v = load([Spotlight].self, key: Key.spotlights) { dm.spotlights = v }
             if let v = load([Receipt].self, key: Key.receipts) { dm.receipts = v }
+            if let v = load([VTOPScheduledEventRow].self, key: Key.scheduledEventRows) { dm.scheduledEventRows = v }
             if let v = load([VTOPPortalCredential].self, key: Key.portalCredentials) { dm.portalCredentials = v }
             if let v = load([VTOPRankEntry].self, key: Key.rankEntries) { dm.rankEntries = v }
             dm.deanPortraitData = loadData(key: Key.deanPortraitData)

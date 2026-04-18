@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PerformanceView: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
     @State private var selectedCourse: Course?
 
@@ -98,8 +99,16 @@ struct PerformanceView: View {
                 dataManager.syncAll()
             }
             .navigationTitle("Performance")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .vtopNavLeadingIcon()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EventHubToolbarLink()
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    MainSyncToolbarButton()
+                }
+            }
             .onAppear {
                 if selectedCourse == nil, let first = dataManager.courses.first {
                     selectedCourse = first
@@ -283,6 +292,7 @@ struct CumulativeGradeCard: View {
 #Preview {
     NavigationView {
         PerformanceView()
+            .environmentObject(AuthenticationViewModel())
             .environmentObject(DataManager())
     }
 }

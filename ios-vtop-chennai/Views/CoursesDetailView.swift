@@ -33,8 +33,7 @@ struct CoursesDetailView: View {
             }
         }
         .navigationTitle("Courses")
-        .navigationBarTitleDisplayMode(.large)
-        .vtopNavLeadingIcon()
+        .navigationBarTitleDisplayMode(.inline)
         .refreshable {
             dataManager.syncAll()
         }

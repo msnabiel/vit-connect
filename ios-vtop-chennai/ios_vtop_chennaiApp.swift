@@ -29,6 +29,12 @@ struct ios_vtop_chennaiApp: App {
 struct RootView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    /// `false` = light, `true` = dark (Profile → Dark mode toggle).
+    @AppStorage("vtop_dark_mode") private var darkModeEnabled = false
+
+    private var preferredColorScheme: ColorScheme? {
+        darkModeEnabled ? .dark : .light
+    }
     private let debugLogPath = "/Users/msnabiel/Desktop/ios-vtop-chennai/.cursor/debug-a1b485.log"
     private var debugAuthInstanceId: String { String(ObjectIdentifier(authViewModel).hashValue) }
 
@@ -73,6 +79,7 @@ struct RootView: View {
         return Group {
             if authViewModel.isAuthenticated {
                 HomeView()
+                    .preferredColorScheme(preferredColorScheme)
                     .transition(.opacity)
                     .onAppear {
                         print("⚠️ DEBUG: ✅✅✅ HomeView APPEARED")
@@ -90,6 +97,7 @@ struct RootView: View {
                     }
             } else {
                 LoginView()
+                    .preferredColorScheme(preferredColorScheme)
                     .transition(.opacity)
                     .onAppear {
                         print("⚠️ DEBUG: LoginView appeared")

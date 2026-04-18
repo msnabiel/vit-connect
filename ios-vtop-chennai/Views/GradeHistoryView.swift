@@ -130,7 +130,6 @@ struct GradeHistoryView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Grade history")
         .navigationBarTitleDisplayMode(.inline)
-        .vtopNavLeadingIcon()
     }
 
     private var searchFieldChrome: some View {
