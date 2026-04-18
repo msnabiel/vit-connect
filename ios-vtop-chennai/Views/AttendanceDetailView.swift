@@ -3,20 +3,158 @@ import SwiftUI
 struct AttendanceDetailView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    @AppStorage(VTOPPrivacyStorage.maskOverallAttendance) private var maskOverallAttendance = false
+    @State private var attendanceSemesterId: String = ""
+    @State private var didLoadPicklist = false
+    @State private var attendancePickerPrimed = false
+
+    private var semesterChoices: [Semester] {
+        let fromPage = dataManager.attendanceSemesterOptions
+        return fromPage.isEmpty ? dataManager.semesters : fromPage
+    }
+
+    private var attendanceSemesterDisplayName: String {
+        semesterChoices.first(where: { $0.id == attendanceSemesterId })?.name ?? "Choose semester"
+    }
+
+    private var overallAttendanceRollup: (attended: Int, total: Int, pct: Int) {
+        let rows = dataManager.attendance
+        let a = rows.reduce(0) { $0 + $1.attended }
+        let t = rows.reduce(0) { $0 + $1.total }
+        let pct = t > 0 ? Int(ceil(Double(a) * 100.0 / Double(t))) : 0
+        return (a, t, pct)
+    }
+
+    @ViewBuilder
+    private var overallAttendanceStrip: some View {
+        let r = overallAttendanceRollup
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Overall attendance")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                PrivacyMaskToggleButton(
+                    isMasked: $maskOverallAttendance,
+                    accessibilityShow: "Show overall attendance",
+                    accessibilityHide: "Mask overall attendance"
+                )
+            }
+            HStack(alignment: .firstTextBaseline) {
+                Text(maskOverallAttendance ? "•••%" : "\(r.pct)%")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(maskOverallAttendance ? .secondary : (r.pct >= 75 ? Color.green : (r.pct >= 65 ? Color.orange : Color.red)))
+                Spacer()
+                Text(maskOverallAttendance ? "••• / ••• classes" : "\(r.attended)/\(r.total) classes")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                    if !maskOverallAttendance {
+                        Capsule()
+                            .fill(r.pct >= 75 ? Color.green : (r.pct >= 65 ? Color.orange : Color.red))
+                            .frame(width: max(4, geo.size.width * CGFloat(r.pct) / 100.0))
+                    }
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+    }
 
     var body: some View {
         Group {
             if dataManager.attendance.isEmpty {
-                EmptyStateView(
-                    icon: "calendar.badge.exclamationmark",
-                    title: "No Attendance Data",
-                    message: "Attendance will appear here after it loads from sync."
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                .padding()
+                VStack(spacing: 0) {
+                    if !semesterChoices.isEmpty {
+                        Menu {
+                            ForEach(semesterChoices) { sem in
+                                Button(sem.name) {
+                                    attendanceSemesterId = sem.id
+                                    if attendancePickerPrimed {
+                                        dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text("Semester — \(attendanceSemesterDisplayName)")
+                                    .font(.body.weight(.medium))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(Color(uiColor: .systemBlue))
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color(uiColor: .secondarySystemBackground))
+                            )
+                        }
+                        .padding()
+                    }
+
+                    Spacer(minLength: 0)
+
+                    EmptyStateView(
+                        icon: "calendar.badge.exclamationmark",
+                        title: "No attendance yet",
+                        message: "Choose a semester above, or pull down to refresh."
+                    )
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if !semesterChoices.isEmpty {
+                            Menu {
+                                ForEach(semesterChoices) { sem in
+                                    Button(sem.name) {
+                                        attendanceSemesterId = sem.id
+                                        if attendancePickerPrimed {
+                                            dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Text("Semester — \(attendanceSemesterDisplayName)")
+                                        .font(.body.weight(.medium))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.72)
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(Color(uiColor: .systemBlue))
+                                }
+                                .padding(.vertical, 10)
+                                .padding(.horizontal, 12)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Color(uiColor: .secondarySystemBackground))
+                                )
+                            }
+                        }
+
+                        overallAttendanceStrip
+
                         ForEach(dataManager.attendance) { attendance in
                             AttendanceCard(
                                 course: attendance.matchingCatalogCourse(in: dataManager.courses),
@@ -30,16 +168,38 @@ struct AttendanceDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .refreshable {
-            dataManager.syncAll()
+            if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
+                dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
+            } else {
+                dataManager.syncAll()
+            }
         }
         .navigationTitle("Attendance")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                EventHubToolbarLink()
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                TimetableToolbarLink()
                 MainSyncToolbarButton()
+            }
+        }
+        .onAppear {
+            guard !didLoadPicklist else { return }
+            didLoadPicklist = true
+            dataManager.loadAttendanceSemesterPicklist {
+                let choices = dataManager.attendanceSemesterOptions.isEmpty ? dataManager.semesters : dataManager.attendanceSemesterOptions
+                guard !choices.isEmpty else { return }
+                if attendanceSemesterId.isEmpty {
+                    if let sid = dataManager.selectedSemester?.id, choices.contains(where: { $0.id == sid }) {
+                        attendanceSemesterId = sid
+                    } else {
+                        attendanceSemesterId = choices[0].id
+                    }
+                }
+                attendancePickerPrimed = true
+                if !attendanceSemesterId.isEmpty {
+                    dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
+                }
             }
         }
     }

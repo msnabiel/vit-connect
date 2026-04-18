@@ -103,7 +103,7 @@ struct PerformanceView: View {
             .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    EventHubToolbarLink()
+                    TimetableToolbarLink()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     MainSyncToolbarButton()

@@ -3,20 +3,56 @@ import SwiftUI
 struct TimetableView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
-    @State private var selectedDay = Calendar.current.component(.weekday, from: Date()) - 1 // 0 = Sunday
 
-    let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    let fullWeekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    /// 0 = Sunday … 6 = Saturday (matches `TimetableSlot` weekday columns).
+    @State private var selectedDay = Calendar.current.component(.weekday, from: Date()) - 1
+
+    private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+    private var semesterMenuTitle: String {
+        dataManager.selectedSemester?.name ?? "Choose semester"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Day selector
+            if !dataManager.semesters.isEmpty {
+                Menu {
+                    ForEach(dataManager.semesters) { sem in
+                        Button(sem.name) {
+                            dataManager.refreshTimetableAndCoursesForSemester(sem, completion: nil)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Semester — \(semesterMenuTitle)")
+                            .font(.body.weight(.medium))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Color(uiColor: .systemBlue))
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(uiColor: .secondarySystemBackground))
+                    )
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(0..<7) { index in
-                        Button(action: {
+                    ForEach(0..<7, id: \.self) { index in
+                        Button {
                             selectedDay = index
-                        }) {
+                        } label: {
                             VStack(spacing: 4) {
                                 Text(weekdays[index])
                                     .font(.system(size: 14, weight: selectedDay == index ? .bold : .medium))
@@ -39,9 +75,10 @@ struct TimetableView: View {
                                     .fill(selectedDay == index ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
                             )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
             }
             .padding(.vertical, 12)
 
@@ -56,14 +93,31 @@ struct TimetableView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 12) {
-                        ForEach(dataManager.timetable) { slot in
-                            TimetableSlotCard(slot: slot, dayIndex: selectedDay, courses: dataManager.courses)
+                        if enrolledSlotsForSelectedDay.isEmpty {
+                            Text("No class on this day")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 24)
+                        } else {
+                            ForEach(enrolledSlotsForSelectedDay) { slot in
+                                TimetableSlotCard(slot: slot, dayIndex: selectedDay, courses: dataManager.courses)
+                            }
                         }
                     }
                     .padding()
                 }
                 .refreshable {
-                    dataManager.syncAll()
+                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                        if let sem = dataManager.selectedSemester {
+                            dataManager.refreshTimetableAndCoursesForSemester(sem) {
+                                cont.resume()
+                            }
+                        } else {
+                            dataManager.syncAll()
+                            cont.resume()
+                        }
+                    }
                 }
             }
         }
@@ -71,7 +125,7 @@ struct TimetableView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                EventHubToolbarLink()
+                TimetableToolbarLink()
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 MainSyncToolbarButton()
@@ -83,6 +137,13 @@ struct TimetableView: View {
         let today = Calendar.current.component(.weekday, from: Date()) - 1
         return today == dayIndex
     }
+
+    /// Periods where you have a registered class on the selected day (free grid cells omitted).
+    private var enrolledSlotsForSelectedDay: [TimetableSlot] {
+        dataManager.timetable
+            .filter { $0.matchingCourse(on: selectedDay, courses: dataManager.courses) != nil }
+            .sorted { $0.startTime < $1.startTime }
+    }
 }
 
 struct TimetableSlotCard: View {
@@ -90,28 +151,14 @@ struct TimetableSlotCard: View {
     let dayIndex: Int
     let courses: [Course]
 
-    var slotCode: String? {
-        switch dayIndex {
-        case 0: return slot.sunday as? String
-        case 1: return slot.monday as? String
-        case 2: return slot.tuesday as? String
-        case 3: return slot.wednesday as? String
-        case 4: return slot.thursday as? String
-        case 5: return slot.friday as? String
-        case 6: return slot.saturday as? String
-        default: return nil
-        }
-    }
+    private var slotCode: String? { slot.slotCode(on: dayIndex) }
 
-    var matchingCourse: Course? {
-        guard let code = slotCode else { return nil }
-        return courses.first { course in
-            course.slots.contains { $0.slot == code }
-        }
+    private var matchingCourse: Course? {
+        slot.matchingCourse(on: dayIndex, courses: courses)
     }
 
     var body: some View {
-        if let slotCode = slotCode, !slotCode.isEmpty, let course = matchingCourse {
+        if let slotCode = slotCode, let course = matchingCourse {
             HStack(spacing: 12) {
                 // Time column
                 VStack(alignment: .leading, spacing: 4) {
@@ -183,35 +230,6 @@ struct TimetableSlotCard: View {
                     .fill(Color(uiColor: .secondarySystemBackground))
             )
             .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
-        } else {
-            // Empty slot
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(formatTime(slot.startTime))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
-
-                    Text(formatTime(slot.endTime))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary.opacity(0.7))
-                }
-                .frame(width: 70, alignment: .leading)
-
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 4)
-                    .cornerRadius(2)
-
-                Text("No Class")
-                    .font(.system(size: 15))
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 1)
-            )
         }
     }
 

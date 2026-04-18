@@ -1,10 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// When the Profile tab is selected (including re-tapping while already selected), calls `onSelectProfileTab` so the profile root can reset navigation (e.g. `.id` bump on `ProfileTabView`).
-struct TabBarProfileRootBridge: UIViewRepresentable {
-    let profileTabIndex: Int
-    let onSelectProfileTab: () -> Void
+/// When the user **re-taps** a tab that is already selected, runs that tab’s handler (e.g. bump `.id` to pop `NavigationView` to root).
+struct TabBarReselectBridge: UIViewRepresentable {
+    /// Tab index → action (Home = 0, Profile = 3, etc.).
+    let handlers: [Int: () -> Void]
 
     func makeUIView(context: Context) -> UIView {
         let v = UIView(frame: .zero)
@@ -13,20 +13,22 @@ struct TabBarProfileRootBridge: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        context.coordinator.profileTabIndex = profileTabIndex
-        context.coordinator.onSelectProfileTab = onSelectProfileTab
+        context.coordinator.handlers = handlers
         context.coordinator.attachIfPossible(from: uiView)
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(handlers: handlers)
     }
 
     final class Coordinator: NSObject, UITabBarControllerDelegate {
-        var profileTabIndex: Int = 3
-        var onSelectProfileTab: () -> Void = {}
+        var handlers: [Int: () -> Void]
         private weak var tabBarController: UITabBarController?
         private weak var previousDelegate: UITabBarControllerDelegate?
+
+        init(handlers: [Int: () -> Void]) {
+            self.handlers = handlers
+        }
 
         deinit {
             tabBarController?.delegate = previousDelegate
@@ -64,8 +66,8 @@ struct TabBarProfileRootBridge: UIViewRepresentable {
             let inner = previousDelegate?.tabBarController?(tabBarController, shouldSelect: viewController) ?? true
             guard inner else { return false }
             guard let idx = tabBarController.viewControllers?.firstIndex(of: viewController),
-                  idx == profileTabIndex else { return true }
-            let action = onSelectProfileTab
+                  tabBarController.selectedViewController === viewController,
+                  let action = handlers[idx] else { return true }
             DispatchQueue.main.async {
                 action()
             }

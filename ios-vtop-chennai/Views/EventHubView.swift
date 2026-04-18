@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Toolbar control: opens Event hub from tab roots (Home / Attendance / Performance).
+/// Toolbar control: opens Event hub from tab roots (Attendance / Marks / Timetable, etc.).
 struct EventHubToolbarLink: View {
     @EnvironmentObject var dataManager: DataManager
 
@@ -11,6 +11,25 @@ struct EventHubToolbarLink: View {
                 .foregroundStyle(.primary)
         }
         .accessibilityLabel("Event hub")
+    }
+}
+
+/// Toolbar control: opens the full week timetable (Home tab trailing).
+struct TimetableToolbarLink: View {
+    @EnvironmentObject var authViewModel: AuthenticationViewModel
+    @EnvironmentObject var dataManager: DataManager
+
+    var body: some View {
+        NavigationLink(
+            destination: TimetableView()
+                .environmentObject(authViewModel)
+                .environmentObject(dataManager)
+        ) {
+            Image(systemName: "calendar")
+                .font(.body.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .accessibilityLabel("Timetable")
     }
 }
 

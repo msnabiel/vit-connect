@@ -101,7 +101,7 @@ struct MarksBySemesterView: View {
                 }
             }
         }
-        .navigationTitle("Marks by semester")
+        .navigationTitle("Marks")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
             await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in

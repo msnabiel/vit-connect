@@ -28,6 +28,11 @@ class DataManager: ObservableObject {
     /// Last `semesterSubId` used for marks-by-semester (persisted for restore).
     @Published var marksReportSemesterId: String?
 
+    /// Semester options from `examinations/StudExamSchedule` (exam schedule dropdown).
+    @Published var examScheduleSemesterOptions: [Semester] = []
+    /// Last `semesterSubId` chosen on the exam schedule screen (persisted).
+    @Published var examScheduleSemesterId: String?
+
     /// All-semester grade rows from `StudentGradeHistory` (distinct from semester `cumulativeMarks`).
     @Published var gradeHistoryRows: [GradeHistoryCourseRow] = []
     @Published var portalCredentials: [VTOPPortalCredential] = []
@@ -722,19 +727,29 @@ class DataManager: ObservableObject {
 
     private static func intFromJSON(_ any: Any?) -> Int? {
         if let i = any as? Int { return i }
-        if let n = any as? NSNumber { return n.intValue }
+        if let d = any as? Double { return Int(d.rounded()) }
+        if let n = any as? NSNumber { return Int(n.doubleValue.rounded()) }
         if let s = any as? String { return Int(s.trimmingCharacters(in: .whitespacesAndNewlines)) }
         return nil
     }
 
+    private static func optionalTrimmedString(_ any: Any?) -> String? {
+        if any is NSNull { return nil }
+        guard let s = any as? String else { return nil }
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
+    }
+
     // MARK: - Fetch Courses and Timetable
-    private func fetchCoursesAndTimetable() {
+    /// Updates `courses` + `timetable` from `processViewTimeTable`. When `chainToAttendance` is false, the sync chain stops after this step (for Timetable screen semester changes).
+    private func fetchCoursesAndTimetable(chainToAttendance: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("📚 Fetching courses and timetable...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
               let csrfToken = csrfToken,
               let semesterId = selectedSemester?.id else {
             logger.error("Missing session or semester data", context: "DataManager")
+            completion?()
             return
         }
 
@@ -745,6 +760,50 @@ class DataManager: ObservableObject {
         let script = """
         (function() {
             var result = { courses: [], timetable: [], rawProcessViewTimeTable: '' };
+
+            function cellSlotToken(text) {
+                if (!text) return null;
+                var t = text.replace(/\\s+/g, ' ').trim();
+                if (!t || t === '-' || /^lunch$/i.test(t)) return null;
+                var first = t.split('-')[0].trim();
+                if (!first || first === '-') return null;
+                return first;
+            }
+
+            function parseTimeBandRowPair(trs, startIdx) {
+                if (startIdx + 1 >= trs.length) return { times: [], nextIdx: startIdx };
+                var r0 = $(trs[startIdx]).find('td').toArray();
+                var r1 = $(trs[startIdx + 1]).find('td').toArray();
+                if (r0.length < 3 || r1.length < 2) return { times: [], nextIdx: startIdx };
+                var starts = r0.slice(2);
+                var ends = r1.slice(1);
+                var times = [];
+                var n = Math.min(starts.length, ends.length);
+                for (var k = 0; k < n; k++) {
+                    var st = $(starts[k]).text().trim();
+                    var en = $(ends[k]).text().trim();
+                    if (/^lunch$/i.test(st) || /^lunch$/i.test(en)) {
+                        times.push(null);
+                    } else if (/^\\d{1,2}:\\d{2}$/.test(st) && /^\\d{1,2}:\\d{2}$/.test(en)) {
+                        times.push({ start: st, end: en });
+                    } else {
+                        times.push(null);
+                    }
+                }
+                return { times: times, nextIdx: startIdx + 2 };
+            }
+
+            function buildSlotGrid(timesArr) {
+                return timesArr.map(function(t) {
+                    if (!t) return null;
+                    return {
+                        startTime: t.start,
+                        endTime: t.end,
+                        sunday: null, monday: null, tuesday: null, wednesday: null,
+                        thursday: null, friday: null, saturday: null
+                    };
+                });
+            }
 
             $.ajax({
                 type: 'POST',
@@ -760,71 +819,122 @@ class DataManager: ObservableObject {
                     var courseCounter = 1;
                     var slotCounter = 1;
 
-                    // Parse courses from table
-                    $(res).find('table').first().find('tbody tr').each(function() {
+                    // Registration / courses table (Sl.No … columns; often no <tbody>)
+                    $(res).find('#studentDetailsList table.table').first().find('tr').each(function() {
                         var cells = $(this).find('td');
-                        if (cells.length >= 7) {
-                            var offset = 0;
-                            var c0 = cells.eq(0).text().trim();
-                            if (/^\\d+$/.test(c0) && cells.length >= 8) offset = 1;
-                            var courseCode = cells.eq(offset + 0).text().trim();
-                            var courseTitle = cells.eq(offset + 1).text().trim();
-                            var slotsText = cells.eq(offset + 2).text().trim();
-                            var courseType = cells.eq(offset + 3).text().trim().toLowerCase();
-                            var credits = parseInt(cells.eq(offset + 4).text().trim()) || 0;
-                            var venue = cells.eq(offset + 5).text().trim();
-                            var faculty = cells.eq(offset + 6).text().trim();
+                        if (cells.length < 11) return;
+                        var slNo = cells.eq(0).text().trim();
+                        if (!/^\\d+$/.test(slNo)) return;
+                        var rowText = $(this).text();
+                        if (/Total Number Of Credits/i.test(rowText)) return;
 
-                            var slots = [];
-                            if (slotsText) {
-                                slotsText.split('+').forEach(function(slot) {
-                                    slot = slot.trim();
-                                    if (slot) {
-                                        slots.push({
-                                            id: slotCounter++,
-                                            slot: slot,
-                                            courseId: courseCounter
-                                        });
-                                    }
-                                });
-                            }
+                        var coursePs = cells.eq(2).find('p');
+                        var line0 = coursePs.eq(0).text().trim();
+                        var dashSep = line0.indexOf(' - ');
+                        if (dashSep < 0) return;
+                        var courseCode = line0.substring(0, dashSep).trim();
+                        var courseTitle = line0.substring(dashSep + 3).trim();
+                        if (!courseCode) return;
 
-                            result.courses.push({
-                                id: courseCounter++,
-                                code: courseCode,
-                                title: courseTitle,
-                                type: courseType.includes('lab') ? 'LAB' : (courseType.includes('project') ? 'PROJECT' : 'THEORY'),
-                                credits: credits,
-                                venue: venue,
-                                faculty: faculty,
-                                slots: slots
+                        var typeLine = (coursePs.eq(1).text() || '').toLowerCase();
+                        var courseType = typeLine.indexOf('lab') >= 0 ? 'LAB'
+                            : (typeLine.indexOf('project') >= 0 ? 'PROJECT' : 'THEORY');
+
+                        var creditsRaw = cells.eq(3).text().trim().split(/\\s+/)[0];
+                        var credits = Math.round(parseFloat(creditsRaw) || 0);
+
+                        var slotVenueLines = cells.eq(7).text().split(/\\r?\\n/).map(function(x) { return x.trim(); }).filter(function(x) { return x.length > 0; });
+                        var firstSlotLine = slotVenueLines.length ? slotVenueLines[0] : '';
+                        var slotsPart = firstSlotLine.split('-')[0].trim();
+                        var venue = slotVenueLines.length > 1 ? slotVenueLines[slotVenueLines.length - 1] : '';
+
+                        var faculty = cells.eq(8).text().replace(/\\s+/g, ' ').trim();
+
+                        var slots = [];
+                        if (slotsPart && !/^nil$/i.test(slotsPart)) {
+                            slotsPart.split('+').forEach(function(part) {
+                                part = part.trim();
+                                if (part) {
+                                    slots.push({ id: slotCounter++, slot: part, courseId: courseCounter });
+                                }
                             });
                         }
+
+                        result.courses.push({
+                            id: courseCounter++,
+                            code: courseCode,
+                            title: courseTitle,
+                            type: courseType,
+                            credits: credits,
+                            venue: venue,
+                            faculty: faculty,
+                            slots: slots
+                        });
                     });
 
-                    // Parse timetable from second table
-                    var timetableCounter = 1;
-                    $(res).find('#timeTableStyle tbody tr').each(function() {
-                        var cells = $(this).find('td');
-                        if (cells.length >= 8) {
-                            var timeText = cells.eq(0).text().trim();
-                            var times = timeText.split('-');
-                            if (times.length === 2) {
-                                result.timetable.push({
-                                    id: timetableCounter++,
-                                    startTime: times[0].trim(),
-                                    endTime: times[1].trim(),
-                                    sunday: cells.eq(1).text().trim() || null,
-                                    monday: cells.eq(2).text().trim() || null,
-                                    tuesday: cells.eq(3).text().trim() || null,
-                                    wednesday: cells.eq(4).text().trim() || null,
-                                    thursday: cells.eq(5).text().trim() || null,
-                                    friday: cells.eq(6).text().trim() || null,
-                                    saturday: cells.eq(7).text().trim() || null
-                                });
+                    // Timetable grid #timeTableStyle (theory/lab column headers + MON–SUN rows)
+                    var $tt = $(res).find('#timeTableStyle');
+                    if ($tt.length) {
+                        var trs = $tt.find('tr').toArray();
+                        var theoryHdr = parseTimeBandRowPair(trs, 0);
+                        var labHdr = parseTimeBandRowPair(trs, theoryHdr.nextIdx);
+                        var theorySlots = buildSlotGrid(theoryHdr.times);
+                        var labSlots = buildSlotGrid(labHdr.times);
+                        var dataStart = labHdr.nextIdx;
+                        var dayMap = { 'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6 };
+                        var dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                        var lastDayIdx = null;
+
+                        for (var r = dataStart; r < trs.length; r++) {
+                            var cells = $(trs[r]).find('td').toArray();
+                            if (cells.length < 2) continue;
+                            var t0 = $(cells[0]).text().trim();
+                            var t1 = $(cells[1]).text().trim();
+                            var dayM = t0.match(/^(SUN|MON|TUE|WED|THU|FRI|SAT)$/i);
+                            if (dayM) {
+                                lastDayIdx = dayMap[dayM[1].toUpperCase()];
+                                var isTheory = /^theory$/i.test(t1);
+                                var targets = isTheory ? theorySlots : labSlots;
+                                for (var col = 0; col < targets.length; col++) {
+                                    if (!targets[col]) continue;
+                                    var ci = col + 2;
+                                    if (ci >= cells.length) break;
+                                    var tok = cellSlotToken($(cells[ci]).text());
+                                    if (tok && lastDayIdx !== null) {
+                                        targets[col][dayKeys[lastDayIdx]] = tok;
+                                    }
+                                }
+                            } else if (/^lab$/i.test(t0) && lastDayIdx !== null) {
+                                var targetsL = labSlots;
+                                for (var col2 = 0; col2 < targetsL.length; col2++) {
+                                    if (!targetsL[col2]) continue;
+                                    var ci2 = col2 + 1;
+                                    if (ci2 >= cells.length) break;
+                                    var tok2 = cellSlotToken($(cells[ci2]).text());
+                                    if (tok2) {
+                                        targetsL[col2][dayKeys[lastDayIdx]] = tok2;
+                                    }
+                                }
                             }
                         }
-                    });
+
+                        var timetableCounter = 1;
+                        function appendSlots(arr) {
+                            arr.forEach(function(s) {
+                                if (!s) return;
+                                result.timetable.push({
+                                    id: timetableCounter++,
+                                    startTime: s.startTime,
+                                    endTime: s.endTime,
+                                    sunday: s.sunday, monday: s.monday, tuesday: s.tuesday,
+                                    wednesday: s.wednesday, thursday: s.thursday, friday: s.friday,
+                                    saturday: s.saturday
+                                });
+                            });
+                        }
+                        appendSlots(theorySlots);
+                        appendSlots(labSlots);
+                    }
                 }
             });
 
@@ -837,17 +947,32 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch courses: \(error.localizedDescription)", context: "DataManager")
-                self.fetchAttendance() // Continue anyway
+                if chainToAttendance {
+                    self.fetchAttendance()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            guard let dict = result as? [String: Any],
-                  let coursesData = dict["courses"] as? [[String: Any]],
-                  let timetableData = dict["timetable"] as? [[String: Any]] else {
-                self.logger.error("Invalid courses response", context: "DataManager")
-                self.fetchAttendance()
+            guard let dict = result as? [String: Any] else {
+                self.logger.error("Invalid processViewTimeTable response", context: "DataManager")
+                if chainToAttendance {
+                    self.fetchAttendance()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
+
+            let coursesData = dict["courses"] as? [[String: Any]] ?? []
+            let timetableData = dict["timetable"] as? [[String: Any]] ?? []
 
             self.debugPrintFullVTOPResponse("processViewTimeTable", dict["rawProcessViewTimeTable"] as? String)
 
@@ -858,11 +983,11 @@ class DataManager: ObservableObject {
                       let code = courseDict["code"] as? String,
                       let title = courseDict["title"] as? String,
                       let typeStr = courseDict["type"] as? String,
-                      let credits = courseDict["credits"] as? Int,
                       let venue = courseDict["venue"] as? String,
                       let faculty = courseDict["faculty"] as? String else { continue }
 
-                let type = CourseType(rawValue: typeStr) ?? .theory
+                let credits = Self.intFromJSON(courseDict["credits"]) ?? 0
+                let type = CourseType(rawValue: typeStr.uppercased()) ?? .theory
                 let slotsData = courseDict["slots"] as? [[String: Any]] ?? []
                 let slots = slotsData.compactMap { slotDict -> Slot? in
                     guard let slotId = slotDict["id"] as? Int,
@@ -875,7 +1000,7 @@ class DataManager: ObservableObject {
                                     credits: credits, venue: venue, faculty: faculty, slots: slots))
             }
 
-            // Parse timetable
+            // Parse timetable (slot tokens per weekday, from VTOP grid)
             var timetable: [TimetableSlot] = []
             for ttDict in timetableData {
                 guard let id = ttDict["id"] as? Int,
@@ -883,7 +1008,13 @@ class DataManager: ObservableObject {
                       let endTime = ttDict["endTime"] as? String else { continue }
 
                 var slot = TimetableSlot(id: id, startTime: startTime, endTime: endTime)
-                // Note: We're storing slot names, not IDs for simplicity
+                slot.sunday = Self.optionalTrimmedString(ttDict["sunday"])
+                slot.monday = Self.optionalTrimmedString(ttDict["monday"])
+                slot.tuesday = Self.optionalTrimmedString(ttDict["tuesday"])
+                slot.wednesday = Self.optionalTrimmedString(ttDict["wednesday"])
+                slot.thursday = Self.optionalTrimmedString(ttDict["thursday"])
+                slot.friday = Self.optionalTrimmedString(ttDict["friday"])
+                slot.saturday = Self.optionalTrimmedString(ttDict["saturday"])
                 timetable.append(slot)
             }
 
@@ -892,9 +1023,34 @@ class DataManager: ObservableObject {
                 self.timetable = timetable
                 self.logger.success("✅ Loaded \(courses.count) courses and \(timetable.count) timetable slots", context: "DataManager")
                 self.persistCache()
-                self.fetchAttendance()
+                if chainToAttendance {
+                    self.fetchAttendance()
+                } else {
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
         }
+    }
+
+    /// Selects semester and reloads only courses + timetable (does not run full `fetchAllData` chain).
+    func refreshTimetableAndCoursesForSemester(_ semester: Semester, completion: (() -> Void)? = nil) {
+        logger.info("📅 Timetable semester: \(semester.name)", context: "DataManager")
+        selectedSemester = semester
+        UserDefaults.standard.set(semester.id, forKey: "semesterId")
+        UserDefaults.standard.set(semester.name, forKey: "semester")
+        persistCache()
+
+        guard webView != nil else {
+            logger.warning("WebView not ready for timetable refresh", context: "DataManager")
+            completion?()
+            return
+        }
+
+        DispatchQueue.main.async {
+            self.loadingMessage = "Loading timetable..."
+        }
+        fetchCoursesAndTimetable(chainToAttendance: false, completion: completion)
     }
 
     // MARK: - Fetch Marks
@@ -1640,14 +1796,78 @@ class DataManager: ObservableObject {
         }
     }
 
-    // MARK: - Fetch Exams
+    // MARK: - Exam schedule (semester picker + `customTable` parse)
+
+    /// Loads `select#semesterSubId` from `examinations/StudExamSchedule`.
+    func loadExamScheduleSemesterPicklist(completion: (() -> Void)? = nil) {
+        guard let authorizedID = authorizedID,
+              let csrfToken = csrfToken,
+              let webView = self.webView else {
+            completion?()
+            return
+        }
+
+        let script = """
+        (function() {
+            var result = { semesters: [] };
+            $.ajax({
+                type: 'POST',
+                url: '/vtop/examinations/StudExamSchedule',
+                data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                async: false,
+                success: function(res) {
+                    $(res).find('select#semesterSubId option, select[name="semesterSubId"] option').each(function() {
+                        var v = ($(this).attr('value') || '').trim();
+                        var t = $(this).text().replace(/\\s+/g, ' ').trim();
+                        if (v) result.semesters.push({ id: v, name: t });
+                    });
+                }
+            });
+            return result;
+        })();
+        """
+
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            guard let self else {
+                completion?()
+                return
+            }
+            if let error = error {
+                self.logger.error("Exam schedule picklist: \(error.localizedDescription)", context: "DataManager")
+                completion?()
+                return
+            }
+            guard let dict = result as? [String: Any],
+                  let rows = dict["semesters"] as? [[String: Any]] else {
+                completion?()
+                return
+            }
+            let list: [Semester] = rows.compactMap { r in
+                guard let id = r["id"] as? String, !id.isEmpty,
+                      let name = r["name"] as? String else { return nil }
+                return Semester(id: id, name: name)
+            }
+            DispatchQueue.main.async {
+                self.examScheduleSemesterOptions = list
+                self.logger.success("✅ Exam schedule semester picklist: \(list.count) options", context: "DataManager")
+                self.persistCache()
+                completion?()
+            }
+        }
+    }
+
+    /// Fetches exam rows for a term (used from Exam Schedule screen). Does not continue the sync chain.
+    func refreshExamSchedule(semesterSubId: String, completion: (() -> Void)? = nil) {
+        fetchExamScheduleForSemester(semesterSubId, continueSyncChain: false, completion: completion)
+    }
+
     private func fetchExams() {
         logger.info("📅 Fetching exam schedule...", context: "DataManager")
 
-        guard let authorizedID = authorizedID,
-              let csrfToken = csrfToken,
-              let semesterId = selectedSemester?.id else {
-            logger.error("Missing session or semester data", context: "DataManager")
+        guard let semesterId = selectedSemester?.id, !semesterId.isEmpty else {
+            logger.error("Missing semester for exams", context: "DataManager")
+            fetchStaff()
             return
         }
 
@@ -1655,44 +1875,80 @@ class DataManager: ObservableObject {
             self.loadingMessage = "Loading exams..."
         }
 
+        fetchExamScheduleForSemester(semesterId, continueSyncChain: true, completion: nil)
+    }
+
+    private func fetchExamScheduleForSemester(_ semesterSubId: String, continueSyncChain: Bool, completion: (() -> Void)?) {
+        guard let authorizedID = authorizedID,
+              let csrfToken = csrfToken,
+              let webView = self.webView else {
+            if continueSyncChain { fetchStaff() }
+            completion?()
+            return
+        }
+
         let script = """
         (function() {
             var result = { exams: [], rawDoSearchExamScheduleForStudent: '' };
             var examCounter = 1;
+            var postBody = 'authorizedID=' + encodeURIComponent('\(authorizedID)') +
+                '&semesterSubId=' + encodeURIComponent('\(semesterSubId)') +
+                '&_csrf=' + encodeURIComponent('\(csrfToken)');
 
             $.ajax({
                 type: 'POST',
                 url: '/vtop/examinations/doSearchExamScheduleForStudent',
-                data: {
-                    semesterSubId: '\(semesterId)',
-                    authorizedID: '\(authorizedID)',
-                    _csrf: '\(csrfToken)'
-                },
+                data: postBody,
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
                 success: function(res) {
                     result.rawDoSearchExamScheduleForStudent = res;
-                    $(res).find('table tbody tr').each(function() {
-                        var cells = $(this).find('td');
-                        if (cells.length >= 7) {
-                            var courseCode = cells.eq(0).text().trim();
-                            var courseTitle = cells.eq(1).text().trim();
-                            var examType = cells.eq(2).text().trim();
-                            var date = cells.eq(3).text().trim();
-                            var session = cells.eq(4).text().trim();
-                            var venue = cells.eq(5).text().trim();
-                            var seatInfo = cells.eq(6).text().trim();
-
-                            result.exams.push({
-                                id: examCounter++,
-                                courseCode: courseCode,
-                                courseTitle: courseTitle,
-                                examType: examType,
-                                date: date,
-                                session: session,
-                                venue: venue,
-                                seatInfo: seatInfo
-                            });
+                    var $table = $(res).find('table.customTable').first();
+                    if (!$table.length) {
+                        $table = $(res).find('#fixedTableContainer table').first();
+                    }
+                    var category = '';
+                    $table.find('tr.tableContent').each(function() {
+                        var $tds = $(this).find('td');
+                        if ($tds.length === 1 && $tds.attr('colspan')) {
+                            category = $tds.text().replace(/\\s+/g, ' ').trim();
+                            return;
                         }
+                        if ($tds.length < 13) return;
+                        var sno = $tds.eq(0).text().trim();
+                        if (!/^\\d+$/.test(sno)) return;
+                        var courseCode = $tds.eq(1).text().trim();
+                        var courseTitle = $tds.eq(2).text().trim();
+                        var courseTypeAbbr = $tds.eq(3).text().trim();
+                        var classId = $tds.eq(4).text().trim();
+                        var slot = $tds.eq(5).text().trim();
+                        var examDate = $tds.eq(6).text().trim();
+                        var session = $tds.eq(7).text().trim();
+                        var reporting = $tds.eq(8).text().trim();
+                        var examTime = $tds.eq(9).text().trim();
+                        var venue = $tds.eq(10).text().trim();
+                        var seatLoc = $tds.eq(11).text().replace(/\\s+/g, ' ').trim();
+                        if (seatLoc === '-' || seatLoc === '') seatLoc = '';
+                        var seatNoStr = $tds.eq(12).text().trim();
+                        var seatNo = parseInt(seatNoStr, 10);
+
+                        result.exams.push({
+                            id: examCounter++,
+                            courseCode: courseCode,
+                            courseTitle: courseTitle,
+                            courseTypeAbbrev: courseTypeAbbr,
+                            classId: classId,
+                            slot: slot,
+                            examDate: examDate,
+                            session: session,
+                            reporting: reporting,
+                            examTime: examTime,
+                            venue: venue,
+                            seatLocation: seatLoc,
+                            seatNumber: isNaN(seatNo) ? null : seatNo,
+                            category: category,
+                            listTitle: (category ? category + ' · ' : '') + courseCode
+                        });
                     });
                 }
             });
@@ -1701,19 +1957,21 @@ class DataManager: ObservableObject {
         })();
         """
 
-        webView?.evaluateJavaScript(script) { [weak self] result, error in
+        webView.evaluateJavaScript(script) { [weak self] result, error in
             guard let self = self else { return }
 
             if let error = error {
                 self.logger.error("Failed to fetch exams: \(error.localizedDescription)", context: "DataManager")
-                self.fetchStaff() // Continue anyway
+                if continueSyncChain { self.fetchStaff() }
+                DispatchQueue.main.async { completion?() }
                 return
             }
 
             guard let dict = result as? [String: Any],
                   let examsData = dict["exams"] as? [[String: Any]] else {
                 self.logger.error("Invalid exams response", context: "DataManager")
-                self.fetchStaff()
+                if continueSyncChain { self.fetchStaff() }
+                DispatchQueue.main.async { completion?() }
                 return
             }
 
@@ -1722,23 +1980,52 @@ class DataManager: ObservableObject {
             var exams: [Exam] = []
             for examDict in examsData {
                 guard let id = examDict["id"] as? Int,
-                      let courseCode = examDict["courseCode"] as? String,
-                      let examType = examDict["examType"] as? String,
-                      let venue = examDict["venue"] as? String else { continue }
+                      let courseCode = examDict["courseCode"] as? String, !courseCode.isEmpty,
+                      let venueRaw = examDict["venue"] as? String else { continue }
 
-                let courseId = self.courses.first(where: { $0.code == courseCode })?.id ?? id
-                let seatInfo = examDict["seatInfo"] as? String
+                let listTitle = examDict["listTitle"] as? String ?? courseCode
+                let category = examDict["category"] as? String
+                let courseTitle = examDict["courseTitle"] as? String
+                let normalizedCode = courseCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                let courseId = self.courses.first(where: {
+                    $0.code.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(normalizedCode) == .orderedSame
+                })?.id ?? 0
 
-                // For now, use exam type as title - we'll improve this in the view
-                exams.append(Exam(id: id, courseId: courseId, title: examType,
-                                venue: venue, seatLocation: seatInfo, seatNumber: nil))
+                let venue = venueRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+                let seatLoc = (examDict["seatLocation"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let seatNum = Self.intFromJSON(examDict["seatNumber"])
+
+                exams.append(Exam(
+                    id: id,
+                    courseId: courseId,
+                    title: listTitle,
+                    venue: venue.isEmpty ? nil : venue,
+                    seatLocation: (seatLoc?.isEmpty ?? true) ? nil : seatLoc,
+                    seatNumber: seatNum,
+                    courseCode: courseCode,
+                    courseTitle: courseTitle,
+                    examCategory: category,
+                    examDateText: examDict["examDate"] as? String,
+                    sessionLabel: examDict["session"] as? String,
+                    reportingTimeText: examDict["reporting"] as? String,
+                    examTimeRangeText: examDict["examTime"] as? String,
+                    slotText: examDict["slot"] as? String,
+                    classIdText: examDict["classId"] as? String,
+                    courseTypeAbbrev: examDict["courseTypeAbbrev"] as? String
+                ))
             }
 
             DispatchQueue.main.async {
                 self.exams = exams
-                self.logger.success("✅ Loaded \(exams.count) exams", context: "DataManager")
+                self.examScheduleSemesterId = semesterSubId
+                self.logger.success("✅ Loaded \(exams.count) exam row(s)", context: "DataManager")
                 self.persistCache()
-                self.fetchStaff()
+                if continueSyncChain {
+                    self.fetchStaff()
+                } else {
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
         }
     }
@@ -2390,6 +2677,8 @@ class DataManager: ObservableObject {
             marksReportSemesterOptions: marksReportSemesterOptions,
             marksReportRows: marksReportRows,
             marksReportSemesterId: marksReportSemesterId,
+            examScheduleSemesterOptions: examScheduleSemesterOptions,
+            examScheduleSemesterId: examScheduleSemesterId,
             spotlights: spotlights,
             receipts: receipts,
             scheduledEventRows: scheduledEventRows,
@@ -2423,6 +2712,40 @@ class DataManager: ObservableObject {
         logger.info("📂 Restoring cached VTOP snapshot from UserDefaults...", context: "DataManager")
         VTOPDataCache.restoreInto(self)
         logger.info("💡 Sign in and sync to refresh after the snapshot loads.", context: "DataManager")
+    }
+
+    /// Drops persisted VTOP snapshots and in-memory cached data. Web session / login state is not cleared.
+    func clearCachedVTOPData() {
+        VTOPDataCache.clearAll()
+        DispatchQueue.main.async {
+            self.studentProfile = nil
+            self.courses = []
+            self.timetable = []
+            self.attendance = []
+            self.marks = []
+            self.cumulativeMarks = []
+            self.exams = []
+            self.staff = []
+            self.spotlights = []
+            self.receipts = []
+            self.scheduledEventRows = []
+            self.semesters = []
+            self.selectedSemester = nil
+            self.attendanceSemesterOptions = []
+            self.marksReportSemesterOptions = []
+            self.marksReportRows = []
+            self.marksReportSemesterId = nil
+            self.examScheduleSemesterOptions = []
+            self.examScheduleSemesterId = nil
+            self.gradeHistoryRows = []
+            self.portalCredentials = []
+            self.rankEntries = []
+            self.deanPortraitData = nil
+            self.hodPortraitData = nil
+            self.errorMessage = nil
+            self.loadingMessage = ""
+        }
+        logger.info("🗑️ Cleared VTOP cache (UserDefaults + in-memory snapshot)", context: "DataManager")
     }
 
     // MARK: - Helper: Get WebView

@@ -24,6 +24,8 @@ enum VTOPDataCache {
         static let marksReportSemesterOptions = "vtop_cache_marksReportSemesterOptions_v1"
         static let marksReportRows = "vtop_cache_marksReportRows_v1"
         static let marksReportSemesterId = "vtop_cache_marksReportSemesterId_v1"
+        static let examScheduleSemesterOptions = "vtop_cache_examScheduleSemesterOptions_v1"
+        static let examScheduleSemesterId = "vtop_cache_examScheduleSemesterId_v1"
         static let spotlights = "vtop_cache_spotlights_v1"
         static let receipts = "vtop_cache_receipts_v1"
         static let scheduledEventRows = "vtop_cache_scheduledEventRows_v1"
@@ -31,6 +33,28 @@ enum VTOPDataCache {
         static let rankEntries = "vtop_cache_rankEntries_v1"
         static let deanPortraitData = "vtop_cache_deanPortraitData_v1"
         static let hodPortraitData = "vtop_cache_hodPortraitData_v1"
+
+        static var allKeys: [String] {
+            [
+                Key.studentProfile, Key.gradeHistoryRows, Key.courses, Key.timetable,
+                Key.attendance, Key.marks, Key.cumulativeMarks, Key.exams, Key.staff,
+                Key.semesters, Key.selectedSemester, Key.attendanceSemesterOptions,
+                Key.marksReportSemesterOptions, Key.marksReportRows, Key.marksReportSemesterId,
+                Key.examScheduleSemesterOptions, Key.examScheduleSemesterId,
+                Key.spotlights, Key.receipts, Key.scheduledEventRows, Key.portalCredentials,
+                Key.rankEntries, Key.deanPortraitData, Key.hodPortraitData
+            ]
+        }
+    }
+
+    /// Removes all persisted VTOP snapshot keys (login session is unchanged).
+    static func clearAll() {
+        for key in Key.allKeys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+        for legacy in ["name", "cgpa", "totalCredits", "semester", "semesterId"] {
+            UserDefaults.standard.removeObject(forKey: legacy)
+        }
     }
 
     static func save<T: Encodable>(_ value: T, for key: String) {
@@ -71,6 +95,8 @@ enum VTOPDataCache {
         marksReportSemesterOptions: [Semester],
         marksReportRows: [MarkReportRow],
         marksReportSemesterId: String?,
+        examScheduleSemesterOptions: [Semester],
+        examScheduleSemesterId: String?,
         spotlights: [Spotlight],
         receipts: [Receipt],
         scheduledEventRows: [VTOPScheduledEventRow],
@@ -95,6 +121,10 @@ enum VTOPDataCache {
         save(marksReportRows, for: Key.marksReportRows)
         if let marksReportSemesterId {
             UserDefaults.standard.set(marksReportSemesterId, forKey: Key.marksReportSemesterId)
+        }
+        save(examScheduleSemesterOptions, for: Key.examScheduleSemesterOptions)
+        if let examScheduleSemesterId {
+            UserDefaults.standard.set(examScheduleSemesterId, forKey: Key.examScheduleSemesterId)
         }
         save(spotlights, for: Key.spotlights)
         save(receipts, for: Key.receipts)
@@ -148,6 +178,10 @@ enum VTOPDataCache {
             if let v = load([MarkReportRow].self, key: Key.marksReportRows) { dm.marksReportRows = v }
             if let sid = UserDefaults.standard.string(forKey: Key.marksReportSemesterId), !sid.isEmpty {
                 dm.marksReportSemesterId = sid
+            }
+            if let v = load([Semester].self, key: Key.examScheduleSemesterOptions) { dm.examScheduleSemesterOptions = v }
+            if let sid = UserDefaults.standard.string(forKey: Key.examScheduleSemesterId), !sid.isEmpty {
+                dm.examScheduleSemesterId = sid
             }
             if let v = load([Spotlight].self, key: Key.spotlights) { dm.spotlights = v }
             if let v = load([Receipt].self, key: Key.receipts) { dm.receipts = v }

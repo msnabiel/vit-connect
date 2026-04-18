@@ -2,212 +2,297 @@ import SwiftUI
 
 struct ExamScheduleView: View {
     @EnvironmentObject var dataManager: DataManager
-    @State private var selectedExamIndex: Int = 0
+    @State private var semesterId: String = ""
+    @State private var didLoadPicklist = false
+    @State private var pickerPrimed = false
+
+    private var choices: [Semester] { dataManager.examScheduleSemesterOptions }
+
+    private var semesterMenuTitle: String {
+        choices.first(where: { $0.id == semesterId })?.name ?? "Choose semester"
+    }
+
+    /// Groups exams by category (FAT, CAT1, …) with a sensible header order.
+    private var examSections: [(title: String, exams: [Exam])] {
+        let grouped = Dictionary(grouping: dataManager.exams) { exam -> String in
+            let c = (exam.examCategory ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !c.isEmpty { return c }
+            let t = exam.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !t.isEmpty { return t }
+            return "Other"
+        }
+        let keys = grouped.keys.sorted { a, b in
+            let oa = Self.categorySortOrder(a)
+            let ob = Self.categorySortOrder(b)
+            if oa != ob { return oa < ob }
+            return a.localizedCaseInsensitiveCompare(b) == .orderedAscending
+        }
+        return keys.map { key in
+            let rows = (grouped[key] ?? []).sorted {
+                ($0.startTime ?? Int64.max) < ($1.startTime ?? Int64.max)
+            }
+            return (title: key, exams: rows)
+        }
+    }
+
+    private static func categorySortOrder(_ name: String) -> Int {
+        let u = name.uppercased()
+        if u.contains("FAT") { return 0 }
+        if u.contains("CAT") { return 1 }
+        if u.contains("MODEL") || u.contains("MID") { return 2 }
+        return 9
+    }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            if !choices.isEmpty {
+                Menu {
+                    ForEach(choices) { sem in
+                        Button(sem.name) {
+                            semesterId = sem.id
+                            if pickerPrimed {
+                                dataManager.refreshExamSchedule(semesterSubId: sem.id, completion: nil)
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Semester — \(semesterMenuTitle)")
+                            .font(.body.weight(.medium))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(uiColor: .secondarySystemBackground))
+                    )
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            }
+
             if dataManager.exams.isEmpty {
                 EmptyStateView(
                     icon: "calendar.badge.exclamationmark",
-                    message: "No exam schedule available"
+                    message: choices.isEmpty
+                        ? "Open this screen while signed in to load semester options, or run a full sync."
+                        : "Choose a semester above to load your exam schedule."
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                VStack(spacing: 0) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(Array(dataManager.exams.enumerated()), id: \.offset) { index, exam in
-                                Button(action: {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        selectedExamIndex = index
-                                    }
-                                }) {
-                                    VStack(spacing: 4) {
-                                        Text("Exam \(index + 1)")
-                                            .font(.system(size: 13, weight: .semibold))
-
-                                        Text(exam.title)
-                                            .font(.system(size: 11, weight: .medium))
-                                            .lineLimit(1)
-                                    }
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(selectedExamIndex == index ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
-                                    )
-                                    .foregroundColor(selectedExamIndex == index ? .white : .primary)
-                                }
+                List {
+                    ForEach(examSections, id: \.title) { category in
+                        Section {
+                            ForEach(category.exams) { exam in
+                                ExamScheduleNestedExamSection(exam: exam, courses: dataManager.courses)
                             }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                    }
-                    .background(Color(uiColor: .systemBackground))
-
-                    TabView(selection: $selectedExamIndex) {
-                        ForEach(Array(dataManager.exams.enumerated()), id: \.offset) { index, exam in
-                            ExamDetailCard(exam: exam, course: dataManager.courses.first(where: { $0.id == exam.courseId }))
-                                .padding(20)
-                                .tag(index)
+                        } header: {
+                            Text(category.title)
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .textCase(nil)
                         }
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
                 }
+                .listStyle(.insetGrouped)
             }
         }
         .navigationTitle("Exam Schedule")
         .navigationBarTitleDisplayMode(.inline)
+        .refreshable {
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                if choices.isEmpty {
+                    dataManager.loadExamScheduleSemesterPicklist {
+                        cont.resume()
+                    }
+                } else if semesterId.isEmpty {
+                    cont.resume()
+                } else {
+                    dataManager.refreshExamSchedule(semesterSubId: semesterId) {
+                        cont.resume()
+                    }
+                }
+            }
+        }
+        .onAppear {
+            guard !didLoadPicklist else { return }
+            didLoadPicklist = true
+            dataManager.loadExamScheduleSemesterPicklist {
+                let c = dataManager.examScheduleSemesterOptions
+                if semesterId.isEmpty {
+                    if let sid = dataManager.examScheduleSemesterId, c.contains(where: { $0.id == sid }) {
+                        semesterId = sid
+                    } else if let sid = dataManager.selectedSemester?.id, c.contains(where: { $0.id == sid }) {
+                        semesterId = sid
+                    } else if let first = c.first {
+                        semesterId = first.id
+                    }
+                }
+                pickerPrimed = true
+                if !semesterId.isEmpty {
+                    dataManager.refreshExamSchedule(semesterSubId: semesterId, completion: nil)
+                }
+            }
+        }
     }
 }
 
-struct ExamDetailCard: View {
+// MARK: - List rows (system style)
+
+private struct ExamScheduleNestedExamSection: View {
+    let exam: Exam
+    let courses: [Course]
+
+    private var course: Course? {
+        exam.matchingCatalogCourse(in: courses)
+    }
+
+    var body: some View {
+        Section {
+            ExamScheduleFieldRows(exam: exam, course: course)
+        } header: {
+            ExamScheduleExamHeader(exam: exam, course: course)
+        } footer: {
+            Text("Please verify exam details on VTOP before the exam.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct ExamScheduleExamHeader: View {
+    let exam: Exam
+    let course: Course?
+
+    private var titleText: String {
+        let fromExam = (exam.courseTitle ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fromExam.isEmpty { return fromExam }
+        if let c = course?.title, !c.isEmpty { return c }
+        return exam.title
+    }
+
+    private var codeText: String {
+        let fromExam = (exam.courseCode ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fromExam.isEmpty { return fromExam }
+        return course?.code ?? "—"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(titleText)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+            Text(codeText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .textCase(nil)
+        .padding(.vertical, 2)
+    }
+}
+
+private struct ExamScheduleFieldRows: View {
     let exam: Exam
     let course: Course?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                VStack(spacing: 12) {
-                    HStack {
-                        Spacer()
-
-                        Text(exam.title)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .fill(Color.accentColor)
-                            )
-
-                        Spacer()
-                    }
-
-                    if let course = course {
-                        VStack(spacing: 8) {
-                            Text(course.title)
-                                .font(.system(size: 24, weight: .bold))
-                                .multilineTextAlignment(.center)
-
-                            Text(course.code)
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                .padding(.top, 12)
-
-                VStack(spacing: 16) {
-                    if let venue = exam.venue {
-                        InfoRow(
-                            icon: "mappin.circle.fill",
-                            title: "Venue",
-                            value: venue,
-                            color: .blue
-                        )
-                    }
-
-                    if let seatLocation = exam.seatLocation {
-                        InfoRow(
-                            icon: "person.crop.square.fill",
-                            title: "Seat Location",
-                            value: seatLocation,
-                            color: .purple
-                        )
-                    }
-
-                    if let seatNumber = exam.seatNumber {
-                        InfoRow(
-                            icon: "number.circle.fill",
-                            title: "Seat Number",
-                            value: "\(seatNumber)",
-                            color: .orange
-                        )
-                    }
-
-                    if let course = course {
-                        InfoRow(
-                            icon: "book.fill",
-                            title: "Course Type",
-                            value: course.type.rawValue.capitalized,
-                            color: course.type == .lab ? .green : (course.type == .project ? .purple : .blue)
-                        )
-
-                        InfoRow(
-                            icon: "person.fill",
-                            title: "Faculty",
-                            value: course.faculty,
-                            color: .indigo
-                        )
-                    }
-                }
-                .padding(.horizontal, 4)
-
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.orange)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Important")
-                                .font(.system(size: 15, weight: .bold))
-
-                            Text("Please verify exam details on VTOP before the exam")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.orange.opacity(0.1))
-                    )
-                }
-
-                Spacer()
+        if let date = exam.examDateText, !date.isEmpty {
+            LabeledContent {
+                Text(date)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.primary)
+            } label: {
+                Label("Exam date", systemImage: "calendar")
             }
         }
-    }
-}
-
-struct InfoRow: View {
-    let icon: String
-    let title: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(.white)
-                .frame(width: 44, height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(color)
-                )
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-
-                Text(value)
-                    .font(.system(size: 16, weight: .semibold))
+        if let slot = exam.slotText, !slot.isEmpty {
+            LabeledContent {
+                Text(slot)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Slot", systemImage: "clock.fill")
             }
-
-            Spacer()
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
+        if let session = exam.sessionLabel, !session.isEmpty {
+            LabeledContent {
+                Text(session)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Session", systemImage: "sun.horizon.fill")
+            }
+        }
+        if let rep = exam.reportingTimeText, !rep.isEmpty {
+            LabeledContent {
+                Text(rep)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Reporting time", systemImage: "bell.fill")
+            }
+        }
+        if let span = exam.examTimeRangeText, !span.isEmpty {
+            LabeledContent {
+                Text(span)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Exam time", systemImage: "timer")
+            }
+        }
+        if let venue = exam.venue, !venue.isEmpty {
+            LabeledContent {
+                Text(venue)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Venue", systemImage: "mappin.circle.fill")
+            }
+        }
+        if let seatLocation = exam.seatLocation, !seatLocation.isEmpty {
+            LabeledContent {
+                Text(seatLocation)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Seat location", systemImage: "person.crop.square.fill")
+            }
+        }
+        if let seatNumber = exam.seatNumber {
+            LabeledContent {
+                Text("\(seatNumber)")
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Seat number", systemImage: "number.circle.fill")
+            }
+        }
+        if let course = course {
+            LabeledContent {
+                Text(course.type.rawValue.capitalized)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Course type", systemImage: "book.fill")
+            }
+            LabeledContent {
+                Text(course.faculty)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Faculty", systemImage: "person.fill")
+            }
+        } else if let abbr = exam.courseTypeAbbrev, !abbr.isEmpty {
+            LabeledContent {
+                Text(abbr)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Course type", systemImage: "book.fill")
+            }
+        }
     }
 }
 
