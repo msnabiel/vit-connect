@@ -71,7 +71,9 @@ struct SpotlightView: View {
                     .padding(.vertical, 20)
                 }
                 .refreshable {
-                    dataManager.syncAll()
+                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                        dataManager.refreshSpotlightsOnly { cont.resume() }
+                    }
                 }
             }
         }

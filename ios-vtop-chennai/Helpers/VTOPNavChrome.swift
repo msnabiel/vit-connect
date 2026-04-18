@@ -31,7 +31,7 @@ private struct VTOPNavLeadingIconModifier: ViewModifier {
                 } label: {
                     Image(systemName: VTOPNavChrome.leadingSystemImage)
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(.primary)
                 }
                 .buttonStyle(.plain)
                 .disabled(selectHomeTab == nil)
@@ -46,6 +46,39 @@ extension View {
     func vtopNavLeadingIcon() -> some View {
         modifier(VTOPNavLeadingIconModifier())
     }
+
+    /// Solid navigation bar so top-of-screen views (e.g. offline banner) never show through a translucent bar.
+    func vtopOpaqueNavigationBar() -> some View {
+        self
+            .toolbarBackground(Color(uiColor: .systemBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+    }
+}
+
+// MARK: - Sync arrow (smooth spin while `DataManager.isLoading`)
+
+/// Continuous rotation for the duration of sync / full fetch, including session extraction and failures.
+struct VTOPSmoothSyncArrow: View {
+    var isRunning: Bool
+    var font: Font = .body.weight(.medium)
+    var foreground: Color = .primary
+
+    private static let secondsPerTurn: Double = 0.85
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isRunning)) { context in
+            let degrees: Double = {
+                guard isRunning else { return 0 }
+                let t = context.date.timeIntervalSinceReferenceDate
+                let phase = t.truncatingRemainder(dividingBy: Self.secondsPerTurn) / Self.secondsPerTurn
+                return phase * 360.0
+            }()
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(font)
+                .foregroundStyle(foreground)
+                .rotationEffect(.degrees(degrees))
+        }
+    }
 }
 
 // MARK: - Full sync (same as Profile “Sync Data”)
@@ -58,17 +91,10 @@ struct MainSyncToolbarButton: View {
         Button {
             authViewModel.triggerSync()
         } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.body.weight(.medium))
-                .foregroundStyle(.primary)
-                .rotationEffect(.degrees(dataManager.isLoading ? 360 : 0))
-                .animation(
-                    dataManager.isLoading
-                        ? .linear(duration: 1).repeatForever(autoreverses: false)
-                        : .default,
-                    value: dataManager.isLoading
-                )
+            VTOPSmoothSyncArrow(isRunning: dataManager.isLoading, foreground: .primary)
         }
+        .buttonStyle(.plain)
+        .tint(.primary)
         .disabled(dataManager.isLoading)
         .accessibilityLabel("Sync data")
     }

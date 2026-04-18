@@ -110,7 +110,7 @@ private struct ProfileAccordionSectionBlock: View {
 
     var body: some View {
         Section {
-            ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
+            ForEach(section.rows) { row in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(row.key)
                         .font(.caption.weight(.semibold))

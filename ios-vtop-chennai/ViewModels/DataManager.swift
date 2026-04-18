@@ -45,23 +45,119 @@ class DataManager: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var loadingMessage: String = ""
     @Published var errorMessage: String?
+    /// Last time a snapshot was written to disk (`VTOPDiskCache`).
+    @Published var cachePersistedAt: Date?
+    /// Last successful end-to-end refresh (`finishDataFetching`).
+    @Published var lastSuccessfulSyncAt: Date?
+    /// Shown when the user has used all allowed full syncs in the rolling quota window.
+    @Published var fullSyncQuotaBlockedMessage: String?
+    /// When set, show a confirmation before starting full sync (toolbar / profile). Cleared on cancel or after starting sync.
+    @Published var fullSyncConfirmSlotsRemaining: Int?
+    /// Shown in offline banner (e.g. session vs network).
+    @Published var lastDataFetchFailureReason: String?
 
     // MARK: - Private Properties
     private weak var webView: WKWebView?
     private let logger = VTOPLogger.shared
     private var authorizedID: String?
     private var csrfToken: String?
+    private var syncDebounceItem: DispatchWorkItem?
+    /// Set for the lifetime of one `extractSessionData` → … → `finishDataFetching` chain. Only `performSyncAll` starts a chain with this true so post-login fetches never touch UserDefaults quota.
+    private var countsCurrentSessionTowardManualFullSyncQuota = false
+
+    /// Rolling window for manual full-sync completions recorded in `finishDataFetching` when `countsCurrentSessionTowardManualFullSyncQuota` is true.
+    private static let fullSyncQuotaWindow: TimeInterval = 3600
+    private static let fullSyncQuotaMaxPerWindow = 3
+    private static let fullSyncCompletionTimesKey = "vtop_fullSyncCompletionTimes"
+    /// Legacy single-date key (migrated into `fullSyncCompletionTimesKey`).
+    private static let legacyLastFullSyncCompletedAtKey = "vtop_lastFullSyncCompletedAt"
+
+    private static func migrateLegacyFullSyncStorageIfNeeded() {
+        guard let legacy = UserDefaults.standard.object(forKey: legacyLastFullSyncCompletedAtKey) as? Date else { return }
+        var intervals = (UserDefaults.standard.array(forKey: fullSyncCompletionTimesKey) as? [TimeInterval]) ?? []
+        intervals.append(legacy.timeIntervalSince1970)
+        UserDefaults.standard.set(intervals.sorted(), forKey: fullSyncCompletionTimesKey)
+        UserDefaults.standard.removeObject(forKey: legacyLastFullSyncCompletedAtKey)
+    }
+
+    private static func storedFullSyncCompletionIntervals() -> [TimeInterval] {
+        migrateLegacyFullSyncStorageIfNeeded()
+        return (UserDefaults.standard.array(forKey: fullSyncCompletionTimesKey) as? [TimeInterval]) ?? []
+    }
+
+    private static func saveFullSyncCompletionIntervals(_ intervals: [TimeInterval]) {
+        UserDefaults.standard.set(intervals, forKey: fullSyncCompletionTimesKey)
+    }
+
+    /// Successful full syncs completed within the last hour (sorted oldest → newest).
+    private static func prunedFullSyncCompletionDates(reference: Date = Date()) -> [Date] {
+        let cutoff = reference.addingTimeInterval(-fullSyncQuotaWindow)
+        return storedFullSyncCompletionIntervals()
+            .map { Date(timeIntervalSince1970: $0) }
+            .filter { $0 >= cutoff }
+            .sorted()
+    }
+
+    private static func recordFullSyncCompleted(at date: Date = Date()) {
+        let cutoff = date.addingTimeInterval(-fullSyncQuotaWindow)
+        var dates = storedFullSyncCompletionIntervals()
+            .map { Date(timeIntervalSince1970: $0) }
+            .filter { $0 >= cutoff }
+        dates.append(date)
+        saveFullSyncCompletionIntervals(dates.map { $0.timeIntervalSince1970 }.sorted())
+    }
+
+    private static func clearFullSyncQuotaStorage() {
+        UserDefaults.standard.removeObject(forKey: fullSyncCompletionTimesKey)
+        UserDefaults.standard.removeObject(forKey: legacyLastFullSyncCompletedAtKey)
+    }
+
+    private static func formattedCooldownRemaining(_ timeRemaining: TimeInterval) -> String {
+        let total = max(0, Int(ceil(timeRemaining)))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        let s = total % 60
+        if h > 0 {
+            return "\(h) hour\(h == 1 ? "" : "s") \(m) minute\(m == 1 ? "" : "s")"
+        }
+        if m > 0 {
+            return "\(m) minute\(m == 1 ? "" : "s") \(s) second\(s == 1 ? "" : "s")"
+        }
+        return "\(s) second\(s == 1 ? "" : "s")"
+    }
 
     /// Prints the complete VTOP HTML/response body to the Xcode console (no truncation).
     private func debugPrintFullVTOPResponse(_ label: String, _ body: String?) {
+        #if DEBUG
         guard let body = body, !body.isEmpty else { return }
         print("🔍 FULL \(label) (length=\(body.count)):")
         print(body)
+        #endif
+    }
+
+    /// Removes multi‑MB HTML blobs from bridged dictionaries in release builds.
+    private static func strippingDebugPayloads(_ dict: [String: Any]) -> [String: Any] {
+        #if DEBUG
+        return dict
+        #else
+        var d = dict
+        for k in ["rawProfileAllView", "rawResponse", "rawStudentTimeTableChn", "rawDoStudentMarkView",
+                  "rawDoStudentGradeView", "rawProcessViewTimeTable", "rawProcessViewStudentAttendance",
+                  "rawDoSearchExamScheduleForStudent", "rawViewProctorDetails", "rawViewHodDeanDetails",
+                  "rawViewStudentCredentials", "rawHome", "rawReceipts", "rawGetReceiptsApplno", "rawScheduledEvents",
+                  "rawStudentGradeHistory"] {
+            d.removeValue(forKey: k)
+        }
+        return d
+        #endif
     }
 
     // MARK: - Initialization
     init() {
         logger.info("📦 DataManager initialized", context: "DataManager")
+        Self.migrateLegacyFullSyncStorageIfNeeded()
+        let pruned = Self.prunedFullSyncCompletionDates()
+        lastSuccessfulSyncAt = pruned.last
     }
 
     func setWebView(_ webView: WKWebView) {
@@ -69,8 +165,31 @@ class DataManager: ObservableObject {
         logger.debug("WebView reference set in DataManager", context: "DataManager")
     }
 
+    /// Stops sync UI (toolbar spin, overlay) without implying a session error.
+    private func clearSyncProgress() {
+        DispatchQueue.main.async {
+            self.countsCurrentSessionTowardManualFullSyncQuota = false
+            self.isLoading = false
+            self.loadingMessage = ""
+        }
+    }
+
+    /// Called when CSRF / authorized ID cannot be read from the WebView after retries (expired session, blank page, etc.).
+    private func reportSessionExtractionFailed() {
+        DispatchQueue.main.async {
+            self.countsCurrentSessionTowardManualFullSyncQuota = false
+            self.lastDataFetchFailureReason = "VTOP session is not available. Sign out and sign in again to sync."
+            self.isLoading = false
+            self.loadingMessage = ""
+        }
+    }
+
     // MARK: - Extract Session Data
-    func extractSessionData(attempt: Int = 1) {
+    /// - Parameter incrementManualFullSyncQuotaOnCompletion: Pass `true` only from `performSyncAll` so a successful `finishDataFetching` appends to the hourly manual full-sync quota. Post-login / background calls use the default `false` (quota counters in UserDefaults are unchanged).
+    func extractSessionData(attempt: Int = 1, incrementManualFullSyncQuotaOnCompletion: Bool = false) {
+        if attempt == 1 {
+            countsCurrentSessionTowardManualFullSyncQuota = incrementManualFullSyncQuotaOnCompletion
+        }
         logger.info("🔑 Extracting session data (attempt \(attempt)/5)...", context: "DataManager")
 
         let script = """
@@ -92,11 +211,12 @@ class DataManager: ObservableObject {
             if let error = error {
                 self.logger.error("Failed to extract session data: \(error.localizedDescription)", context: "DataManager")
 
-                // Retry after delay
                 if attempt < 5 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         self.extractSessionData(attempt: attempt + 1)
                     }
+                } else {
+                    self.reportSessionExtractionFailed()
                 }
                 return
             }
@@ -104,6 +224,13 @@ class DataManager: ObservableObject {
             guard let dict = result as? [String: Any] else {
                 self.logger.error("Invalid result format from JavaScript", context: "DataManager")
                 self.logger.debug("Raw result: \(String(describing: result))", context: "DataManager")
+                if attempt < 5 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.extractSessionData(attempt: attempt + 1)
+                    }
+                } else {
+                    self.reportSessionExtractionFailed()
+                }
                 return
             }
 
@@ -131,6 +258,7 @@ class DataManager: ObservableObject {
                     }
                 } else {
                     self.logger.error("Failed to extract session data after \(attempt) attempts", context: "DataManager")
+                    self.reportSessionExtractionFailed()
                 }
                 return
             }
@@ -146,7 +274,10 @@ class DataManager: ObservableObject {
     }
 
     // MARK: - Fetch Semesters
-    private func fetchSemesters() {
+    /// - Parameters:
+    ///   - chainIntoSelectSemester: When true (default), picks the first semester and starts `fetchAllData()`. When false, only updates `semesters` (e.g. pull-to-refresh on timetable before a selection exists).
+    ///   - completion: Called on main when `chainIntoSelectSemester` is false and the request finishes.
+    private func fetchSemesters(chainIntoSelectSemester: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("📅 Fetching available semesters...", context: "DataManager")
 
         guard let authorizedID = authorizedID, let csrfToken = csrfToken else {
@@ -156,8 +287,8 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { semesters: [], rawStudentTimeTableChn: '' };
-
             $.ajax({
                 type: 'POST',
                 url: '/vtop/academics/common/StudentTimeTableChn',
@@ -168,7 +299,7 @@ class DataManager: ObservableObject {
                 },
                 async: false,
                 success: function(res) {
-                    result.rawStudentTimeTableChn = res;
+                    if (__VTOP_DEBUG__) { result.rawStudentTimeTableChn = res; }
                     var semesterSelect = $(res).find('#semesterSubId');
                     if (semesterSelect.length > 0) {
                         semesterSelect.find('option').each(function() {
@@ -182,9 +313,9 @@ class DataManager: ObservableObject {
                             }
                         });
                     }
-                }
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -194,16 +325,33 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch semesters: \(error.localizedDescription)", context: "DataManager")
+                if chainIntoSelectSemester {
+                    self.clearSyncProgress()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            guard let dict = result as? [String: Any],
-                  let semestersData = dict["semesters"] as? [[String: String]] else {
+            guard let raw = result as? [String: Any],
+                  let semestersData = raw["semesters"] as? [[String: String]] else {
                 self.logger.error("Invalid semesters response", context: "DataManager")
+                if chainIntoSelectSemester {
+                    self.clearSyncProgress()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            self.debugPrintFullVTOPResponse("StudentTimeTableChn", dict["rawStudentTimeTableChn"] as? String)
+            self.debugPrintFullVTOPResponse("StudentTimeTableChn", raw["rawStudentTimeTableChn"] as? String)
+            _ = Self.strippingDebugPayloads(raw)
 
             let semesters = semestersData.compactMap { data -> Semester? in
                 guard let id = data["id"], let name = data["name"] else { return nil }
@@ -214,9 +362,17 @@ class DataManager: ObservableObject {
                 self.semesters = semesters
                 self.logger.success("✅ Found \(semesters.count) semesters", context: "DataManager")
 
-                // Select the first semester by default
-                if let firstSemester = semesters.first {
-                    self.selectSemester(firstSemester)
+                if chainIntoSelectSemester {
+                    if let firstSemester = semesters.first {
+                        self.selectSemester(firstSemester)
+                    } else {
+                        self.logger.warning("No semesters returned from VTOP", context: "DataManager")
+                        self.clearSyncProgress()
+                        self.lastDataFetchFailureReason = "Could not load semesters. Sign out and sign in again, then sync."
+                    }
+                } else {
+                    self.loadingMessage = ""
+                    completion?()
                 }
                 self.persistCache()
             }
@@ -249,11 +405,13 @@ class DataManager: ObservableObject {
     }
 
     // MARK: - Fetch Student Profile
-    private func fetchStudentProfile() {
+    /// - Parameter stopAfterTimetable: When true, loads profile then courses+timetable only (no attendance/marks/… chain).
+    private func fetchStudentProfile(stopAfterTimetable: Bool = false, completion: (() -> Void)? = nil) {
         logger.info("👤 Fetching student profile...", context: "DataManager")
 
         guard let authorizedID = authorizedID, let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
+            clearSyncProgress()
             return
         }
 
@@ -264,6 +422,7 @@ class DataManager: ObservableObject {
         // `tryParseGradeTable` matches StudentGradeHistory markup in `Views/grades/grade.txt` (customTable, dual tableHeader rows, tableContent, detailsView rows skipped).
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var profile = {
                 name: null, cgpa: 0, totalCredits: 0, creditsRegistered: null,
                 registrationNumber: null, vitEmail: null, programBranch: null, schoolName: null,
@@ -273,7 +432,7 @@ class DataManager: ObservableObject {
             };
 
             function parseProfileAllView(res) {
-                profile.rawProfileAllView = res;
+                if (__VTOP_DEBUG__) { profile.rawProfileAllView = res; }
                 var $r = $(res);
                 if (res.toLowerCase().indexOf('personal information') < 0) return;
                 var cardName = $r.find('.card p').filter(function() {
@@ -454,17 +613,16 @@ class DataManager: ObservableObject {
                 data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
-                success: function(res) { parseProfileAllView(res); }
-            });
-
-            $.ajax({
+                success: function(resProfile) {
+                    parseProfileAllView(resProfile);
+                    $.ajax({
                 type: 'POST',
                 url: '/vtop/examinations/examGradeView/StudentGradeHistory',
                 data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
                 success: function(res) {
-                    profile.rawResponse = res;
+                    if (__VTOP_DEBUG__) { profile.rawResponse = res; }
                     profile.debug = 'StudentGradeHistory length: ' + res.length;
                     var doc = new DOMParser().parseFromString(res, 'text/html');
                     var $doc = $(doc);
@@ -557,8 +715,12 @@ class DataManager: ObservableObject {
                 error: function(xhr, status, error) {
                     profile.debug = 'StudentGradeHistory AJAX Error: ' + error;
                 }
+                    });
+                },
+                error: function(xhr, status, error) {
+                    profile.debug = (profile.debug || '') + ' StudentProfileAllView Error: ' + error;
+                }
             });
-
             return profile;
         })();
         """
@@ -568,113 +730,152 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch student profile: \(error.localizedDescription)", context: "DataManager")
-                self.fetchCoursesAndTimetable() // Continue anyway
+                if stopAfterTimetable {
+                    self.fetchCoursesAndTimetable(chainToAttendance: false, completion: completion)
+                } else {
+                    self.fetchCoursesAndTimetable()
+                }
                 return
             }
 
-            guard let dict = result as? [String: Any] else {
+            guard let raw = result as? [String: Any] else {
                 self.logger.error("Invalid profile response", context: "DataManager")
-                self.fetchCoursesAndTimetable()
+                if stopAfterTimetable {
+                    self.fetchCoursesAndTimetable(chainToAttendance: false, completion: completion)
+                } else {
+                    self.fetchCoursesAndTimetable()
+                }
                 return
             }
 
-            var name = dict["name"] as? String ?? "Student"
-            if let fromHistory = dict["nameFromHistory"] as? String,
-               !fromHistory.isEmpty,
-               name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-               || name == "Student" {
-                name = fromHistory
-            }
-            let cgpa = dict["cgpa"] as? Double ?? 0.0
-            let totalCredits = dict["totalCredits"] as? Double ?? 0.0
-            let debug = dict["debug"] as? String ?? "No debug info"
-            let rawResponse = dict["rawResponse"] as? String ?? ""
-            let rawProfileAllView = dict["rawProfileAllView"] as? String ?? ""
-
+            let debug = raw["debug"] as? String ?? "No debug info"
             self.logger.debug("📊 Profile fetch debug: \(debug)", context: "DataManager")
-            self.debugPrintFullVTOPResponse("StudentProfileAllView", rawProfileAllView)
-            self.debugPrintFullVTOPResponse("StudentGradeHistory", rawResponse)
+            self.debugPrintFullVTOPResponse("StudentProfileAllView", raw["rawProfileAllView"] as? String)
+            self.debugPrintFullVTOPResponse("StudentGradeHistory", raw["rawResponse"] as? String)
 
-            let creditsRegistered = Self.doubleIfPresent(dict["creditsRegistered"])
-            let registrationNumber = dict["registrationNumber"] as? String
-            let vitEmail = dict["vitEmail"] as? String
-            let programBranch = dict["programBranch"] as? String
-            let schoolName = dict["schoolName"] as? String
-            let gender = dict["gender"] as? String
+            let dict = Self.strippingDebugPayloads(raw)
+            let semesterName = self.selectedSemester?.name
+            let semesterId = self.selectedSemester?.id
 
-            var accordionSections: [ProfileAccordionSectionData]?
-            if let rawSections = dict["profileSections"] as? [[String: Any]] {
-                let built = rawSections.compactMap { s -> ProfileAccordionSectionData? in
-                    guard let title = s["title"] as? String,
-                          let rows = s["rows"] as? [[String: Any]] else { return nil }
-                    let kv = rows.compactMap { r -> ProfileKeyValueRow? in
-                        guard let k = r["k"] as? String else { return nil }
-                        let v = (r["v"] as? String) ?? ""
-                        return ProfileKeyValueRow(key: k, value: v)
-                    }
-                    guard !kv.isEmpty else { return nil }
-                    return ProfileAccordionSectionData(title: title, rows: kv)
-                }
-                accordionSections = built.isEmpty ? nil : built
-            } else {
-                accordionSections = nil
-            }
-
-            var gradeRows: [GradeHistoryCourseRow] = []
-            var ghCounter = 1
-            if let ghSections = dict["gradeHistorySections"] as? [[String: Any]] {
-                for sec in ghSections {
-                    let secTitle = sec["title"] as? String ?? "Record"
-                    guard let rows = sec["rows"] as? [[String: Any]] else { continue }
-                    for r in rows {
-                        guard let code = r["courseCode"] as? String,
-                              let grade = r["grade"] as? String else { continue }
-                        let ctitle = r["courseTitle"] as? String
-                        let cred = Self.doubleIfPresent(r["credits"])
-                        gradeRows.append(GradeHistoryCourseRow(
-                            id: ghCounter,
-                            sectionTitle: secTitle,
-                            courseCode: code,
-                            courseTitle: ctitle,
-                            credits: cred,
-                            grade: grade,
-                            examMonth: r["examMonth"] as? String
-                        ))
-                        ghCounter += 1
+            Task.detached(priority: .userInitiated) {
+                let parsed = Self.parseStudentProfilePayload(dict, semesterName: semesterName, semesterId: semesterId)
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.studentProfile = parsed.profile
+                    self.gradeHistoryRows = parsed.dedupedGrades
+                    UserDefaults.standard.set(parsed.name, forKey: "name")
+                    UserDefaults.standard.set(parsed.cgpa, forKey: "cgpa")
+                    UserDefaults.standard.set(parsed.totalCredits, forKey: "totalCredits")
+                    self.logger.success("✅ Profile loaded - Name: \(parsed.name), CGPA: \(parsed.cgpa), Credits: \(parsed.totalCredits), grade history rows: \(parsed.dedupedGrades.count) (raw \(parsed.rawGradeRowCount))", context: "DataManager")
+                    self.persistCache()
+                    if stopAfterTimetable {
+                        self.fetchCoursesAndTimetable(chainToAttendance: false, completion: completion)
+                    } else {
+                        self.fetchCoursesAndTimetable()
                     }
                 }
-            }
-
-            DispatchQueue.main.async {
-                self.studentProfile = StudentProfile(
-                    name: name,
-                    cgpa: cgpa,
-                    totalCredits: totalCredits,
-                    creditsRegistered: creditsRegistered,
-                    registrationNumber: registrationNumber,
-                    vitEmail: vitEmail,
-                    programBranch: programBranch,
-                    schoolName: schoolName,
-                    accordionSections: accordionSections,
-                    semester: self.selectedSemester?.name,
-                    semesterId: self.selectedSemester?.id,
-                    gender: gender
-                )
-                let dedupedGrades = Self.deduplicateGradeHistoryRows(gradeRows)
-                self.gradeHistoryRows = dedupedGrades
-
-                // Save to UserDefaults
-                UserDefaults.standard.set(name, forKey: "name")
-                UserDefaults.standard.set(cgpa, forKey: "cgpa")
-                UserDefaults.standard.set(totalCredits, forKey: "totalCredits")
-
-                self.logger.success("✅ Profile loaded - Name: \(name), CGPA: \(cgpa), Credits: \(totalCredits), grade history rows: \(dedupedGrades.count) (raw \(gradeRows.count))", context: "DataManager")
-
-                self.persistCache()
-                // Continue to next step
-                self.fetchCoursesAndTimetable()
             }
         }
+    }
+
+    private struct ParsedStudentProfileWork {
+        let profile: StudentProfile
+        let dedupedGrades: [GradeHistoryCourseRow]
+        let rawGradeRowCount: Int
+        let name: String
+        let cgpa: Double
+        let totalCredits: Double
+    }
+
+    /// Heavy dictionary → model work; safe to call off the main actor.
+    private static func parseStudentProfilePayload(
+        _ dict: [String: Any],
+        semesterName: String?,
+        semesterId: String?
+    ) -> ParsedStudentProfileWork {
+        var name = dict["name"] as? String ?? "Student"
+        if let fromHistory = dict["nameFromHistory"] as? String,
+           !fromHistory.isEmpty,
+           name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+           || name == "Student" {
+            name = fromHistory
+        }
+        let cgpa = dict["cgpa"] as? Double ?? 0.0
+        let totalCredits = dict["totalCredits"] as? Double ?? 0.0
+        let creditsRegistered = Self.doubleIfPresent(dict["creditsRegistered"])
+        let registrationNumber = dict["registrationNumber"] as? String
+        let vitEmail = dict["vitEmail"] as? String
+        let programBranch = dict["programBranch"] as? String
+        let schoolName = dict["schoolName"] as? String
+        let gender = dict["gender"] as? String
+
+        var accordionSections: [ProfileAccordionSectionData]?
+        if let rawSections = dict["profileSections"] as? [[String: Any]] {
+            let built = rawSections.compactMap { s -> ProfileAccordionSectionData? in
+                guard let title = s["title"] as? String,
+                      let rows = s["rows"] as? [[String: Any]] else { return nil }
+                let kv = rows.compactMap { r -> ProfileKeyValueRow? in
+                    guard let k = r["k"] as? String else { return nil }
+                    let v = (r["v"] as? String) ?? ""
+                    return ProfileKeyValueRow(key: k, value: v)
+                }
+                guard !kv.isEmpty else { return nil }
+                return ProfileAccordionSectionData(title: title, rows: kv)
+            }
+            accordionSections = built.isEmpty ? nil : built
+        } else {
+            accordionSections = nil
+        }
+
+        var gradeRows: [GradeHistoryCourseRow] = []
+        var ghCounter = 1
+        if let ghSections = dict["gradeHistorySections"] as? [[String: Any]] {
+            for sec in ghSections {
+                let secTitle = sec["title"] as? String ?? "Record"
+                guard let rows = sec["rows"] as? [[String: Any]] else { continue }
+                for r in rows {
+                    guard let code = r["courseCode"] as? String,
+                          let grade = r["grade"] as? String else { continue }
+                    let ctitle = r["courseTitle"] as? String
+                    let cred = Self.doubleIfPresent(r["credits"])
+                    gradeRows.append(GradeHistoryCourseRow(
+                        id: ghCounter,
+                        sectionTitle: secTitle,
+                        courseCode: code,
+                        courseTitle: ctitle,
+                        credits: cred,
+                        grade: grade,
+                        examMonth: r["examMonth"] as? String
+                    ))
+                    ghCounter += 1
+                }
+            }
+        }
+
+        let rawGradeRowCount = gradeRows.count
+        let dedupedGrades = Self.deduplicateGradeHistoryRows(gradeRows)
+        let profile = StudentProfile(
+            name: name,
+            cgpa: cgpa,
+            totalCredits: totalCredits,
+            creditsRegistered: creditsRegistered,
+            registrationNumber: registrationNumber,
+            vitEmail: vitEmail,
+            programBranch: programBranch,
+            schoolName: schoolName,
+            accordionSections: accordionSections,
+            semester: semesterName,
+            semesterId: semesterId,
+            gender: gender
+        )
+        return ParsedStudentProfileWork(
+            profile: profile,
+            dedupedGrades: dedupedGrades,
+            rawGradeRowCount: rawGradeRowCount,
+            name: name,
+            cgpa: cgpa,
+            totalCredits: totalCredits
+        )
     }
 
     /// Coerces NSNumber / Double / String from WKWebView JSON to `Double?`.
@@ -713,10 +914,17 @@ class DataManager: ObservableObject {
                 best[k] = r
             }
         }
-        return order.enumerated().compactMap { idx, k -> GradeHistoryCourseRow? in
+        return order.compactMap { k -> GradeHistoryCourseRow? in
             guard let r = best[k] else { return nil }
+            var h = Hasher()
+            h.combine(r.sectionTitle)
+            h.combine(r.courseCode)
+            h.combine(k.examMonthNorm)
+            let hid = abs(h.finalize())
+            let fallback = abs("\(r.sectionTitle)|\(r.courseCode)|\(k.examMonthNorm)".hashValue)
+            let stableId = (hid != 0 ? hid : fallback != 0 ? fallback : 1)
             return GradeHistoryCourseRow(
-                id: idx + 1,
+                id: stableId,
                 sectionTitle: r.sectionTitle,
                 courseCode: r.courseCode,
                 courseTitle: r.courseTitle,
@@ -750,7 +958,8 @@ class DataManager: ObservableObject {
 
     // MARK: - Fetch Courses and Timetable
     /// Updates `courses` + `timetable` from `processViewTimeTable`. When `chainToAttendance` is false, the sync chain stops after this step (for Timetable screen semester changes).
-    private func fetchCoursesAndTimetable(chainToAttendance: Bool = true, completion: (() -> Void)? = nil) {
+    /// When `chainToAttendance` is true and `continueAfterAttendance` is false, loads attendance for the selected term then stops (no marks/exams chain).
+    private func fetchCoursesAndTimetable(chainToAttendance: Bool = true, continueAfterAttendance: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("📚 Fetching courses and timetable...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
@@ -767,6 +976,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { courses: [], timetable: [], rawProcessViewTimeTable: '' };
 
             function cellSlotToken(text) {
@@ -823,7 +1033,7 @@ class DataManager: ObservableObject {
                 },
                 async: false,
                 success: function(res) {
-                    result.rawProcessViewTimeTable = res;
+                    if (__VTOP_DEBUG__) { result.rawProcessViewTimeTable = res; }
                     var courseCounter = 1;
                     var slotCounter = 1;
 
@@ -943,9 +1153,9 @@ class DataManager: ObservableObject {
                         appendSlots(theorySlots);
                         appendSlots(labSlots);
                     }
-                }
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -955,8 +1165,10 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch courses: \(error.localizedDescription)", context: "DataManager")
-                if chainToAttendance {
+                if chainToAttendance && continueAfterAttendance {
                     self.fetchAttendance()
+                } else if chainToAttendance && !continueAfterAttendance {
+                    self.fetchAttendance(continueAfterMarks: false, completion: completion)
                 } else {
                     DispatchQueue.main.async {
                         self.loadingMessage = ""
@@ -968,8 +1180,10 @@ class DataManager: ObservableObject {
 
             guard let dict = result as? [String: Any] else {
                 self.logger.error("Invalid processViewTimeTable response", context: "DataManager")
-                if chainToAttendance {
+                if chainToAttendance && continueAfterAttendance {
                     self.fetchAttendance()
+                } else if chainToAttendance && !continueAfterAttendance {
+                    self.fetchAttendance(continueAfterMarks: false, completion: completion)
                 } else {
                     DispatchQueue.main.async {
                         self.loadingMessage = ""
@@ -1032,7 +1246,11 @@ class DataManager: ObservableObject {
                 self.logger.success("✅ Loaded \(courses.count) courses and \(timetable.count) timetable slots", context: "DataManager")
                 self.persistCache()
                 if chainToAttendance {
-                    self.fetchAttendance()
+                    if continueAfterAttendance {
+                        self.fetchAttendance()
+                    } else {
+                        self.fetchAttendance(continueAfterMarks: false, completion: completion)
+                    }
                 } else {
                     self.loadingMessage = ""
                     completion?()
@@ -1058,11 +1276,11 @@ class DataManager: ObservableObject {
         DispatchQueue.main.async {
             self.loadingMessage = "Loading timetable..."
         }
-        fetchCoursesAndTimetable(chainToAttendance: false, completion: completion)
+        fetchCoursesAndTimetable(chainToAttendance: false, continueAfterAttendance: true, completion: completion)
     }
 
     // MARK: - Fetch Marks
-    private func fetchMarks() {
+    private func fetchMarks(continueChain: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("📈 Fetching marks and grades...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
@@ -1078,10 +1296,10 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { marks: [], cumulativeMarks: [], gpa: null, rawDoStudentMarkView: '', rawDoStudentGradeView: '' };
             var markCounter = 1;
 
-            // Fetch individual marks
             $.ajax({
                 type: 'POST',
                 url: '/vtop/examinations/doStudentMarkView',
@@ -1091,9 +1309,9 @@ class DataManager: ObservableObject {
                     _csrf: '\(csrfToken)'
                 },
                 async: false,
-                success: function(res) {
-                    result.rawDoStudentMarkView = res;
-                    $(res).find('#fixedTableContainer table tbody tr').each(function() {
+                success: function(resMarks) {
+                    if (__VTOP_DEBUG__) { result.rawDoStudentMarkView = resMarks; }
+                    $(resMarks).find('#fixedTableContainer table tbody tr').each(function() {
                         var cells = $(this).find('td');
                         if (cells.length >= 8) {
                             var courseCode = cells.eq(0).text().trim();
@@ -1120,11 +1338,7 @@ class DataManager: ObservableObject {
                             });
                         }
                     });
-                }
-            });
-
-            // Semester grade view (Android downloadGrades) + GPA footer
-            $.ajax({
+                    $.ajax({
                 type: 'POST',
                 url: '/vtop/examinations/examGradeView/doStudentGradeView',
                 data: {
@@ -1134,7 +1348,7 @@ class DataManager: ObservableObject {
                 },
                 async: false,
                 success: function(res) {
-                    result.rawDoStudentGradeView = res;
+                    if (__VTOP_DEBUG__) { result.rawDoStudentGradeView = res; }
                     if (!res || res.toLowerCase().indexOf('no records') >= 0) {
                         return;
                     }
@@ -1176,7 +1390,7 @@ class DataManager: ObservableObject {
                         try {
                             var doc = new DOMParser().parseFromString(res, 'text/html');
                             var table = doc.getElementsByTagName('table')[0];
-                            if (!table) return;
+                            if (!table) { return; }
                             var headings = table.getElementsByTagName('th');
                             var courseCodeIndex, gradeIndex, creditsIndex, creditsSpan;
                             for (var i = 0; i < headings.length; ++i) {
@@ -1190,7 +1404,7 @@ class DataManager: ObservableObject {
                                     gradeIndex = i;
                                 }
                             }
-                            if (courseCodeIndex == null || gradeIndex == null || creditsIndex == null) return;
+                            if (courseCodeIndex == null || gradeIndex == null || creditsIndex == null) { return; }
                             if (courseCodeIndex > creditsIndex) {
                                 courseCodeIndex += creditsSpan - 1;
                             }
@@ -1226,9 +1440,12 @@ class DataManager: ObservableObject {
                             }
                         } catch (e) { }
                     }
-                }
+                },
+                error: function(xhr, st, err) { }
+                    });
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -1238,7 +1455,14 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch marks: \(error.localizedDescription)", context: "DataManager")
-                self.fetchExams() // Continue anyway
+                if continueChain {
+                    self.fetchExams()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
@@ -1246,7 +1470,14 @@ class DataManager: ObservableObject {
                   let marksData = dict["marks"] as? [[String: Any]],
                   let cumulativeData = dict["cumulativeMarks"] as? [[String: Any]] else {
                 self.logger.error("Invalid marks response", context: "DataManager")
-                self.fetchExams()
+                if continueChain {
+                    self.fetchExams()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
@@ -1301,20 +1532,25 @@ class DataManager: ObservableObject {
                 }
                 self.logger.success("✅ Loaded \(marks.count) marks and \(cumulativeMarks.count) grades", context: "DataManager")
                 self.persistCache()
-                self.fetchExams()
+                if continueChain {
+                    self.fetchExams()
+                } else {
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
         }
     }
 
     // MARK: - Fetch Attendance
     /// Refreshes attendance from `processViewStudentAttendance` for the selected semester only (does not continue the marks chain).
-    func refreshAttendanceOnly() {
-        fetchAttendance(continueAfterMarks: false, semesterSubId: nil)
+    func refreshAttendanceOnly(completion: (() -> Void)? = nil) {
+        fetchAttendance(continueAfterMarks: false, semesterSubId: nil, completion: completion)
     }
 
     /// Loads attendance for a specific semester id (Attendance tab). Does not continue the marks chain.
-    func refreshAttendance(semesterSubId: String, continueAfterMarks: Bool = false) {
-        fetchAttendance(continueAfterMarks: continueAfterMarks, semesterSubId: semesterSubId)
+    func refreshAttendance(semesterSubId: String, continueAfterMarks: Bool = false, completion: (() -> Void)? = nil) {
+        fetchAttendance(continueAfterMarks: continueAfterMarks, semesterSubId: semesterSubId, completion: completion)
     }
 
     /// Parses `select#semesterSubId` from the Student Attendance page POST response.
@@ -1328,6 +1564,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { semesters: [] };
             $.ajax({
                 type: 'POST',
@@ -1341,7 +1578,8 @@ class DataManager: ObservableObject {
                         var t = $(this).text().replace(/\\s+/g, ' ').trim();
                         if (v) result.semesters.push({ id: v, name: t });
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
             return result;
         })();
@@ -1387,6 +1625,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { semesters: [] };
             $.ajax({
                 type: 'POST',
@@ -1400,7 +1639,8 @@ class DataManager: ObservableObject {
                         var t = $(this).text().replace(/\\s+/g, ' ').trim();
                         if (v) result.semesters.push({ id: v, name: t });
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
             return result;
         })();
@@ -1451,6 +1691,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { marksReport: [], rawDoStudentMarkView: '' };
             var idCounter = 1;
             var postBody = '_csrf=' + encodeURIComponent('\(csrfToken)') +
@@ -1463,7 +1704,7 @@ class DataManager: ObservableObject {
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
                 success: function(res) {
-                    result.rawDoStudentMarkView = res;
+                    if (__VTOP_DEBUG__) { result.rawDoStudentMarkView = res; }
                     var $doc = $(res);
                     var $mtable = $doc.find('#fixedTableContainer table.customTable').first();
                     if (!$mtable.length) {
@@ -1471,7 +1712,7 @@ class DataManager: ObservableObject {
                             if ($(this).find('tr.tableContent-level1').length) { $mtable = $(this); return false; }
                         });
                     }
-                    if (!$mtable.length) return;
+                    if (!$mtable.length) { return; }
                     var kids = $mtable.children('tbody').length ? $mtable.children('tbody').children('tr') : $mtable.children('tr');
                     var arr = kids.get();
                     for (var i = 0; i < arr.length; i++) {
@@ -1516,7 +1757,8 @@ class DataManager: ObservableObject {
                             }
                         }
                     }
-                }
+                },
+                error: function(xhr, st, err) { }
             });
             return result;
         })();
@@ -1578,7 +1820,7 @@ class DataManager: ObservableObject {
         }
     }
 
-    private func fetchAttendance(continueAfterMarks: Bool = true, semesterSubId: String? = nil) {
+    private func fetchAttendance(continueAfterMarks: Bool = true, semesterSubId: String? = nil, completion: (() -> Void)? = nil) {
         logger.info("📊 Fetching attendance...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
@@ -1587,7 +1829,10 @@ class DataManager: ObservableObject {
               !semesterId.isEmpty else {
             logger.error("Missing session or semester data", context: "DataManager")
             if !continueAfterMarks {
-                DispatchQueue.main.async { self.loadingMessage = "" }
+                DispatchQueue.main.async {
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
             return
         }
@@ -1598,6 +1843,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { attendance: [], rawProcessViewStudentAttendance: '' };
             var attendanceCounter = 1;
             var postBody = '_csrf=' + encodeURIComponent('\(csrfToken)') +
@@ -1612,7 +1858,7 @@ class DataManager: ObservableObject {
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
                 success: function(res) {
-                    result.rawProcessViewStudentAttendance = res;
+                    if (__VTOP_DEBUG__) { result.rawProcessViewStudentAttendance = res; }
                     var $doc = $(res);
                     function compactThText($tbl) {
                         var parts = [];
@@ -1632,7 +1878,7 @@ class DataManager: ObservableObject {
                     if (!$table.length || !attendanceTableMatches($table)) {
                         $table = $doc.find('table').filter(function() { return attendanceTableMatches($(this)); }).first();
                     }
-                    if (!$table.length) return;
+                    if (!$table.length) { return; }
 
                     var headers = [];
                     var $theadLast = $table.find('thead tr').last();
@@ -1682,7 +1928,7 @@ class DataManager: ObservableObject {
                     var iPct = col('attendance percentage');
                     if (iPct < 0) iPct = col('percentage');
                     var iStatus = col('status');
-                    if (iCode < 0 || iAttended < 0 || iTotal < 0) return;
+                    if (iCode < 0 || iAttended < 0 || iTotal < 0) { return; }
 
                     $table.find('tr').each(function() {
                         if ($(this).closest('thead').length) return;
@@ -1720,9 +1966,9 @@ class DataManager: ObservableObject {
                             statusText: status || null
                         });
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -1735,7 +1981,10 @@ class DataManager: ObservableObject {
                 if continueAfterMarks {
                     self.fetchMarks()
                 } else {
-                    DispatchQueue.main.async { self.loadingMessage = "" }
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
                 }
                 return
             }
@@ -1746,7 +1995,10 @@ class DataManager: ObservableObject {
                 if continueAfterMarks {
                     self.fetchMarks()
                 } else {
-                    DispatchQueue.main.async { self.loadingMessage = "" }
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
                 }
                 return
             }
@@ -1799,6 +2051,7 @@ class DataManager: ObservableObject {
                     self.fetchMarks()
                 } else {
                     self.loadingMessage = ""
+                    completion?()
                 }
             }
         }
@@ -1817,6 +2070,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { semesters: [] };
             $.ajax({
                 type: 'POST',
@@ -1830,7 +2084,8 @@ class DataManager: ObservableObject {
                         var t = $(this).text().replace(/\\s+/g, ' ').trim();
                         if (v) result.semesters.push({ id: v, name: t });
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
             return result;
         })();
@@ -1897,6 +2152,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = { exams: [], rawDoSearchExamScheduleForStudent: '' };
             var examCounter = 1;
             var postBody = 'authorizedID=' + encodeURIComponent('\(authorizedID)') +
@@ -1910,7 +2166,7 @@ class DataManager: ObservableObject {
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
                 success: function(res) {
-                    result.rawDoSearchExamScheduleForStudent = res;
+                    if (__VTOP_DEBUG__) { result.rawDoSearchExamScheduleForStudent = res; }
                     var $table = $(res).find('table.customTable').first();
                     if (!$table.length) {
                         $table = $(res).find('#fixedTableContainer table').first();
@@ -1958,9 +2214,9 @@ class DataManager: ObservableObject {
                             listTitle: (category ? category + ' · ' : '') + courseCode
                         });
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -2039,12 +2295,15 @@ class DataManager: ObservableObject {
     }
 
     // MARK: - Fetch Staff
-    private func fetchStaff() {
+    private func fetchStaff(continueFullSyncChain: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("👥 Fetching staff information...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
               let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
+            if !continueFullSyncChain {
+                DispatchQueue.main.async { completion?() }
+            }
             return
         }
 
@@ -2054,6 +2313,7 @@ class DataManager: ObservableObject {
 
         let script = """
         (function() {
+            \(VTOPJSConfig.debugVarInit)
             var result = {
                 staff: [],
                 portalCredentials: [],
@@ -2079,7 +2339,7 @@ class DataManager: ObservableObject {
                 },
                 async: false,
                 success: function(res) {
-                    result.rawViewProctorDetails = res;
+                    if (__VTOP_DEBUG__) { result.rawViewProctorDetails = res; }
                     $(res).find('table tbody tr').each(function() {
                         var cells = $(this).find('td');
                         if (cells.length >= 2) {
@@ -2095,7 +2355,8 @@ class DataManager: ObservableObject {
                             }
                         }
                     });
-                }
+                },
+                error: function() { }
             });
 
             $.ajax({
@@ -2104,9 +2365,9 @@ class DataManager: ObservableObject {
                 data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
-                success: function(res) {
-                    result.rawViewHodDeanDetails = res;
-                    var $res = $(res);
+                success: function(res2) {
+                    if (__VTOP_DEBUG__) { result.rawViewHodDeanDetails = res2; }
+                    var $res = $(res2);
                     $res.find('h3.box-title, .box-title').each(function() {
                         var heading = $(this).text().trim().toLowerCase();
                         var role = null;
@@ -2141,7 +2402,8 @@ class DataManager: ObservableObject {
                             }
                         });
                     });
-                }
+                },
+                error: function() { }
             });
 
             $.ajax({
@@ -2150,9 +2412,9 @@ class DataManager: ObservableObject {
                 data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
                 contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
                 async: false,
-                success: function(res) {
-                    result.rawViewStudentCredentials = res;
-                    var $r = $(res);
+                success: function(res3) {
+                    if (__VTOP_DEBUG__) { result.rawViewStudentCredentials = res3; }
+                    var $r = $(res3);
                     $r.find('table.customTable').each(function() {
                         var headers = $(this).find('tr.tableHeader td').map(function() {
                             return $(this).text().trim().toLowerCase();
@@ -2187,7 +2449,8 @@ class DataManager: ObservableObject {
                             });
                         }
                     });
-                }
+                },
+                error: function() { }
             });
 
             return result;
@@ -2199,20 +2462,34 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch staff: \(error.localizedDescription)", context: "DataManager")
-                self.fetchSpotlight() // Continue anyway
+                if continueFullSyncChain {
+                    self.fetchSpotlight()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            guard let dict = result as? [String: Any] else {
+            guard let raw = result as? [String: Any] else {
                 self.logger.error("Invalid staff response", context: "DataManager")
-                self.fetchSpotlight()
+                if continueFullSyncChain {
+                    self.fetchSpotlight()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
+            self.debugPrintFullVTOPResponse("viewProctorDetails", raw["rawViewProctorDetails"] as? String)
+            self.debugPrintFullVTOPResponse("viewHodDeanDetails", raw["rawViewHodDeanDetails"] as? String)
+            let dict = Self.strippingDebugPayloads(raw)
             let staffData = dict["staff"] as? [[String: Any]] ?? []
-
-            self.debugPrintFullVTOPResponse("viewProctorDetails", dict["rawViewProctorDetails"] as? String)
-            self.debugPrintFullVTOPResponse("viewHodDeanDetails", dict["rawViewHodDeanDetails"] as? String)
 
             var staff: [Staff] = []
             for staffDict in staffData {
@@ -2277,18 +2554,26 @@ class DataManager: ObservableObject {
                 self.hodPortraitData = hodPhoto
                 self.logger.success("✅ Loaded \(staff.count) staff, \(credentials.count) portal credential(s), \(ranks.count) rank row(s)", context: "DataManager")
                 self.persistCache()
-                self.fetchSpotlight()
+                if continueFullSyncChain {
+                    self.fetchSpotlight()
+                } else {
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
         }
     }
 
     // MARK: - Fetch Spotlight
-    private func fetchSpotlight() {
+    private func fetchSpotlight(continueFullSyncChain: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("📢 Fetching announcements...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
               let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
+            if !continueFullSyncChain {
+                DispatchQueue.main.async { completion?() }
+            }
             return
         }
 
@@ -2339,9 +2624,9 @@ class DataManager: ObservableObject {
                             });
                         }
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -2351,18 +2636,32 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch spotlight: \(error.localizedDescription)", context: "DataManager")
-                self.fetchReceipts() // Continue anyway
+                if continueFullSyncChain {
+                    self.fetchReceipts()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            guard let dict = result as? [String: Any],
-                  let spotlightsData = dict["spotlights"] as? [[String: Any]] else {
+            guard let raw = result as? [String: Any],
+                  let spotlightsData = raw["spotlights"] as? [[String: Any]] else {
                 self.logger.error("Invalid spotlight response", context: "DataManager")
-                self.fetchReceipts()
+                if continueFullSyncChain {
+                    self.fetchReceipts()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            self.debugPrintFullVTOPResponse("home", dict["rawHome"] as? String)
+            self.debugPrintFullVTOPResponse("home", raw["rawHome"] as? String)
 
             var spotlights: [Spotlight] = []
             for spotDict in spotlightsData {
@@ -2384,19 +2683,28 @@ class DataManager: ObservableObject {
                 self.spotlights = spotlights
                 self.logger.success("✅ Loaded \(spotlights.count) announcements", context: "DataManager")
                 self.persistCache()
-                self.fetchReceipts()
+                if continueFullSyncChain {
+                    self.fetchReceipts()
+                } else {
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
         }
     }
 
     // MARK: - Fetch Receipts
-    private func fetchReceipts() {
+    private func fetchReceipts(continueFullSyncChain: Bool = true, completion: (() -> Void)? = nil) {
         logger.info("💳 Fetching payment receipts...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
               let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
-            fetchScheduledEvents()
+            if continueFullSyncChain {
+                fetchScheduledEvents()
+            } else {
+                DispatchQueue.main.async { completion?() }
+            }
             return
         }
 
@@ -2437,9 +2745,9 @@ class DataManager: ObservableObject {
                             }
                         }
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
-
             return result;
         })();
         """
@@ -2449,18 +2757,32 @@ class DataManager: ObservableObject {
 
             if let error = error {
                 self.logger.error("Failed to fetch receipts: \(error.localizedDescription)", context: "DataManager")
-                self.fetchScheduledEvents()
+                if continueFullSyncChain {
+                    self.fetchScheduledEvents()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            guard let dict = result as? [String: Any],
-                  let receiptsData = dict["receipts"] as? [[String: Any]] else {
+            guard let raw = result as? [String: Any],
+                  let receiptsData = raw["receipts"] as? [[String: Any]] else {
                 self.logger.error("Invalid receipts response", context: "DataManager")
-                self.fetchScheduledEvents()
+                if continueFullSyncChain {
+                    self.fetchScheduledEvents()
+                } else {
+                    DispatchQueue.main.async {
+                        self.loadingMessage = ""
+                        completion?()
+                    }
+                }
                 return
             }
 
-            self.debugPrintFullVTOPResponse("getReceiptsApplno", dict["rawGetReceiptsApplno"] as? String)
+            self.debugPrintFullVTOPResponse("getReceiptsApplno", raw["rawGetReceiptsApplno"] as? String)
 
             var receipts: [Receipt] = []
             for (index, receiptDict) in receiptsData.enumerated() {
@@ -2487,7 +2809,13 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.receipts = receipts
                 self.logger.success("✅ Loaded \(receipts.count) receipts", context: "DataManager")
-                self.fetchScheduledEvents()
+                if continueFullSyncChain {
+                    self.fetchScheduledEvents()
+                } else {
+                    self.persistCache()
+                    self.loadingMessage = ""
+                    completion?()
+                }
             }
         }
     }
@@ -2609,7 +2937,8 @@ class DataManager: ObservableObject {
                             }
                         });
                     });
-                }
+                },
+                error: function(xhr, st, err) { }
             });
             return result;
         })();
@@ -2625,12 +2954,12 @@ class DataManager: ObservableObject {
                 completion([])
                 return
             }
-            guard let dict = result as? [String: Any] else {
+            guard let raw = result as? [String: Any] else {
                 completion([])
                 return
             }
-            self.debugPrintFullVTOPResponse("get/scheduled/events", dict["rawScheduledEvents"] as? String)
-
+            self.debugPrintFullVTOPResponse("get/scheduled/events", raw["rawScheduledEvents"] as? String)
+            let dict = Self.strippingDebugPayloads(raw)
             let rowsData = dict["rows"] as? [[String: Any]] ?? []
             let rows: [VTOPScheduledEventRow] = rowsData.compactMap { r in
                 guard let id = r["id"] as? String,
@@ -2660,9 +2989,16 @@ class DataManager: ObservableObject {
 
     // MARK: - Finish Data Fetching
     private func finishDataFetching() {
+        let completedAt = Date()
         DispatchQueue.main.async {
             self.isLoading = false
             self.loadingMessage = ""
+            self.lastDataFetchFailureReason = nil
+            if self.countsCurrentSessionTowardManualFullSyncQuota {
+                Self.recordFullSyncCompleted(at: completedAt)
+                self.countsCurrentSessionTowardManualFullSyncQuota = false
+            }
+            self.lastSuccessfulSyncAt = completedAt
             self.persistCache()
             self.logger.success("🎉 All data fetched successfully!", context: "DataManager")
         }
@@ -2695,24 +3031,162 @@ class DataManager: ObservableObject {
             deanPortraitData: deanPortraitData,
             hodPortraitData: hodPortraitData
         )
+        DispatchQueue.main.async {
+            self.cachePersistedAt = VTOPDiskCache.readMeta().lastPersistedAt
+            self.publishGlanceSnapshotAndPeripherals()
+        }
+    }
+
+    private func publishGlanceSnapshotAndPeripherals() {
+        let snap = buildGlanceSnapshot()
+        snap.writeToSharedContainer()
+        VTOPNotificationScheduler.reschedule(from: snap, timetable: timetable, courses: courses)
+        let next = VTOPScheduleEngine.nextUpcomingSlot(timetable: timetable, courses: courses)
+        Task { @MainActor in
+            VTOPLiveActivityManager.updateOrStart(upcoming: next)
+        }
+    }
+
+    private func buildGlanceSnapshot() -> VTOPGlanceSnapshot {
+        let next = VTOPScheduleEngine.nextUpcomingSlot(timetable: timetable, courses: courses)
+        let lines = VTOPScheduleEngine.todaySlotSummaries(timetable: timetable, courses: courses)
+        return VTOPGlanceSnapshot(
+            updatedAt: Date(),
+            semesterName: selectedSemester?.name,
+            attendancePercent: studentProfile?.overallAttendance,
+            nextClassTitle: next?.course.title,
+            nextClassVenue: next?.course.venue,
+            nextClassStart: next?.startDate,
+            nextClassEnd: next?.endDate,
+            todaySlotLines: lines
+        )
+    }
+
+    // MARK: - Scoped refresh (pull-to-refresh; no full `syncAll` chain)
+
+    /// Semester dropdown only (does not auto-select a term or start `fetchAllData`).
+    func refreshSemesterPicklist(completion: (() -> Void)? = nil) {
+        guard webView != nil else {
+            completion?()
+            return
+        }
+        DispatchQueue.main.async { self.loadingMessage = "Loading semesters…" }
+        fetchSemesters(chainIntoSelectSemester: false, completion: completion)
+    }
+
+    /// Profile + grade history + courses + timetable for the selected term (stops before attendance).
+    func refreshHomeSummary(completion: (() -> Void)? = nil) {
+        guard webView != nil else {
+            completion?()
+            return
+        }
+        DispatchQueue.main.async { self.loadingMessage = "Refreshing…" }
+        fetchStudentProfile(stopAfterTimetable: true, completion: completion)
+    }
+
+    /// Courses, timetable, and attendance for `selectedSemester` (stops before marks).
+    func refreshCoursesWithAttendance(completion: (() -> Void)? = nil) {
+        guard webView != nil, selectedSemester != nil else {
+            completion?()
+            return
+        }
+        fetchCoursesAndTimetable(chainToAttendance: true, continueAfterAttendance: false, completion: completion)
+    }
+
+    /// Marks + cumulative grades for `selectedSemester` (stops before exams/staff/…).
+    func refreshMarksForSelectedSemester(completion: (() -> Void)? = nil) {
+        guard webView != nil, selectedSemester != nil else {
+            completion?()
+            return
+        }
+        fetchMarks(continueChain: false, completion: completion)
+    }
+
+    func refreshStaffInformation(completion: (() -> Void)? = nil) {
+        guard webView != nil else {
+            completion?()
+            return
+        }
+        fetchStaff(continueFullSyncChain: false, completion: completion)
+    }
+
+    func refreshSpotlightsOnly(completion: (() -> Void)? = nil) {
+        guard webView != nil else {
+            completion?()
+            return
+        }
+        fetchSpotlight(continueFullSyncChain: false, completion: completion)
+    }
+
+    func refreshReceiptsOnly(completion: (() -> Void)? = nil) {
+        guard webView != nil else {
+            completion?()
+            return
+        }
+        fetchReceipts(continueFullSyncChain: false, completion: completion)
     }
 
     // MARK: - Sync All Data
-    func syncAll() {
-        logger.info("🔄 Manual sync requested", context: "DataManager")
 
+    /// Call when the user taps toolbar or profile full sync (shows quota confirmation or blocked alert).
+    func requestUserFullSyncFromToolbar() {
+        guard webView != nil else { return }
+        let pruned = Self.prunedFullSyncCompletionDates()
+        if pruned.count >= Self.fullSyncQuotaMaxPerWindow {
+            let oldest = pruned[0]
+            let nextEligible = oldest.addingTimeInterval(Self.fullSyncQuotaWindow)
+            let wait = max(0, nextEligible.timeIntervalSince(Date()))
+            let human = Self.formattedCooldownRemaining(wait)
+            logger.info("Full sync quota exhausted; next in \(human)", context: "DataManager")
+            fullSyncQuotaBlockedMessage = "You’ve used all \(Self.fullSyncQuotaMaxPerWindow) full syncs allowed in the last hour. The next full sync is available in \(human). You can still pull to refresh on a page to update only that section."
+            return
+        }
+        let remaining = Self.fullSyncQuotaMaxPerWindow - pruned.count
+        fullSyncConfirmSlotsRemaining = remaining
+    }
+
+    func cancelUserFullSyncConfirmation() {
+        fullSyncConfirmSlotsRemaining = nil
+    }
+
+    func confirmUserFullSyncAndExecute() {
+        fullSyncConfirmSlotsRemaining = nil
+        syncAll()
+    }
+
+    func syncAll() {
+        logger.info("🔄 Manual sync requested (debounced)", context: "DataManager")
+        syncDebounceItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.performSyncAll() }
+        syncDebounceItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.55, execute: item)
+    }
+
+    private func performSyncAll() {
         guard let _ = webView else {
             logger.warning("WebView not available for sync - user needs to login to fetch fresh data", context: "DataManager")
-            logger.info("💡 Currently showing cached data. Login to fetch latest updates.", context: "DataManager")
-
             DispatchQueue.main.async {
+                self.lastDataFetchFailureReason = "Sign in required to refresh from VTOP."
                 self.errorMessage = "Please login to sync latest data"
             }
             return
         }
-
-        // Re-extract session data and fetch everything
-        extractSessionData()
+        let pruned = Self.prunedFullSyncCompletionDates()
+        if pruned.count >= Self.fullSyncQuotaMaxPerWindow {
+            let oldest = pruned[0]
+            let nextEligible = oldest.addingTimeInterval(Self.fullSyncQuotaWindow)
+            let wait = max(0, nextEligible.timeIntervalSince(Date()))
+            let human = Self.formattedCooldownRemaining(wait)
+            logger.info("Full sync blocked at perform: quota; next in \(human)", context: "DataManager")
+            DispatchQueue.main.async {
+                self.fullSyncQuotaBlockedMessage = "You’ve used all \(Self.fullSyncQuotaMaxPerWindow) full syncs allowed in the last hour. The next full sync is available in \(human). You can still pull to refresh on a page to update only that section."
+            }
+            return
+        }
+        lastDataFetchFailureReason = nil
+        isLoading = true
+        loadingMessage = "Syncing…"
+        extractSessionData(attempt: 1, incrementManualFullSyncQuotaOnCompletion: true)
     }
 
     // MARK: - Load Cached Data
@@ -2725,7 +3199,9 @@ class DataManager: ObservableObject {
     /// Drops persisted VTOP snapshots and in-memory cached data. Web session / login state is not cleared.
     func clearCachedVTOPData() {
         VTOPDataCache.clearAll()
+        Self.clearFullSyncQuotaStorage()
         DispatchQueue.main.async {
+            self.lastSuccessfulSyncAt = nil
             self.studentProfile = nil
             self.courses = []
             self.timetable = []

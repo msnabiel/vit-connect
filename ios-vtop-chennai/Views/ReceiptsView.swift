@@ -93,7 +93,9 @@ struct ReceiptsView: View {
             }
         }
         .refreshable {
-            dataManager.syncAll()
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                dataManager.refreshReceiptsOnly { cont.resume() }
+            }
         }
         .navigationTitle("Payment receipts")
         .navigationBarTitleDisplayMode(.inline)

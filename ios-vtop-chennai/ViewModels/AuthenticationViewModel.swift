@@ -90,9 +90,14 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         )
         // #endregion
         logger.info("🚀 Initializing AuthenticationViewModel", context: "Init")
-        setupWebView()
         checkSavedCredentials()
         checkAuthenticationStatus()
+    }
+
+    /// Creates the off-screen `WKWebView` on first use so WebKit/GPU processes are not started while the user is only typing in native login fields.
+    private func ensureWebViewReady() {
+        guard webView == nil else { return }
+        setupWebView()
     }
 
     // MARK: - Check Authentication Status
@@ -195,6 +200,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
 
     // MARK: - Load Login Page
     private func loadLoginPage() {
+        ensureWebViewReady()
         logger.info("📄 Loading login page: \(baseURL)/login", context: "WebView")
 
         guard let url = URL(string: "\(baseURL)/login") else {
@@ -317,6 +323,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
                     window.location.href = '/vtop/login';
                 }
             });
+            return true;
         })();
         """
 
@@ -529,10 +536,8 @@ class AuthenticationViewModel: NSObject, ObservableObject {
                             return;
                         }
 
-                        // Convert to lowercase for case-insensitive matching
                         var pageContent = res.toLowerCase();
 
-                        // Use regex patterns matching Android implementation
                         var invalidCaptchaRegex = new RegExp(/invalid\\s*captcha/);
                         var invalidCredentialsRegex = new RegExp(/invalid\\s*(user\\s*name|login\\s*id|user\\s*id)\\s*\\/\\s*password/);
                         var accountLockedRegex = new RegExp(/account\\s*is\\s*locked/);
@@ -750,6 +755,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
 
     // MARK: - Get WebView (for reCaptcha display)
     func getWebView() -> WKWebView? {
+        ensureWebViewReady()
         return webView
     }
 
@@ -772,11 +778,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         // Mark as background sync mode
         self.isBackgroundSync = true
 
-        // If WebView doesn't exist, create it
-        if webView == nil {
-            logger.info("Creating new WebView for auto-sync", context: "AutoSync")
-            setupWebView()
-        }
+        ensureWebViewReady()
 
         logger.info("Starting login for auto-sync...", context: "AutoSync")
         isLoading = true
@@ -790,10 +792,11 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     // MARK: - Trigger Sync (when already authenticated)
     func triggerSync() {
         logger.info("🔄 Manual sync triggered", context: "Sync")
+        ensureWebViewReady()
 
         if let webView = self.webView {
             dataManager?.setWebView(webView)
-            dataManager?.syncAll()
+            dataManager?.requestUserFullSyncFromToolbar()
         } else {
             logger.warning("No WebView available, initiating auto-login", context: "Sync")
             autoLoginAndSync()

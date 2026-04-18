@@ -8,7 +8,7 @@ struct ios_vtop_chennaiApp: App {
     @StateObject private var dataManager = DataManager()
 
     init() {
-        // This won't work in init - we need to do it differently
+        VTOPNotificationScheduler.registerDelegate()
     }
 
     var body: some Scene {
@@ -18,8 +18,8 @@ struct ios_vtop_chennaiApp: App {
                 .environmentObject(authViewModel)
                 .environmentObject(dataManager)
                 .onAppear {
-                    // Connect them when the app appears
                     authViewModel.dataManager = dataManager
+                    VTOPNotificationScheduler.requestAuthorizationIfNeeded()
                     print("⚠️ DEBUG: App initialized - dataManager connected")
                 }
         }
@@ -66,22 +66,13 @@ struct RootView: View {
     // #endregion
 
     var body: some View {
-        let _ = print("⚠️ DEBUG: RootView body evaluated - isAuthenticated = \(authViewModel.isAuthenticated)")
-        // #region agent log
-        let _ = emitDebugLog(
-            hypothesisId: "H5",
-            location: "RootView.body",
-            message: "RootView body evaluated",
-            data: ["isAuthenticated": authViewModel.isAuthenticated]
-        )
-        // #endregion
-
-        return Group {
+        Group {
             if authViewModel.isAuthenticated {
                 HomeView()
                     .preferredColorScheme(preferredColorScheme)
                     .transition(.opacity)
                     .onAppear {
+                        VTOPNotificationScheduler.requestAuthorizationIfNeeded()
                         print("⚠️ DEBUG: ✅✅✅ HomeView APPEARED")
                         // #region agent log
                         emitDebugLog(
@@ -116,19 +107,41 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: authViewModel.isAuthenticated)
-        .onChange(of: authViewModel.isAuthenticated) { newValue in
-            print("⚠️ DEBUG: 🔔 RootView onChange fired - new value = \(newValue)")
-            // #region agent log
-            emitDebugLog(
-                hypothesisId: "H5",
-                location: "RootView.onChange.isAuthenticated",
-                message: "RootView observed auth state change",
-                data: [
-                    "newValue": newValue,
-                    "authInstanceId": debugAuthInstanceId
-                ]
+        .alert(
+            "Full sync limit",
+            isPresented: Binding(
+                get: { dataManager.fullSyncQuotaBlockedMessage != nil },
+                set: { if !$0 { dataManager.fullSyncQuotaBlockedMessage = nil } }
             )
-            // #endregion
+        ) {
+            Button("OK", role: .cancel) {
+                dataManager.fullSyncQuotaBlockedMessage = nil
+            }
+        } message: {
+            Text(dataManager.fullSyncQuotaBlockedMessage ?? "")
         }
+        .alert(
+            "Full sync",
+            isPresented: Binding(
+                get: { dataManager.fullSyncConfirmSlotsRemaining != nil },
+                set: { if !$0 { dataManager.cancelUserFullSyncConfirmation() } }
+            )
+        ) {
+            Button("Cancel", role: .cancel) {
+                dataManager.cancelUserFullSyncConfirmation()
+            }
+            Button("Sync now") {
+                dataManager.confirmUserFullSyncAndExecute()
+            }
+        } message: {
+            if let n = dataManager.fullSyncConfirmSlotsRemaining {
+                Text("You can run at most 3 full syncs per hour. You have \(n) full sync(s) remaining before you reach that limit. To refresh only one area with less load on VTOP, pull to refresh on that screen.")
+            }
+        }
+        #if DEBUG
+        .onChange(of: authViewModel.isAuthenticated) { _, newValue in
+            print("⚠️ DEBUG: RootView auth → \(newValue)")
+        }
+        #endif
     }
 }

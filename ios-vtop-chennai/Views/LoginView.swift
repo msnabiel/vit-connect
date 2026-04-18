@@ -8,6 +8,8 @@ struct LoginView: View {
     @State private var showPassword: Bool = false
     @State private var rememberMe: Bool = true
     @State private var shakeOffset: CGFloat = 0
+    @State private var showPrivacyPolicy = false
+    @State private var showTermsAndConditions = false
     @AppStorage("biometricEnabled") private var biometricEnabled: Bool = false
 
     enum Field {
@@ -55,7 +57,7 @@ struct LoginView: View {
 
                                 TextField("Username", text: $viewModel.username)
                                     .font(.system(size: 17))
-                                    .autocapitalization(.allCharacters)
+                                    .textInputAutocapitalization(.never)
                                     .disableAutocorrection(true)
                                     .textContentType(.username)
                                     .focused($focusedField, equals: .username)
@@ -98,7 +100,8 @@ struct LoginView: View {
                                     if showPassword {
                                         TextField("Password", text: $viewModel.password)
                                             .font(.system(size: 17))
-                                            .textContentType(.password)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled()
                                             .focused($focusedField, equals: .password)
                                             .disabled(viewModel.isLoading)
                                             .submitLabel(.go)
@@ -121,11 +124,11 @@ struct LoginView: View {
                                             }
                                     }
                                 }
+                                .transaction { $0.animation = nil }
 
-                                // Eye icon toggle
+                                // Eye icon toggle (avoid .password content type on visible field — slows toggle / triggers autofill heuristics)
                                 Button(action: {
                                     showPassword.toggle()
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 }) {
                                     Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
                                         .font(.system(size: 16))
@@ -250,18 +253,26 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 32)
 
-                    Spacer(minLength: 40)
-
-                    // Privacy Policy Link
-                    Button(action: {
-                        if let url = URL(string: "https://vtopcc.vit.ac.in") {
-                            UIApplication.shared.open(url)
+                    VStack(spacing: 10) {
+                        HStack(spacing: 8) {
+                            Button("Privacy policy") {
+                                showPrivacyPolicy = true
+                            }
+                            Text("·")
+                                .foregroundStyle(.secondary)
+                            Button("Terms and conditions") {
+                                showTermsAndConditions = true
+                            }
                         }
-                    }) {
-                        Text("Privacy Policy")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.accentColor)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.accentColor)
+
+                        Text("Currently only supports VIT Chennai.")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
+                    .padding(.top, 32)
                     .padding(.bottom, 40)
                 }
             }
@@ -288,6 +299,26 @@ struct LoginView: View {
                 ReCaptchaView(webView: webView, isPresented: $viewModel.showReCaptchaWebView)
             }
         }
+        .sheet(isPresented: $showPrivacyPolicy) {
+            NavigationStack {
+                PrivacyPolicyView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showPrivacyPolicy = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showTermsAndConditions) {
+            NavigationStack {
+                TermsAndConditionsView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showTermsAndConditions = false }
+                        }
+                    }
+            }
+        }
     }
 
     // MARK: - Helper Functions
@@ -295,9 +326,6 @@ struct LoginView: View {
     private func handleSignIn() {
         focusedField = nil
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-
-        // Uppercase username
-        viewModel.username = viewModel.username.uppercased()
 
         // Save remember me preference
         viewModel.rememberMe = rememberMe

@@ -66,13 +66,24 @@ struct AttendanceDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
         )
     }
 
+    private static let semesterPickerHorizontalPadding: CGFloat = 16
+    private static let semesterPickerTopPadding: CGFloat = 10
+    private static let semesterPickerBottomPadding: CGFloat = 8
+
     var body: some View {
-        Group {
-            if dataManager.attendance.isEmpty {
+        VStack(spacing: 0) {
+            OfflineDataBanner(showSyncMetadata: false)
+            ZStack(alignment: .top) {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea(edges: [.horizontal, .bottom])
                 VStack(spacing: 0) {
                     if !semesterChoices.isEmpty {
                         Menu {
@@ -101,81 +112,74 @@ struct AttendanceDetailView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color(uiColor: .secondarySystemBackground))
+                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
                             )
                         }
-                        .padding()
+                        .padding(.horizontal, Self.semesterPickerHorizontalPadding)
+                        .padding(.top, Self.semesterPickerTopPadding)
+                        .padding(.bottom, Self.semesterPickerBottomPadding)
                     }
 
-                    Spacer(minLength: 0)
-
-                    EmptyStateView(
-                        icon: "calendar.badge.exclamationmark",
-                        title: "No attendance yet",
-                        message: "Choose a semester above, or pull down to refresh."
-                    )
-
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if !semesterChoices.isEmpty {
-                            Menu {
-                                ForEach(semesterChoices) { sem in
-                                    Button(sem.name) {
-                                        attendanceSemesterId = sem.id
-                                        if attendancePickerPrimed {
-                                            dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
-                                        }
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Text("Semester — \(attendanceSemesterDisplayName)")
-                                        .font(.body.weight(.medium))
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.72)
-                                    Spacer(minLength: 8)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(Color(uiColor: .systemBlue))
-                                }
-                                .padding(.vertical, 10)
-                                .padding(.horizontal, 12)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(uiColor: .secondarySystemBackground))
+                    List {
+                        if dataManager.attendance.isEmpty {
+                            Section {
+                                EmptyStateView(
+                                    icon: "calendar.badge.exclamationmark",
+                                    title: "No attendance yet",
+                                    message: "Choose a semester above, or pull down to refresh."
                                 )
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 24)
+                            }
+                            .listRowBackground(Color.clear)
+                        } else {
+                            Section {
+                                overallAttendanceStrip
+                            }
+                            .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                            .listRowBackground(Color.clear)
+
+                            Section {
+                                ForEach(dataManager.attendance) { attendance in
+                                    AttendanceCard(
+                                        course: attendance.matchingCatalogCourse(in: dataManager.courses),
+                                        attendance: attendance
+                                    )
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                }
                             }
                         }
-
-                        overallAttendanceStrip
-
-                        ForEach(dataManager.attendance) { attendance in
-                            AttendanceCard(
-                                course: attendance.matchingCatalogCourse(in: dataManager.courses),
-                                attendance: attendance
-                            )
-                        }
                     }
-                    .padding()
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle("Attendance")
+        .navigationBarTitleDisplayMode(.inline)
+        .vtopOpaqueNavigationBar()
+        .refreshable {
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
+                    dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false) {
+                        cont.resume()
+                    }
+                } else {
+                    dataManager.loadAttendanceSemesterPicklist {
+                        cont.resume()
+                    }
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .refreshable {
-            if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
-                dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
-            } else {
-                dataManager.syncAll()
-            }
-        }
-        .navigationTitle("Attendance")
-        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 TimetableToolbarLink()
@@ -405,7 +409,11 @@ struct AttendanceCard: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
         )
     }
 
