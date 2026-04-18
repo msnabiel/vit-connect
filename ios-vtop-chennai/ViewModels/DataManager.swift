@@ -764,13 +764,16 @@ class DataManager: ObservableObject {
                     $(res).find('table').first().find('tbody tr').each(function() {
                         var cells = $(this).find('td');
                         if (cells.length >= 7) {
-                            var courseCode = cells.eq(0).text().trim();
-                            var courseTitle = cells.eq(1).text().trim();
-                            var courseType = cells.eq(3).text().trim().toLowerCase();
-                            var credits = parseInt(cells.eq(4).text().trim()) || 0;
-                            var venue = cells.eq(5).text().trim();
-                            var faculty = cells.eq(6).text().trim();
-                            var slotsText = cells.eq(2).text().trim();
+                            var offset = 0;
+                            var c0 = cells.eq(0).text().trim();
+                            if (/^\\d+$/.test(c0) && cells.length >= 8) offset = 1;
+                            var courseCode = cells.eq(offset + 0).text().trim();
+                            var courseTitle = cells.eq(offset + 1).text().trim();
+                            var slotsText = cells.eq(offset + 2).text().trim();
+                            var courseType = cells.eq(offset + 3).text().trim().toLowerCase();
+                            var credits = parseInt(cells.eq(offset + 4).text().trim()) || 0;
+                            var venue = cells.eq(offset + 5).text().trim();
+                            var faculty = cells.eq(offset + 6).text().trim();
 
                             var slots = [];
                             if (slotsText) {
@@ -1492,6 +1495,8 @@ class DataManager: ObservableObject {
                         }
                         if (sub === 'course code') {
                             for (var j = 0; j < headers.length - 1; j++) {
+                                var hj = (headers[j] || '').replace(/\\s+/g, '');
+                                if (/^sl\\.?no$/i.test(hj) || hj.indexOf('sl.no') === 0) continue;
                                 var merged = (headers[j] + ' ' + headers[j + 1]).replace(/\\s+/g, ' ');
                                 if (merged.indexOf('course code') >= 0) return j;
                             }
@@ -1591,7 +1596,10 @@ class DataManager: ObservableObject {
                       let total = Self.intFromJSON(attDict["total"]),
                       let percentage = Self.intFromJSON(attDict["percentage"]) else { continue }
 
-                let courseId = self.courses.first(where: { $0.code == courseCode })?.id ?? (index + 1)
+                let normalizedCode = courseCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                let courseId = self.courses.first(where: {
+                    $0.code.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(normalizedCode) == .orderedSame
+                })?.id ?? 0
                 let courseTitle = attDict["courseTitle"] as? String
                 let courseType = attDict["courseType"] as? String
                 let slot = attDict["slot"] as? String

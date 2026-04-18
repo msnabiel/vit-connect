@@ -18,9 +18,10 @@ struct AttendanceDetailView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         ForEach(dataManager.attendance) { attendance in
-                            let course = dataManager.courses.first(where: { $0.code == attendance.courseCode })
-                                ?? dataManager.courses.first(where: { $0.id == attendance.courseId })
-                            AttendanceCard(course: course, attendance: attendance)
+                            AttendanceCard(
+                                course: attendance.matchingCatalogCourse(in: dataManager.courses),
+                                attendance: attendance
+                            )
                         }
                     }
                     .padding()
@@ -48,12 +49,17 @@ struct AttendanceCard: View {
     let course: Course?
     let attendance: Attendance
 
+    /// Prefer titles from the attendance page; catalog `course` is only a fallback and must not override when `courseId` was a bogus match.
     private var displayTitle: String {
-        course?.title ?? attendance.courseTitle ?? "Course"
+        let fromPage = (attendance.courseTitle ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fromPage.isEmpty { return fromPage }
+        return course?.title ?? "Course"
     }
 
     private var displayCode: String {
-        course?.code ?? attendance.courseCode ?? "—"
+        let fromPage = (attendance.courseCode ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fromPage.isEmpty { return fromPage }
+        return course?.code ?? "—"
     }
 
     var attendanceColor: Color {
@@ -83,6 +89,18 @@ struct AttendanceCard: View {
         return Double(max(0, attended - 1)) / Double(total) * 100.0
     }
 
+    private func pctAfterSkips(attended: Int, total: Int, skips: Int) -> Double {
+        guard total > 0 else { return 0 }
+        return Double(max(0, attended - skips)) / Double(total) * 100.0
+    }
+
+    /// Closing phrase after the fraction: "at 75%" when ~exactly 75%, else "above"/"below".
+    private func thresholdTagline(resultingPercent: Double) -> String {
+        if abs(resultingPercent - 75) < 0.055 { return "at 75%" }
+        if resultingPercent > 75 { return "above 75%" }
+        return "below 75%"
+    }
+
     private var isBelow75: Bool {
         attendance.percentage < 75
     }
@@ -97,21 +115,37 @@ struct AttendanceCard: View {
         let maxSkips = maxSkipsWhileStayingAt75
         if maxSkips == 0 {
             let p = pctIfMissOneMore(attended: a, total: t)
+            let tag = thresholdTagline(resultingPercent: p)
             return String(
-                format: "At the 75%% bar: one more missed class puts you at %.2f%% (%d/%d).",
+                format: "At the 75%% bar: one more missed class puts you at %.2f%% (%d/%d), %@.",
                 p,
                 max(0, a - 1),
-                t
+                t,
+                tag
             )
         }
-        let n = maxSkips
-        let noun = n == 1 ? "class" : "classes"
-        let p = pctIfMissOneMore(attended: a, total: t)
+        if maxSkips == 1 {
+            let p = pctAfterSkips(attended: a, total: t, skips: 1)
+            let tag = thresholdTagline(resultingPercent: p)
+            return String(
+                format: "You can miss up to 1 more class and stay at %.2f%% (%d/%d), %@.",
+                p,
+                max(0, a - 1),
+                t,
+                tag
+            )
+        }
+        let pN = pctAfterSkips(attended: a, total: t, skips: maxSkips)
+        let tagN = thresholdTagline(resultingPercent: pN)
+        let pOne = pctIfMissOneMore(attended: a, total: t)
         return String(
-            format: "You can miss up to %d more %@ and stay at or above 75%%. If you miss one, you’d be at %.2f%% (%d/%d).",
-            n,
-            noun,
-            p,
+            format: "You can miss up to %d more classes and stay at %.2f%% (%d/%d), %@. If you miss one, you'd be at %.2f%% (%d/%d).",
+            maxSkips,
+            pN,
+            max(0, a - maxSkips),
+            t,
+            tagN,
+            pOne,
             max(0, a - 1),
             t
         )

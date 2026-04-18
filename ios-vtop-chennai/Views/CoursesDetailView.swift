@@ -25,7 +25,13 @@ struct CoursesDetailView: View {
                     ForEach(dataManager.courses) { course in
                         CourseCard(
                             course: course,
-                            attendance: dataManager.attendance.first(where: { $0.courseId == course.id })
+                            attendance: dataManager.attendance.first { att in
+                                let ac = (att.courseCode ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                                if !ac.isEmpty, ac.caseInsensitiveCompare(course.code.trimmingCharacters(in: .whitespacesAndNewlines)) == .orderedSame {
+                                    return true
+                                }
+                                return att.courseId == course.id && att.courseId != 0
+                            }
                         )
                     }
                 }

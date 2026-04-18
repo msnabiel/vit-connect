@@ -53,6 +53,22 @@ struct Attendance: Codable, Identifiable, Hashable {
         return "\(attended)/\(total)"
     }
 
+    /// Catalog row for this attendance: match **course code** first (authoritative vs timetable), then `courseId` if non-zero.
+    func matchingCatalogCourse(in courses: [Course]) -> Course? {
+        let ac = (courseCode ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !ac.isEmpty {
+            if let c = courses.first(where: {
+                $0.code.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(ac) == .orderedSame
+            }) {
+                return c
+            }
+        }
+        if courseId != 0, let c = courses.first(where: { $0.id == courseId }) {
+            return c
+        }
+        return nil
+    }
+
     var attendanceColor: AttendanceStatus {
         if percentage >= 75 {
             return .good

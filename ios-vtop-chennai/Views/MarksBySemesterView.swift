@@ -103,20 +103,6 @@ struct MarksBySemesterView: View {
         }
         .navigationTitle("Marks by semester")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    if semesterId.isEmpty {
-                        reloadPicklist()
-                    } else {
-                        dataManager.refreshMarksReport(semesterSubId: semesterId, completion: nil)
-                    }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .accessibilityLabel("Refresh marks")
-            }
-        }
         .refreshable {
             await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
                 if semesterId.isEmpty {

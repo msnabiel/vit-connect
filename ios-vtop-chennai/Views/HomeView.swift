@@ -555,6 +555,49 @@ struct AttendanceTabView: View {
         semesterChoices.first(where: { $0.id == attendanceSemesterId })?.name ?? "Choose semester"
     }
 
+    private var overallAttendanceRollup: (attended: Int, total: Int, pct: Int) {
+        let rows = dataManager.attendance
+        let a = rows.reduce(0) { $0 + $1.attended }
+        let t = rows.reduce(0) { $0 + $1.total }
+        let pct = t > 0 ? Int(ceil(Double(a) * 100.0 / Double(t))) : 0
+        return (a, t, pct)
+    }
+
+    @ViewBuilder
+    private var overallAttendanceStrip: some View {
+        let r = overallAttendanceRollup
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Overall attendance")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(r.pct)%")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(r.pct >= 75 ? Color.green : (r.pct >= 65 ? Color.orange : Color.red))
+                Spacer()
+                Text("\(r.attended)/\(r.total) classes")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                    Capsule()
+                        .fill(r.pct >= 75 ? Color.green : (r.pct >= 65 ? Color.orange : Color.red))
+                        .frame(width: max(4, geo.size.width * CGFloat(r.pct) / 100.0))
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
+        )
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -598,7 +641,7 @@ struct AttendanceTabView: View {
                         EmptyStateView(
                             icon: "calendar.badge.exclamationmark",
                             title: "No attendance yet",
-                            message: "Sign in, then pull to refresh or use Sync in the toolbar."
+                            message: "Sign in, then use Full Sync (toolbar) to load attendance."
                         )
 
                         Spacer(minLength: 0)
@@ -639,10 +682,13 @@ struct AttendanceTabView: View {
                                 }
                             }
 
+                            overallAttendanceStrip
+
                             ForEach(dataManager.attendance) { attendance in
-                                let course = dataManager.courses.first(where: { $0.code == attendance.courseCode })
-                                    ?? dataManager.courses.first(where: { $0.id == attendance.courseId })
-                                AttendanceCard(course: course, attendance: attendance)
+                                AttendanceCard(
+                                    course: attendance.matchingCatalogCourse(in: dataManager.courses),
+                                    attendance: attendance
+                                )
                             }
                         }
                         .padding()
@@ -653,18 +699,9 @@ struct AttendanceTabView: View {
             .navigationBarTitleDisplayMode(.inline)
             .vtopNavLeadingIcon()
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
                     EventHubToolbarLink()
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
                     MainSyncToolbarButton()
-                }
-            }
-            .refreshable {
-                if attendanceSemesterId.isEmpty {
-                    dataManager.refreshAttendanceOnly()
-                } else {
-                    dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
                 }
             }
             .onAppear {
@@ -884,6 +921,14 @@ struct ProfileTabView: View {
                     }
                 }
 
+                Section(header: Text("Upcoming updates")) {
+                    Text("VIT Bhopal and VIT Vellore — support coming soon.")
+                        .font(.subheadline)
+                    Text("Moodle integration — coming soon.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
                 Section(header: Text("Financial & Administrative")) {
                     NavigationLink(destination: ReceiptsView().environmentObject(dataManager)) {
                         Label("Payment Receipts", systemImage: "doc.text.fill")
@@ -904,7 +949,7 @@ struct ProfileTabView: View {
                     }
 
                     // Replace with your real form URL when ready.
-                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSf_replaceWithRealFormId/viewform")!) {
+                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSdMdt3ACkbQny7xn4U6u6plKn72sDo57D4lFlkWD_6WrqmF1g/viewform?usp=publish-editor")!) {
                         Label("Bugs & suggestions", systemImage: "ladybug.fill")
                     }
 
@@ -913,7 +958,7 @@ struct ProfileTabView: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundColor(.primary)
+                                .foregroundColor(.accentColor)
                                 .rotationEffect(.degrees(dataManager.isLoading ? 360 : 0))
                                 .animation(
                                     dataManager.isLoading ?

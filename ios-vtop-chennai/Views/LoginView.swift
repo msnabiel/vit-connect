@@ -252,24 +252,6 @@ struct LoginView: View {
 
                     Spacer(minLength: 40)
 
-                    // Security Indicator
-                    HStack(spacing: 8) {
-                        Image(systemName: "lock.shield.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.green)
-
-                        Text("Your data is encrypted and secure")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 20)
-                    .background(
-                        Capsule()
-                            .fill(Color.green.opacity(0.1))
-                    )
-                    .padding(.bottom, 16)
-
                     // Privacy Policy Link
                     Button(action: {
                         if let url = URL(string: "https://vtopcc.vit.ac.in") {
