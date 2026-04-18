@@ -332,6 +332,7 @@ struct HomeTabView: View {
                 dataManager.syncAll()
             }
             .navigationBarTitle("VTOP Chennai", displayMode: .inline)
+            .vtopNavLeadingIcon()
         }
     }
 
@@ -530,33 +531,35 @@ struct AttendanceTabView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if !semesterChoices.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Semester")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.secondary)
-                            Picker(selection: $attendanceSemesterId) {
-                                ForEach(semesterChoices) { sem in
-                                    Text(sem.name).tag(sem.id)
-                                }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Text(attendanceSemesterDisplayName)
-                                        .font(.body.weight(.medium))
-                                        .foregroundColor(Color(uiColor: .systemBlue))
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.65)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundColor(Color(uiColor: .systemBlue))
+                        Menu {
+                            ForEach(semesterChoices) { sem in
+                                Button(sem.name) {
+                                    attendanceSemesterId = sem.id
+                                    if attendancePickerPrimed {
+                                        dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
+                                    }
                                 }
                             }
-                            .pickerStyle(.menu)
-                            .onChange(of: attendanceSemesterId) { _, newId in
-                                guard attendancePickerPrimed, !newId.isEmpty else { return }
-                                dataManager.refreshAttendance(semesterSubId: newId, continueAfterMarks: false)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text("Semester — \(attendanceSemesterDisplayName)")
+                                    .font(.body.weight(.medium))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(Color(uiColor: .systemBlue))
                             }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color(uiColor: .secondarySystemBackground))
+                            )
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     if dataManager.attendance.isEmpty {
@@ -578,6 +581,7 @@ struct AttendanceTabView: View {
             }
             .navigationTitle("Attendance")
             .navigationBarTitleDisplayMode(.inline)
+            .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {

@@ -86,6 +86,7 @@ struct DebugConsoleView: View {
             }
             .navigationTitle("Debug Console")
             .navigationBarTitleDisplayMode(.inline)
+            .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {

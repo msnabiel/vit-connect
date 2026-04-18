@@ -8,6 +8,11 @@ struct MarksBySemesterView: View {
 
     private var choices: [Semester] { dataManager.marksReportSemesterOptions }
 
+    private var marksSemesterDisplayName: String {
+        if semesterId.isEmpty { return "…" }
+        return choices.first(where: { $0.id == semesterId })?.name ?? "…"
+    }
+
     private var groupedMarks: [(code: String, rows: [MarkReportRow])] {
         let g = Dictionary(grouping: dataManager.marksReportRows, by: \MarkReportRow.courseCode)
         return g.keys.sorted().map { ($0, g[$0] ?? []) }
@@ -17,9 +22,21 @@ struct MarksBySemesterView: View {
         List {
             if !choices.isEmpty {
                 Section {
-                    Picker("Semester", selection: $semesterId) {
+                    Picker(selection: $semesterId) {
                         ForEach(choices) { s in
                             Text(s.name).tag(s.id)
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text("Semester — \(marksSemesterDisplayName)")
+                                .font(.body.weight(.medium))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                            Spacer(minLength: 8)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(Color(uiColor: .systemBlue))
                         }
                     }
                     .pickerStyle(.menu)
@@ -52,36 +69,34 @@ struct MarksBySemesterView: View {
                     Section(header: Text(sectionHeader(code: sec.code, rows: sec.rows))
                         .foregroundColor(.indigo)) {
                         ForEach(sec.rows.sorted(by: { $0.markTitle.localizedCaseInsensitiveCompare($1.markTitle) == .orderedAscending })) { row in
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 6) {
                                 Text(row.markTitle)
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.body.weight(.semibold))
                                     .foregroundColor(.primary)
 
-                                HStack(spacing: 0) {
-                                    Text("Scored ")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text("\(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
-                                        .font(.caption.weight(.medium))
+                                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                    Text("Scored \(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
+                                        .font(.subheadline.weight(.medium))
                                         .foregroundColor(Color.green.opacity(0.92))
-                                }
-
-                                HStack(spacing: 0) {
-                                    Text("Weight ")
-                                        .font(.caption)
+                                    Text("·")
+                                        .font(.subheadline.weight(.medium))
                                         .foregroundColor(.secondary)
-                                    Text("\(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
-                                        .font(.caption.weight(.medium))
+                                    Text("Weight \(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
+                                        .font(.subheadline.weight(.medium))
                                         .foregroundColor(Color.orange.opacity(0.95))
+                                    if !row.status.isEmpty {
+                                        Text("·")
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(.secondary)
+                                        Text(row.status)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(statusTextColor(row.status))
+                                    }
                                 }
-
-                                if !row.status.isEmpty {
-                                    Text(row.status)
-                                        .font(.caption2.weight(.medium))
-                                        .foregroundColor(statusTextColor(row.status))
-                                }
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
                             }
-                            .padding(.vertical, 2)
+                            .padding(.vertical, 4)
                         }
                     }
                 }
@@ -89,6 +104,7 @@ struct MarksBySemesterView: View {
         }
         .navigationTitle("Marks by semester")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {

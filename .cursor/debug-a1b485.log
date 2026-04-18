@@ -1656,3 +1656,108 @@
 {"runId":"pre-fix","data":{"isAuthenticated":true},"sessionId":"a1b485","message":"RootView body evaluated","hypothesisId":"H5","timestamp":1776497088282,"location":"RootView.body"}
 {"hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485","message":"RootView body evaluated","runId":"pre-fix","location":"RootView.body","timestamp":1776497234478}
 {"data":{"isAuthenticated":true},"runId":"pre-fix","sessionId":"a1b485","hypothesisId":"H5","location":"RootView.body","message":"RootView body evaluated","timestamp":1776497234581}
+{"hypothesisId":"H6","runId":"pre-fix","location":"AuthenticationViewModel.init","data":{"instanceId":"-4172075230633380208"},"sessionId":"a1b485","timestamp":1776497631127,"message":"AuthenticationViewModel instance initialized"}
+{"runId":"pre-fix","timestamp":1776497631906,"data":{"hasSavedUsername":true,"hasSavedPassword":true,"isSignedIn":true},"hypothesisId":"H4","sessionId":"a1b485","location":"AuthenticationViewModel.checkAuthenticationStatus","message":"Startup auth status check"}
+{"data":{"instanceId":"-4172075230633380208","oldValue":false,"newValue":true},"sessionId":"a1b485","message":"isAuthenticated didSet fired","timestamp":1776497631909,"location":"AuthenticationViewModel.isAuthenticated.didSet","hypothesisId":"H6","runId":"pre-fix"}
+{"runId":"pre-fix","sessionId":"a1b485","message":"RootView body evaluated","data":{"isAuthenticated":true},"timestamp":1776497632431,"location":"RootView.body","hypothesisId":"H5"}
+{"data":{"isAuthenticated":true,"authInstanceId":"-4172075230633380208"},"timestamp":1776497632833,"runId":"pre-fix","hypothesisId":"H5","sessionId":"a1b485","location":"RootView.HomeView.onAppear","message":"HomeView appeared"}
+{"runId":"pre-fix","hypothesisId":"H5","sessionId":"a1b485","message":"RootView body evaluated","location":"RootView.body","data":{"isAuthenticated":true},"timestamp":1776497632957}
+{"message":"signOut invoked","timestamp":1776497645162,"sessionId":"a1b485","data":{"isAuthenticatedBefore":true,"usernameEmptyBefore":false,"userDefaultsSignedInBefore":true},"location":"AuthenticationViewModel.signOut","runId":"pre-fix","hypothesisId":"H3"}
+{"message":"isAuthenticated didSet fired","sessionId":"a1b485","location":"AuthenticationViewModel.isAuthenticated.didSet","runId":"pre-fix","hypothesisId":"H6","timestamp":1776497645250,"data":{"oldValue":true,"instanceId":"-4172075230633380208","newValue":false}}
+{"message":"RootView body evaluated","sessionId":"a1b485","location":"RootView.body","runId":"pre-fix","hypothesisId":"H5","timestamp":1776497645254,"data":{"isAuthenticated":false}}
+{"runId":"pre-fix","data":{"newValue":false,"authInstanceId":"-4172075230633380208"},"location":"RootView.onChange.isAuthenticated","sessionId":"a1b485","timestamp":1776497645341,"message":"RootView observed auth state change","hypothesisId":"H5"}
+{"hypothesisId":"H6","runId":"pre-fix","location":"RootView.LoginView.onAppear","timestamp":1776497645348,"sessionId":"a1b485","message":"LoginView appeared in RootView","data":{"isAuthenticated":false,"authInstanceId":"-4172075230633380208"}}
+{"location":"RootView.body","sessionId":"a1b485","data":{"isAuthenticated":false},"hypothesisId":"H5","timestamp":1776497647948,"runId":"pre-fix","message":"RootView body evaluated"}
+{"message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","timestamp":1776497648509,"data":{"isAuthenticated":false},"sessionId":"a1b485","hypothesisId":"H5"}
+{"hypothesisId":"H5","runId":"pre-fix","timestamp":1776497649238,"message":"RootView body evaluated","data":{"isAuthenticated":false},"sessionId":"a1b485","location":"RootView.body"}
+{"hypothesisId":"H5","timestamp":1776497649654,"location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"location":"RootView.body","hypothesisId":"H5","message":"RootView body evaluated","timestamp":1776497649804,"sessionId":"a1b485","runId":"pre-fix","data":{"isAuthenticated":false}}
+{"location":"RootView.body","hypothesisId":"H5","message":"RootView body evaluated","timestamp":1776497649965,"sessionId":"a1b485","runId":"pre-fix","data":{"isAuthenticated":false}}
+{"runId":"pre-fix","timestamp":1776497650144,"data":{"isAuthenticated":false},"sessionId":"a1b485","location":"RootView.body","message":"RootView body evaluated","hypothesisId":"H5"}
+{"hypothesisId":"H5","timestamp":1776497650392,"location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"hypothesisId":"H5","timestamp":1776497651340,"message":"RootView body evaluated","sessionId":"a1b485","runId":"pre-fix","location":"RootView.body","data":{"isAuthenticated":false}}
+{"location":"RootView.body","hypothesisId":"H5","message":"RootView body evaluated","timestamp":1776497651462,"sessionId":"a1b485","runId":"pre-fix","data":{"isAuthenticated":false}}
+{"location":"RootView.body","hypothesisId":"H5","message":"RootView body evaluated","timestamp":1776497651566,"sessionId":"a1b485","runId":"pre-fix","data":{"isAuthenticated":false}}
+{"location":"RootView.body","hypothesisId":"H5","runId":"pre-fix","sessionId":"a1b485","data":{"isAuthenticated":false},"timestamp":1776497651739,"message":"RootView body evaluated"}
+{"hypothesisId":"H5","timestamp":1776497651852,"location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"message":"RootView body evaluated","data":{"isAuthenticated":false},"timestamp":1776497651963,"runId":"pre-fix","sessionId":"a1b485","hypothesisId":"H5","location":"RootView.body"}
+{"hypothesisId":"H5","timestamp":1776497653894,"location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"hypothesisId":"H5","location":"RootView.body","timestamp":1776497654327,"data":{"isAuthenticated":false},"message":"RootView body evaluated","runId":"pre-fix","sessionId":"a1b485"}
+{"hypothesisId":"H5","runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","timestamp":1776497655014,"data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"location":"RootView.body","timestamp":1776497655338,"sessionId":"a1b485","hypothesisId":"H5"}
+{"message":"RootView body evaluated","hypothesisId":"H5","timestamp":1776497655646,"runId":"pre-fix","location":"RootView.body","data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"location":"RootView.body","hypothesisId":"H5","runId":"pre-fix","sessionId":"a1b485","data":{"isAuthenticated":false},"timestamp":1776497655768,"message":"RootView body evaluated"}
+{"sessionId":"a1b485","data":{"isAuthenticated":false},"hypothesisId":"H5","runId":"pre-fix","timestamp":1776497655921,"location":"RootView.body","message":"RootView body evaluated"}
+{"data":{"isAuthenticated":false},"timestamp":1776497656105,"sessionId":"a1b485","hypothesisId":"H5","location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated"}
+{"timestamp":1776497656286,"sessionId":"a1b485","location":"RootView.body","data":{"isAuthenticated":false},"message":"RootView body evaluated","runId":"pre-fix","hypothesisId":"H5"}
+{"sessionId":"a1b485","hypothesisId":"H5","message":"RootView body evaluated","runId":"pre-fix","data":{"isAuthenticated":false},"location":"RootView.body","timestamp":1776497656690}
+{"hypothesisId":"H5","runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","timestamp":1776497656959,"data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"runId":"pre-fix","timestamp":1776497657208,"data":{"isAuthenticated":false},"sessionId":"a1b485","location":"RootView.body","message":"RootView body evaluated","hypothesisId":"H5"}
+{"sessionId":"a1b485","data":{"isAuthenticated":false},"location":"RootView.body","hypothesisId":"H5","message":"RootView body evaluated","timestamp":1776497660012,"runId":"pre-fix"}
+{"sessionId":"a1b485","location":"RootView.body","hypothesisId":"H5","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"timestamp":1776497661340}
+{"hypothesisId":"H5","sessionId":"a1b485","data":{"isAuthenticated":false},"timestamp":1776497661373,"message":"RootView body evaluated","runId":"pre-fix","location":"RootView.body"}
+{"hypothesisId":"H5","timestamp":1776497690816,"message":"RootView body evaluated","runId":"pre-fix","location":"RootView.body","data":{"isAuthenticated":false},"sessionId":"a1b485"}
+{"sessionId":"a1b485","location":"RootView.body","hypothesisId":"H5","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":false},"timestamp":1776497691399}
+{"runId":"pre-fix","hypothesisId":"H1","timestamp":1776497691798,"data":{"isAuthenticatedBefore":false,"loginSuccessBefore":false,"isLoadingBefore":true},"sessionId":"a1b485","location":"AuthenticationViewModel.handleSuccessfulAuthentication","message":"Entered successful auth handler"}
+{"runId":"pre-fix","hypothesisId":"H6","timestamp":1776497691799,"data":{"oldValue":false,"instanceId":"-4172075230633380208","newValue":true},"sessionId":"a1b485","location":"AuthenticationViewModel.isAuthenticated.didSet","message":"isAuthenticated didSet fired"}
+{"data":{"isLoadingAfter":false,"isAuthenticatedAfter":true,"loginSuccessAfter":false,"userDefaultsSignedIn":true},"location":"AuthenticationViewModel.handleSuccessfulAuthentication","message":"Auth state updated to authenticated","sessionId":"a1b485","hypothesisId":"H1","timestamp":1776497691800,"runId":"pre-fix"}
+{"sessionId":"a1b485","location":"RootView.body","hypothesisId":"H5","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":true},"timestamp":1776497691801}
+{"hypothesisId":"H5","message":"RootView observed auth state change","runId":"pre-fix","timestamp":1776497691815,"location":"RootView.onChange.isAuthenticated","sessionId":"a1b485","data":{"newValue":true,"authInstanceId":"-4172075230633380208"}}
+{"sessionId":"a1b485","data":{"isAuthenticated":true,"authInstanceId":"-4172075230633380208"},"runId":"pre-fix","message":"HomeView appeared","timestamp":1776497691817,"location":"RootView.HomeView.onAppear","hypothesisId":"H5"}
+{"data":{"isAuthenticated":true},"timestamp":1776497692423,"runId":"pre-fix","location":"RootView.body","hypothesisId":"H5","sessionId":"a1b485","message":"RootView body evaluated"}
+{"timestamp":1776497694829,"message":"RootView body evaluated","hypothesisId":"H5","location":"RootView.body","runId":"pre-fix","sessionId":"a1b485","data":{"isAuthenticated":true}}
+{"data":{"isAuthenticated":true},"timestamp":1776497695830,"runId":"pre-fix","message":"RootView body evaluated","sessionId":"a1b485","hypothesisId":"H5","location":"RootView.body"}
+{"hypothesisId":"H5","data":{"isAuthenticated":true},"location":"RootView.body","message":"RootView body evaluated","timestamp":1776497695835,"sessionId":"a1b485","runId":"pre-fix"}
+{"message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","data":{"isAuthenticated":true},"hypothesisId":"H5","sessionId":"a1b485","timestamp":1776497695866}
+{"hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485","message":"RootView body evaluated","timestamp":1776497696026,"location":"RootView.body","runId":"pre-fix"}
+{"message":"RootView body evaluated","sessionId":"a1b485","hypothesisId":"H5","runId":"pre-fix","data":{"isAuthenticated":true},"timestamp":1776497696031,"location":"RootView.body"}
+{"message":"RootView body evaluated","runId":"pre-fix","hypothesisId":"H5","sessionId":"a1b485","location":"RootView.body","data":{"isAuthenticated":true},"timestamp":1776497696120}
+{"message":"RootView body evaluated","sessionId":"a1b485","hypothesisId":"H5","runId":"pre-fix","data":{"isAuthenticated":true},"timestamp":1776497696336,"location":"RootView.body"}
+{"timestamp":1776497696452,"message":"RootView body evaluated","hypothesisId":"H5","location":"RootView.body","runId":"pre-fix","sessionId":"a1b485","data":{"isAuthenticated":true}}
+{"message":"RootView body evaluated","sessionId":"a1b485","hypothesisId":"H5","runId":"pre-fix","data":{"isAuthenticated":true},"timestamp":1776497697291,"location":"RootView.body"}
+{"sessionId":"a1b485","data":{"isAuthenticated":true},"hypothesisId":"H5","message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","timestamp":1776497701940}
+{"sessionId":"a1b485","message":"RootView body evaluated","hypothesisId":"H5","location":"RootView.body","runId":"pre-fix","data":{"isAuthenticated":true},"timestamp":1776497702050}
+{"runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","data":{"isAuthenticated":true},"hypothesisId":"H5","timestamp":1776497704684,"sessionId":"a1b485"}
+{"location":"RootView.body","message":"RootView body evaluated","hypothesisId":"H5","timestamp":1776497704749,"runId":"pre-fix","sessionId":"a1b485","data":{"isAuthenticated":true}}
+{"timestamp":1776497709761,"sessionId":"a1b485","message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","data":{"isAuthenticated":true},"hypothesisId":"H5"}
+{"timestamp":1776497709807,"sessionId":"a1b485","message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","data":{"isAuthenticated":true},"hypothesisId":"H5"}
+{"message":"RootView body evaluated","timestamp":1776497715430,"runId":"pre-fix","sessionId":"a1b485","hypothesisId":"H5","location":"RootView.body","data":{"isAuthenticated":true}}
+{"message":"RootView body evaluated","data":{"isAuthenticated":true},"sessionId":"a1b485","runId":"pre-fix","timestamp":1776497716015,"location":"RootView.body","hypothesisId":"H5"}
+{"runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","timestamp":1776497828913,"hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485"}
+{"data":{"isAuthenticated":true},"runId":"pre-fix","hypothesisId":"H5","location":"RootView.body","sessionId":"a1b485","timestamp":1776497828966,"message":"RootView body evaluated"}
+{"runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","timestamp":1776497829057,"hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485"}
+{"message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","data":{"isAuthenticated":true},"hypothesisId":"H5","sessionId":"a1b485","timestamp":1776497829446}
+{"runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","timestamp":1776497893136,"hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485"}
+{"location":"RootView.body","sessionId":"a1b485","runId":"pre-fix","hypothesisId":"H5","timestamp":1776497893187,"message":"RootView body evaluated","data":{"isAuthenticated":true}}
+{"location":"RootView.body","data":{"isAuthenticated":true},"message":"RootView body evaluated","runId":"pre-fix","timestamp":1776497893301,"hypothesisId":"H5","sessionId":"a1b485"}
+{"sessionId":"a1b485","data":{"isAuthenticated":true},"message":"RootView body evaluated","hypothesisId":"H5","location":"RootView.body","timestamp":1776497893357,"runId":"pre-fix"}
+{"location":"RootView.body","sessionId":"a1b485","timestamp":1776497972675,"runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":true},"hypothesisId":"H5"}
+{"runId":"pre-fix","message":"RootView body evaluated","hypothesisId":"H5","location":"RootView.body","data":{"isAuthenticated":true},"timestamp":1776497972694,"sessionId":"a1b485"}
+{"sessionId":"a1b485","hypothesisId":"H5","timestamp":1776497972792,"runId":"pre-fix","location":"RootView.body","data":{"isAuthenticated":true},"message":"RootView body evaluated"}
+{"location":"RootView.body","runId":"pre-fix","hypothesisId":"H5","data":{"isAuthenticated":true},"timestamp":1776497973148,"sessionId":"a1b485","message":"RootView body evaluated"}
+{"location":"RootView.body","data":{"isAuthenticated":true},"hypothesisId":"H5","timestamp":1776497975369,"runId":"pre-fix","message":"RootView body evaluated","sessionId":"a1b485"}
+{"sessionId":"a1b485","hypothesisId":"H5","message":"RootView body evaluated","runId":"pre-fix","data":{"isAuthenticated":true},"location":"RootView.body","timestamp":1776497975420}
+{"runId":"pre-fix","sessionId":"a1b485","data":{"isAuthenticated":true},"location":"RootView.body","timestamp":1776497975477,"hypothesisId":"H5","message":"RootView body evaluated"}
+{"message":"RootView body evaluated","runId":"pre-fix","hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485","location":"RootView.body","timestamp":1776497975619}
+{"sessionId":"a1b485","message":"RootView body evaluated","runId":"pre-fix","hypothesisId":"H5","location":"RootView.body","timestamp":1776497983110,"data":{"isAuthenticated":true}}
+{"timestamp":1776497983165,"runId":"pre-fix","hypothesisId":"H5","data":{"isAuthenticated":true},"message":"RootView body evaluated","sessionId":"a1b485","location":"RootView.body"}
+{"timestamp":1776497992106,"runId":"pre-fix","data":{"isAuthenticated":true},"message":"RootView body evaluated","sessionId":"a1b485","location":"RootView.body","hypothesisId":"H5"}
+{"message":"RootView body evaluated","runId":"pre-fix","hypothesisId":"H5","data":{"isAuthenticated":true},"sessionId":"a1b485","location":"RootView.body","timestamp":1776497992895}
+{"sessionId":"a1b485","data":{"instanceId":"6146952069457399337"},"message":"AuthenticationViewModel instance initialized","runId":"pre-fix","hypothesisId":"H6","location":"AuthenticationViewModel.init","timestamp":1776498214448}
+{"sessionId":"a1b485","data":{"isSignedIn":false,"hasSavedUsername":false,"hasSavedPassword":false},"hypothesisId":"H4","timestamp":1776498214634,"runId":"pre-fix","location":"AuthenticationViewModel.checkAuthenticationStatus","message":"Startup auth status check"}
+{"hypothesisId":"H6","location":"AuthenticationViewModel.init","runId":"pre-fix","timestamp":1776498225917,"message":"AuthenticationViewModel instance initialized","sessionId":"a1b485","data":{"instanceId":"-8352236411326089301"}}
+{"runId":"pre-fix","hypothesisId":"H4","data":{"hasSavedUsername":false,"hasSavedPassword":false,"isSignedIn":false},"location":"AuthenticationViewModel.checkAuthenticationStatus","sessionId":"a1b485","timestamp":1776498226037,"message":"Startup auth status check"}
+{"timestamp":1776498298755,"runId":"pre-fix","message":"AuthenticationViewModel instance initialized","location":"AuthenticationViewModel.init","data":{"instanceId":"-3956528724885801996"},"hypothesisId":"H6","sessionId":"a1b485"}
+{"sessionId":"a1b485","timestamp":1776498299186,"location":"AuthenticationViewModel.checkAuthenticationStatus","data":{"hasSavedPassword":true,"isSignedIn":true,"hasSavedUsername":true},"hypothesisId":"H4","runId":"pre-fix","message":"Startup auth status check"}
+{"sessionId":"a1b485","timestamp":1776498299187,"location":"AuthenticationViewModel.isAuthenticated.didSet","data":{"newValue":true,"instanceId":"-3956528724885801996","oldValue":false},"hypothesisId":"H6","runId":"pre-fix","message":"isAuthenticated didSet fired"}
+{"data":{"isAuthenticated":true},"timestamp":1776498299244,"message":"RootView body evaluated","location":"RootView.body","runId":"pre-fix","hypothesisId":"H5","sessionId":"a1b485"}
+{"location":"RootView.HomeView.onAppear","sessionId":"a1b485","runId":"pre-fix","data":{"isAuthenticated":true,"authInstanceId":"-3956528724885801996"},"timestamp":1776498299452,"hypothesisId":"H5","message":"HomeView appeared"}
+{"runId":"pre-fix","timestamp":1776498299635,"location":"RootView.body","data":{"isAuthenticated":true},"hypothesisId":"H5","message":"RootView body evaluated","sessionId":"a1b485"}
+{"sessionId":"a1b485","data":{"isAuthenticated":true},"location":"RootView.body","hypothesisId":"H5","runId":"pre-fix","timestamp":1776498301718,"message":"RootView body evaluated"}
+{"location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated","hypothesisId":"H5","timestamp":1776498310567,"sessionId":"a1b485","data":{"isAuthenticated":true}}
+{"runId":"pre-fix","location":"RootView.body","sessionId":"a1b485","timestamp":1776498314088,"hypothesisId":"H5","data":{"isAuthenticated":true},"message":"RootView body evaluated"}
+{"sessionId":"a1b485","runId":"pre-fix","location":"RootView.body","message":"RootView body evaluated","hypothesisId":"H5","data":{"isAuthenticated":true},"timestamp":1776498319163}
+{"message":"RootView body evaluated","data":{"isAuthenticated":true},"runId":"pre-fix","location":"RootView.body","hypothesisId":"H5","sessionId":"a1b485","timestamp":1776498364439}
+{"location":"RootView.body","message":"RootView body evaluated","hypothesisId":"H5","data":{"isAuthenticated":true},"runId":"pre-fix","timestamp":1776498375482,"sessionId":"a1b485"}
+{"sessionId":"a1b485","hypothesisId":"H5","location":"RootView.body","runId":"pre-fix","message":"RootView body evaluated","data":{"isAuthenticated":true},"timestamp":1776498382910}
+{"message":"RootView body evaluated","data":{"isAuthenticated":true},"runId":"pre-fix","hypothesisId":"H5","sessionId":"a1b485","location":"RootView.body","timestamp":1776498384810}

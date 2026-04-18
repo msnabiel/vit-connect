@@ -11,6 +11,7 @@ struct TermsAndConditionsView: View {
         }
         .navigationTitle("Terms and conditions")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
     }
 
     private var legalBody: String {

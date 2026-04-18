@@ -11,6 +11,7 @@ struct PrivacyPolicyView: View {
         }
         .navigationTitle("Privacy policy")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
     }
 
     private var legalBody: String {

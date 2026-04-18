@@ -78,6 +78,7 @@ struct SpotlightView: View {
             }
             .navigationTitle("Announcements")
             .navigationBarTitleDisplayMode(.large)
+            .vtopNavLeadingIcon()
         }
     }
 }

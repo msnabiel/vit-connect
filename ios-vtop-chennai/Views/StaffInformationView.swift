@@ -63,6 +63,7 @@ struct StaffInformationView: View {
         }
         .navigationTitle("Staff Information")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
     }
 
     @ViewBuilder

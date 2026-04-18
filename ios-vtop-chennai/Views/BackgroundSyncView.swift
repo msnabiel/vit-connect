@@ -122,6 +122,7 @@ struct BackgroundSyncView: View {
             }
             .navigationTitle("Syncing Data")
             .navigationBarTitleDisplayMode(.inline)
+            .vtopNavLeadingIcon()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Cancel") {

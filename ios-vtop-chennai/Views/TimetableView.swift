@@ -66,6 +66,9 @@ struct TimetableView: View {
                 }
             }
         }
+        .navigationTitle("Timetable")
+        .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
     }
 
     private func isToday(dayIndex: Int) -> Bool {

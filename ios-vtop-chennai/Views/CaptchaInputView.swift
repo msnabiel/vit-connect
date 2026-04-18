@@ -38,27 +38,20 @@ struct CaptchaInputView: View {
                     captchaField
 
                     HStack(spacing: 12) {
-                        Button(action: onCancel) {
+                        Button(role: .cancel, action: onCancel) {
                             Text("Cancel")
-                                .font(.system(size: 16, weight: .semibold))
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
                         }
                         .buttonStyle(.bordered)
+                        .controlSize(.large)
 
                         Button(action: onSubmit) {
                             Text("Continue")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(captchaInput.isEmpty ? Color.accentColor.opacity(0.5) : Color.accentColor)
-                                )
                         }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
                         .disabled(captchaInput.isEmpty)
-                        .buttonStyle(.plain)
                     }
                     .padding(.bottom, 4)
                 }

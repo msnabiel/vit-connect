@@ -98,6 +98,7 @@ struct ReceiptsView: View {
             }
             .navigationTitle("Payment Receipts")
             .navigationBarTitleDisplayMode(.inline)
+            .vtopNavLeadingIcon()
         }
     }
 

@@ -41,92 +41,123 @@ struct GradeHistoryView: View {
     }
 
     var body: some View {
-        List {
-            if let profile = dataManager.studentProfile {
-                Section(header: Text("CGPA summary")) {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("CGPA")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%.2f", profile.cgpa))
-                                .font(.title2.bold())
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing) {
-                            Text("Credits earned")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(String(format: "%.0f", profile.totalCredits))
-                                .font(.title3.bold())
-                        }
-                    }
-                    if let cr = profile.creditsRegistered, cr > 0 {
-                        LabeledContent("Credits registered", value: String(format: "%.0f", cr))
-                    }
-                }
-            }
-
-            if !dataManager.gradeHistoryRows.isEmpty {
-                Section(header: Text("Record overview")) {
-                    LabeledContent("Courses on record", value: "\(totalCourses)")
-                    if !gradeLetterCounts.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Grades (count per letter)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            compactGradeCountTable
-                        }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
-                    }
-                }
-            }
-
-            if grouped.isEmpty {
-                Section {
-                    Text(emptyPlaceholder)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                ForEach(Array(grouped.enumerated()), id: \.offset) { _, group in
-                    Section(header: Text(group.section)) {
-                        ForEach(group.rows) { row in
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(alignment: .firstTextBaseline) {
-                                    Text(row.courseCode)
-                                        .font(.headline)
-                                    Spacer()
-                                    Text(row.grade)
-                                        .font(.headline)
-                                        .foregroundColor(.accentColor)
-                                }
-                                if let title = row.courseTitle, !title.isEmpty {
-                                    Text(title)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                if let c = row.credits {
-                                    Text(String(format: "Credits: %.1f", c))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                if let em = row.examMonth, !em.isEmpty {
-                                    Text(em)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
+        VStack(spacing: 0) {
+            searchFieldChrome
+            List {
+                if let profile = dataManager.studentProfile {
+                    Section(header: Text("CGPA summary")) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("CGPA")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(String(format: "%.2f", profile.cgpa))
+                                    .font(.title2.bold())
                             }
-                            .padding(.vertical, 4)
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("Credits earned")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(String(format: "%.0f", profile.totalCredits))
+                                    .font(.title3.bold())
+                            }
+                        }
+                        if let cr = profile.creditsRegistered, cr > 0 {
+                            LabeledContent("Credits registered", value: String(format: "%.0f", cr))
+                        }
+                    }
+                }
+
+                if !dataManager.gradeHistoryRows.isEmpty {
+                    Section(header: Text("Record overview")) {
+                        LabeledContent("Courses on record", value: "\(totalCourses)")
+                        if !gradeLetterCounts.isEmpty {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Grades (count per letter)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                compactGradeCountTable
+                            }
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
+                        }
+                    }
+                }
+
+                if grouped.isEmpty {
+                    Section {
+                        Text(emptyPlaceholder)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    ForEach(Array(grouped.enumerated()), id: \.offset) { _, group in
+                        Section(header: Text(group.section)) {
+                            ForEach(group.rows) { row in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(alignment: .firstTextBaseline) {
+                                        Text(row.courseCode)
+                                            .font(.headline)
+                                        Spacer()
+                                        Text(row.grade)
+                                            .font(.headline)
+                                            .foregroundColor(.accentColor)
+                                    }
+                                    if let title = row.courseTitle, !title.isEmpty {
+                                        Text(title)
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if let c = row.credits {
+                                        Text(String(format: "Credits: %.1f", c))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if let em = row.examMonth, !em.isEmpty {
+                                        Text(em)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
                         }
                     }
                 }
             }
+            .listSectionSpacing(.compact)
         }
-        .listSectionSpacing(.compact)
-        .searchable(text: $searchText, prompt: "Course code or name")
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Grade history")
         .navigationBarTitleDisplayMode(.inline)
+        .vtopNavLeadingIcon()
+    }
+
+    private var searchFieldChrome: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Course code or name", text: $searchText)
+                .textFieldStyle(.plain)
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 
     private var emptyPlaceholder: String {

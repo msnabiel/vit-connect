@@ -29,6 +29,7 @@ struct AttendanceDetailView: View {
             }
             .navigationTitle("Attendance")
             .navigationBarTitleDisplayMode(.inline)
+            .vtopNavLeadingIcon()
         }
     }
 }
@@ -36,7 +37,6 @@ struct AttendanceDetailView: View {
 struct AttendanceCard: View {
     let course: Course?
     let attendance: Attendance
-    @State private var showCalculator = false
 
     private var displayTitle: String {
         course?.title ?? attendance.courseTitle ?? "Course"
@@ -52,6 +52,32 @@ struct AttendanceCard: View {
         case .warning: return .orange
         case .danger: return .red
         }
+    }
+
+    /// Extra absences (each adds one class to total, attended unchanged) while keeping attendance ≥ 75%.
+    private var maxMissesWhileStayingAt75: Int {
+        let a = attendance.attended
+        let t = attendance.total
+        guard t > 0 else { return 0 }
+        let raw = Double(a) / 0.75 - Double(t)
+        return max(0, Int(floor(raw + 1e-9)))
+    }
+
+    private var isBelow75: Bool {
+        attendance.percentage < 75
+    }
+
+    private var cushionLine: String {
+        if attendance.total <= 0 { return "" }
+        if isBelow75 {
+            return "Below 75%. Attend more to recover; skipping classes will make it harder to reach the bar."
+        }
+        if maxMissesWhileStayingAt75 == 0 {
+            return "At the 75% edge: even one more absence may drop you below 75% (if you don’t attend those classes)."
+        }
+        let n = maxMissesWhileStayingAt75
+        let noun = n == 1 ? "class" : "classes"
+        return "You can miss up to \(n) more \(noun) and still stay at or above 75% (assuming you don’t attend any of them)."
     }
 
     var body: some View {
@@ -125,30 +151,25 @@ struct AttendanceCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // Calculator Button
-            Button(action: {
-                showCalculator.toggle()
-            }) {
-                HStack {
-                    Image(systemName: "plus.forwardslash.minus")
-                        .font(.system(size: 14))
+            if !cushionLine.isEmpty {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "calendar.badge.minus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(attendanceColor)
+                        .frame(width: 20, alignment: .center)
 
-                    Text(showCalculator ? "Hide Calculator" : "Calculate +1 / +2 Impact")
-                        .font(.system(size: 14, weight: .medium))
-
-                    Spacer()
-
-                    Image(systemName: showCalculator ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                    Text(cushionLine)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .foregroundColor(.accentColor)
                 .padding(.vertical, 8)
-            }
-
-            // Calculator Section
-            if showCalculator {
-                AttendanceCalculator(attendance: attendance)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color(uiColor: .tertiarySystemBackground))
+                )
             }
         }
         .padding()
@@ -156,7 +177,6 @@ struct AttendanceCard: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
-        .animation(.easeInOut(duration: 0.3), value: showCalculator)
     }
 
     private var attendanceMetaLine: String? {
@@ -168,116 +188,6 @@ struct AttendanceCard: View {
         if let d = attendance.attendanceDateText, !d.isEmpty { parts.append("As of: \(d)") }
         if let s = attendance.statusText, !s.isEmpty, s != "-" { parts.append("Status: \(s)") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-}
-
-struct AttendanceCalculator: View {
-    let attendance: Attendance
-
-    // Calculate what happens if we attend/miss classes
-    func calculateNewPercentage(additionalAttended: Int, additionalTotal: Int) -> Int {
-        let newAttended = attendance.attended + additionalAttended
-        let newTotal = attendance.total + additionalTotal
-        guard newTotal > 0 else { return 0 }
-        return Int(ceil(Double(newAttended) * 100.0 / Double(newTotal)))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("What-If Calculator")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.secondary)
-
-            // +1 Scenarios
-            VStack(spacing: 8) {
-                CalculatorRow(
-                    scenario: "If you attend next class (+1)",
-                    oldPercentage: attendance.percentage,
-                    newPercentage: calculateNewPercentage(additionalAttended: 1, additionalTotal: 1),
-                    icon: "checkmark.circle.fill",
-                    color: .green
-                )
-
-                CalculatorRow(
-                    scenario: "If you miss next class (+1)",
-                    oldPercentage: attendance.percentage,
-                    newPercentage: calculateNewPercentage(additionalAttended: 0, additionalTotal: 1),
-                    icon: "xmark.circle.fill",
-                    color: .red
-                )
-            }
-
-            Divider()
-
-            // +2 Scenarios
-            VStack(spacing: 8) {
-                CalculatorRow(
-                    scenario: "If you attend next 2 classes (+2)",
-                    oldPercentage: attendance.percentage,
-                    newPercentage: calculateNewPercentage(additionalAttended: 2, additionalTotal: 2),
-                    icon: "checkmark.circle.fill",
-                    color: .green
-                )
-
-                CalculatorRow(
-                    scenario: "If you miss next 2 classes (+2)",
-                    oldPercentage: attendance.percentage,
-                    newPercentage: calculateNewPercentage(additionalAttended: 0, additionalTotal: 2),
-                    icon: "xmark.circle.fill",
-                    color: .red
-                )
-            }
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(uiColor: .tertiarySystemBackground))
-        )
-    }
-}
-
-struct CalculatorRow: View {
-    let scenario: String
-    let oldPercentage: Int
-    let newPercentage: Int
-    let icon: String
-    let color: Color
-
-    var percentageChange: Int {
-        return newPercentage - oldPercentage
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(color)
-                .frame(width: 20)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(scenario)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-
-                HStack(spacing: 4) {
-                    Text("\(newPercentage)%")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(color)
-
-                    Text("(\(percentageChange >= 0 ? "+" : "")\(percentageChange)%)")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            Spacer()
-
-            // Trend Arrow
-            Image(systemName: percentageChange > 0 ? "arrow.up.right" : (percentageChange < 0 ? "arrow.down.right" : "arrow.right"))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(percentageChange > 0 ? .green : (percentageChange < 0 ? .red : .gray))
-        }
-        .padding(.vertical, 6)
     }
 }
 

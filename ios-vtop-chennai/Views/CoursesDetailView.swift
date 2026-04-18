@@ -34,6 +34,7 @@ struct CoursesDetailView: View {
         }
         .navigationTitle("Courses")
         .navigationBarTitleDisplayMode(.large)
+        .vtopNavLeadingIcon()
         .refreshable {
             dataManager.syncAll()
         }

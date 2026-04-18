@@ -99,6 +99,7 @@ struct PerformanceView: View {
             }
             .navigationTitle("Performance")
             .navigationBarTitleDisplayMode(.large)
+            .vtopNavLeadingIcon()
             .onAppear {
                 if selectedCourse == nil, let first = dataManager.courses.first {
                     selectedCourse = first
