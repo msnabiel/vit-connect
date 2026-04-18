@@ -5,6 +5,8 @@ struct HomeView: View {
     @EnvironmentObject var dataManager: DataManager
     @State private var selectedTab = 0
     @State private var showSemesterSelection = false
+    /// Bumped when the Profile tab is selected so nested `NavigationView` pops back to the profile root.
+    @State private var profileTabRootId = 0
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -31,10 +33,18 @@ struct HomeView: View {
 
             // Profile Tab
             ProfileTabView()
+                .id(profileTabRootId)
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
                 .tag(3)
+        }
+        .overlay(alignment: .topLeading) {
+            TabBarProfileRootBridge(profileTabIndex: 3) {
+                profileTabRootId += 1
+            }
+            .frame(width: 0, height: 0)
+            .allowsHitTesting(false)
         }
         .accentColor(.blue)
         .sheet(isPresented: $showSemesterSelection) {
@@ -138,7 +148,9 @@ struct HomeTabView: View {
                                 )
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 8)
 
                     // Academic Performance Cards
                     HStack(spacing: 12) {
@@ -500,23 +512,43 @@ struct TimetableSlotView: View {
 struct AttendanceTabView: View {
     @EnvironmentObject var dataManager: DataManager
     @State private var isRefreshing = false
+    @State private var attendanceSemesterId: String = ""
+    @State private var didLoadPicklist = false
+    @State private var attendancePickerPrimed = false
+
+    private var semesterChoices: [Semester] {
+        let fromPage = dataManager.attendanceSemesterOptions
+        return fromPage.isEmpty ? dataManager.semesters : fromPage
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if let sem = dataManager.selectedSemester?.name {
-                        Text(sem)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    if !semesterChoices.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Semester")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.secondary)
+                            Picker("Semester", selection: $attendanceSemesterId) {
+                                ForEach(semesterChoices) { sem in
+                                    Text(sem.name).tag(sem.id)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .onChange(of: attendanceSemesterId) { _, newId in
+                                guard attendancePickerPrimed, !newId.isEmpty else { return }
+                                dataManager.refreshAttendance(semesterSubId: newId, continueAfterMarks: false)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     if dataManager.attendance.isEmpty {
                         EmptyStateView(
                             icon: "calendar.badge.exclamationmark",
                             title: "No attendance yet",
-                            message: "Choose a semester on Home if needed, sign in, then pull to refresh or tap Refresh to load from VTOP."
+                            message: "Pick a semester above, sign in to VTOP, then pull to refresh or use the toolbar refresh."
                         )
                         .frame(maxWidth: .infinity)
                     } else {
@@ -530,12 +562,16 @@ struct AttendanceTabView: View {
                 .padding()
             }
             .navigationTitle("Attendance")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         isRefreshing = true
-                        dataManager.refreshAttendanceOnly()
+                        if attendanceSemesterId.isEmpty {
+                            dataManager.refreshAttendanceOnly()
+                        } else {
+                            dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
+                        }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                             isRefreshing = false
                         }
@@ -548,7 +584,30 @@ struct AttendanceTabView: View {
                 }
             }
             .refreshable {
-                dataManager.refreshAttendanceOnly()
+                if attendanceSemesterId.isEmpty {
+                    dataManager.refreshAttendanceOnly()
+                } else {
+                    dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
+                }
+            }
+            .onAppear {
+                guard !didLoadPicklist else { return }
+                didLoadPicklist = true
+                dataManager.loadAttendanceSemesterPicklist {
+                    let choices = dataManager.attendanceSemesterOptions.isEmpty ? dataManager.semesters : dataManager.attendanceSemesterOptions
+                    guard !choices.isEmpty else { return }
+                    if attendanceSemesterId.isEmpty {
+                        if let sid = dataManager.selectedSemester?.id, choices.contains(where: { $0.id == sid }) {
+                            attendanceSemesterId = sid
+                        } else {
+                            attendanceSemesterId = choices[0].id
+                        }
+                    }
+                    attendancePickerPrimed = true
+                    if !attendanceSemesterId.isEmpty {
+                        dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false)
+                    }
+                }
             }
         }
     }
@@ -736,13 +795,11 @@ struct ProfileTabView: View {
                     }
                 }
 
-                Section(header: Text("Profile details")) {
+                Section(header: Text("Profile & sync")) {
                     NavigationLink(destination: FullStudentProfileView().environmentObject(dataManager)) {
                         Label("Full profile from VTOP", systemImage: "person.text.rectangle")
                     }
-                }
 
-                Section(header: Text("Data Synchronization")) {
                     Button(action: {
                         authViewModel.triggerSync()
                     }) {
@@ -778,7 +835,7 @@ struct ProfileTabView: View {
                     }
                 }
             }
-            .navigationBarTitle("Profile", displayMode: .large)
+            .navigationBarTitle("Profile", displayMode: .inline)
         }
     }
 }

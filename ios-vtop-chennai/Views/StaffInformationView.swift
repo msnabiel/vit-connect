@@ -82,7 +82,7 @@ struct StaffInformationView: View {
                 }
             }
             .navigationTitle("Staff Information")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 

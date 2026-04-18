@@ -97,7 +97,7 @@ struct ReceiptsView: View {
                 dataManager.syncAll()
             }
             .navigationTitle("Payment Receipts")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 

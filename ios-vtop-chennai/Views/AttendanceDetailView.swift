@@ -28,7 +28,7 @@ struct AttendanceDetailView: View {
                 dataManager.syncAll()
             }
             .navigationTitle("Attendance")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

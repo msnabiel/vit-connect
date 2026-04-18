@@ -17,6 +17,9 @@ class DataManager: ObservableObject {
     @Published var semesters: [Semester] = []
     @Published var selectedSemester: Semester?
 
+    /// Semester options from `academics/common/StudentAttendance` (attendance dropdown; may include more terms than timetable).
+    @Published var attendanceSemesterOptions: [Semester] = []
+
     /// All-semester grade rows from `StudentGradeHistory` (distinct from semester `cumulativeMarks`).
     @Published var gradeHistoryRows: [GradeHistoryCourseRow] = []
     @Published var portalCredentials: [VTOPPortalCredential] = []
@@ -1049,17 +1052,83 @@ class DataManager: ObservableObject {
     // MARK: - Fetch Attendance
     /// Refreshes attendance from `processViewStudentAttendance` for the selected semester only (does not continue the marks chain).
     func refreshAttendanceOnly() {
-        fetchAttendance(continueAfterMarks: false)
+        fetchAttendance(continueAfterMarks: false, semesterSubId: nil)
     }
 
-    private func fetchAttendance(continueAfterMarks: Bool = true) {
+    /// Loads attendance for a specific semester id (Attendance tab). Does not continue the marks chain.
+    func refreshAttendance(semesterSubId: String, continueAfterMarks: Bool = false) {
+        fetchAttendance(continueAfterMarks: continueAfterMarks, semesterSubId: semesterSubId)
+    }
+
+    /// Parses `select#semesterSubId` from the Student Attendance page POST response.
+    func loadAttendanceSemesterPicklist(completion: (() -> Void)? = nil) {
+        guard let authorizedID = authorizedID,
+              let csrfToken = csrfToken,
+              let webView = self.webView else {
+            completion?()
+            return
+        }
+
+        let script = """
+        (function() {
+            var result = { semesters: [] };
+            $.ajax({
+                type: 'POST',
+                url: '/vtop/academics/common/StudentAttendance',
+                data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                async: false,
+                success: function(res) {
+                    $(res).find('select#semesterSubId option, select[name="semesterSubId"] option').each(function() {
+                        var v = ($(this).attr('value') || '').trim();
+                        var t = $(this).text().replace(/\\s+/g, ' ').trim();
+                        if (v) result.semesters.push({ id: v, name: t });
+                    });
+                }
+            });
+            return result;
+        })();
+        """
+
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            guard let self else {
+                completion?()
+                return
+            }
+            if let error = error {
+                self.logger.error("Attendance picklist: \(error.localizedDescription)", context: "DataManager")
+                completion?()
+                return
+            }
+            guard let dict = result as? [String: Any],
+                  let rows = dict["semesters"] as? [[String: Any]] else {
+                completion?()
+                return
+            }
+            let list: [Semester] = rows.compactMap { r in
+                guard let id = r["id"] as? String, !id.isEmpty,
+                      let name = r["name"] as? String else { return nil }
+                return Semester(id: id, name: name)
+            }
+            DispatchQueue.main.async {
+                self.attendanceSemesterOptions = list
+                self.logger.success("✅ Attendance semester picklist: \(list.count) options", context: "DataManager")
+                completion?()
+            }
+        }
+    }
+
+    private func fetchAttendance(continueAfterMarks: Bool = true, semesterSubId: String? = nil) {
         logger.info("📊 Fetching attendance...", context: "DataManager")
 
         guard let authorizedID = authorizedID,
               let csrfToken = csrfToken,
-              let semesterId = selectedSemester?.id else {
+              let semesterId = semesterSubId ?? selectedSemester?.id,
+              !semesterId.isEmpty else {
             logger.error("Missing session or semester data", context: "DataManager")
-            if !continueAfterMarks { return }
+            if !continueAfterMarks {
+                DispatchQueue.main.async { self.loadingMessage = "" }
+            }
             return
         }
 

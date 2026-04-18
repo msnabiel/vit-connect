@@ -58,7 +58,7 @@ struct ExamScheduleView: View {
                 }
             }
             .navigationTitle("Exam Schedule")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
