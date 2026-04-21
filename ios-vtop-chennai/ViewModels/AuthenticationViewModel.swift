@@ -12,9 +12,18 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     private let baseURL = "https://vtopcc.vit.ac.in/vtop"
     private var connectionAttempts = 0
     private let maxConnectionAttempts = 10
-    var dataManager: DataManager?
+    var dataManager: DataManager? {
+        didSet {
+            dataManager?.onSessionExpired = { [weak self] in
+                self?.handleSessionExpired()
+            }
+        }
+    }
     private let debugLogPath = "/Users/msnabiel/Desktop/ios-vtop-chennai/.cursor/debug-a1b485.log"
     private var debugInstanceId: String { String(ObjectIdentifier(self).hashValue) }
+
+    /// True while `autoLoginAndSync` is driving a silent re-login (session cookie renewal).
+    var isAttemptingSessionRecovery = false
 
     // #region agent log
     private func emitDebugLog(hypothesisId: String, location: String, message: String, data: [String: Any]) {
@@ -74,7 +83,6 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     @Published var captchaType: CaptchaType = .defaultCaptcha
     @Published var showReCaptchaWebView: Bool = false
     @Published var rememberMe: Bool = true
-    @Published var isBackgroundSync: Bool = false
 
     // MARK: - Constants
     private let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
@@ -292,10 +300,13 @@ class AuthenticationViewModel: NSObject, ObservableObject {
             detectCaptchaType()
         case .home:
             logger.success("🎉 Home page detected - authentication successful!", context: "PageHandler")
-            // Only call handleSuccessfulAuthentication if we're not already authenticated
-            // This prevents infinite loop when navigating to /content after login
+            // Fresh sign-in: app was not marked authenticated yet.
             if !isAuthenticated {
                 handleSuccessfulAuthentication()
+            } else if isAttemptingSessionRecovery {
+                // Cookie/session expired but the app still had isSignedIn — renew WebView session and re-extract CSRF.
+                logger.info("Home after silent re-login — refreshing server session in DataManager", context: "PageHandler")
+                finalizeSilentWebSessionRenewal()
             } else {
                 logger.debug("Already authenticated, skipping handleSuccessfulAuthentication", context: "PageHandler")
             }
@@ -666,6 +677,26 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         }
     }
 
+    /// After captcha + POST login while the app still considered the user signed in (session cookie expired).
+    private func finalizeSilentWebSessionRenewal() {
+        DispatchQueue.main.async {
+            self.showCaptcha = false
+            self.captchaImage = nil
+            self.showReCaptchaWebView = false
+            self.errorMessage = nil
+            self.isLoading = false
+            self.isAttemptingSessionRecovery = false
+            self.connectionAttempts = 0
+
+            if let webView = self.webView {
+                self.dataManager?.setWebView(webView)
+                self.dataManager?.extractSessionData()
+            } else {
+                self.logger.warning("WebView is nil after silent renewal", context: "Auth")
+            }
+        }
+    }
+
     // MARK: - Handle Successful Authentication
     private func handleSuccessfulAuthentication() {
         logger.info("🚀 handleSuccessfulAuthentication called", context: "Auth")
@@ -714,12 +745,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
                 self.dataManager?.setWebView(webView)
                 self.dataManager?.extractSessionData()
 
-                // If this was a background sync, dismiss the sync sheet after data is fetched
-                if self.isBackgroundSync {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                        self.isBackgroundSync = false
-                    }
-                }
+                self.isAttemptingSessionRecovery = false
             } else {
                 self.logger.warning("WebView is nil, cannot start data fetching", context: "Auth")
             }
@@ -745,6 +771,13 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         isAuthenticated = false
         username = ""
         password = ""
+        isLoading = false
+        showCaptcha = false
+        captchaImage = nil
+        showReCaptchaWebView = false
+        isAttemptingSessionRecovery = false
+        errorMessage = nil
+        dataManager?.clearCachedVTOPData()
 
         // Clear webview cookies
         let dataStore = WKWebsiteDataStore.default()
@@ -775,8 +808,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         self.username = savedUsername
         self.password = savedPassword
 
-        // Mark as background sync mode
-        self.isBackgroundSync = true
+        self.isAttemptingSessionRecovery = true
 
         ensureWebViewReady()
 
@@ -801,6 +833,20 @@ class AuthenticationViewModel: NSObject, ObservableObject {
             logger.warning("No WebView available, initiating auto-login", context: "Sync")
             autoLoginAndSync()
         }
+    }
+}
+
+// MARK: - Session recovery
+extension AuthenticationViewModel {
+    private func handleSessionExpired() {
+        // If we're already in the middle of a login/captcha flow, don't start another attempt.
+        guard !isAttemptingSessionRecovery,
+              !isLoading,
+              !showCaptcha,
+              !showReCaptchaWebView else { return }
+
+        logger.warning("Session expired during sync; attempting auto re-login", context: "AutoSync")
+        autoLoginAndSync()
     }
 }
 

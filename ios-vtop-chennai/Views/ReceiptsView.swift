@@ -75,10 +75,11 @@ struct ReceiptsView: View {
                     )
                     .padding(.horizontal, 20)
 
-                    // Grouped receipts
-                    LazyVStack(spacing: 24, pinnedViews: [.sectionHeaders]) {
+                    // Grouped by month (no `Section` — it adds a large default gap between header and rows).
+                    LazyVStack(spacing: 20) {
                         ForEach(groupedReceipts.keys.sorted().reversed(), id: \.self) { month in
-                            Section(header: MonthHeader(month: month)) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                MonthHeader(month: month)
                                 VStack(spacing: 12) {
                                     ForEach(groupedReceipts[month] ?? []) { receipt in
                                         ReceiptRow(receipt: receipt)
@@ -121,8 +122,7 @@ struct MonthHeader: View {
 
             Spacer()
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 20)
+        .padding(.vertical, 4)
         .background(Color(uiColor: .systemBackground))
     }
 }
@@ -151,6 +151,12 @@ struct ReceiptRow: View {
                 Text(receipt.formattedDate)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.secondary)
+
+                if let campus = receipt.campusCode {
+                    Text(campus)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
             }
 
             Spacer()

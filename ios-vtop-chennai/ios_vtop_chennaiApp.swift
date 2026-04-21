@@ -6,6 +6,8 @@ struct ios_vtop_chennaiApp: App {
     let persistenceController = PersistenceController.shared
     @StateObject private var authViewModel = AuthenticationViewModel()
     @StateObject private var dataManager = DataManager()
+    @StateObject private var friendsStore = FriendsTimetableStore()
+    @StateObject private var notesAndTodosStore = NotesAndTodosStore()
 
     init() {
         VTOPNotificationScheduler.registerDelegate()
@@ -17,6 +19,8 @@ struct ios_vtop_chennaiApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(authViewModel)
                 .environmentObject(dataManager)
+                .environmentObject(friendsStore)
+                .environmentObject(notesAndTodosStore)
                 .onAppear {
                     authViewModel.dataManager = dataManager
                     VTOPNotificationScheduler.requestAuthorizationIfNeeded()
@@ -144,4 +148,5 @@ struct RootView: View {
         }
         #endif
     }
+
 }

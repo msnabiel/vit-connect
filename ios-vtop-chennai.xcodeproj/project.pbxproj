@@ -30,7 +30,7 @@
 			containerPortal = 232936F42F9278500060E2AB /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = E2AB01072F9278500060E2AB;
-			remoteInfo = "VTOPGlanceWidgetExtension";
+			remoteInfo = VTOPGlanceWidgetExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -48,6 +48,13 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileReference section */
+		232936FC2F9278500060E2AB /* ios-vtop-chennai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-vtop-chennai.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		232937112F9278530060E2AB /* ios-vtop-chennaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2329371B2F9278530060E2AB /* ios-vtop-chennaiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E2AB01002F9278500060E2AB /* VTOPGlanceWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VTOPGlanceWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		E2AB02012F9278500060E2AB /* Exceptions for "VTOPGlanceWidgetExtension" folder in "VTOPGlanceWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -57,13 +64,6 @@
 			target = E2AB01072F9278500060E2AB /* VTOPGlanceWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileReference section */
-		232936FC2F9278500060E2AB /* ios-vtop-chennai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-vtop-chennai.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		232937112F9278530060E2AB /* ios-vtop-chennaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		2329371B2F9278530060E2AB /* ios-vtop-chennaiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		E2AB01002F9278500060E2AB /* VTOPGlanceWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VTOPGlanceWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		232936FE2F9278500060E2AB /* ios-vtop-chennai */ = {
@@ -86,7 +86,7 @@
 			exceptions = (
 				E2AB02012F9278500060E2AB /* Exceptions for "VTOPGlanceWidgetExtension" folder in "VTOPGlanceWidgetExtension" target */,
 			);
-			path = "VTOPGlanceWidgetExtension";
+			path = VTOPGlanceWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -233,10 +233,10 @@
 			fileSystemSynchronizedGroups = (
 				E2AB01012F9278500060E2AB /* VTOPGlanceWidgetExtension */,
 			);
-			name = "VTOPGlanceWidgetExtension";
+			name = VTOPGlanceWidgetExtension;
 			packageProductDependencies = (
 			);
-			productName = "VTOPGlanceWidgetExtension";
+			productName = VTOPGlanceWidgetExtension;
 			productReference = E2AB01002F9278500060E2AB /* VTOPGlanceWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
@@ -629,12 +629,12 @@
 		E2AB01082F9278500060E2AB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "VTOPGlanceWidgetExtension/VTOPGlanceWidgetExtension.entitlements";
+				CODE_SIGN_ENTITLEMENTS = VTOPGlanceWidgetExtension/VTOPGlanceWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "VTOPGlanceWidgetExtension/Info.plist";
+				INFOPLIST_FILE = VTOPGlanceWidgetExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -654,12 +654,12 @@
 		E2AB01092F9278500060E2AB /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "VTOPGlanceWidgetExtension/VTOPGlanceWidgetExtension.entitlements";
+				CODE_SIGN_ENTITLEMENTS = VTOPGlanceWidgetExtension/VTOPGlanceWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "VTOPGlanceWidgetExtension/Info.plist";
+				INFOPLIST_FILE = VTOPGlanceWidgetExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
