@@ -62,6 +62,8 @@ class DataManager: ObservableObject {
     private var authorizedID: String?
     private var csrfToken: String?
     private var syncDebounceItem: DispatchWorkItem?
+    private var coursesBySemesterId: [String: [Course]] = [:]
+    private var timetableBySemesterId: [String: [TimetableSlot]] = [:]
     /// Set for the lifetime of one `extractSessionData` → … → `finishDataFetching` chain. Only `performSyncAll` starts a chain with this true so post-login fetches never touch UserDefaults quota.
     private var countsCurrentSessionTowardManualFullSyncQuota = false
 
@@ -124,6 +126,42 @@ class DataManager: ObservableObject {
             return "\(m) minute\(m == 1 ? "" : "s") \(s) second\(s == 1 ? "" : "s")"
         }
         return "\(s) second\(s == 1 ? "" : "s")"
+    }
+
+    private func cacheCurrentSemesterScheduleIfNeeded() {
+        guard let semesterId = selectedSemester?.id, !semesterId.isEmpty else { return }
+        coursesBySemesterId[semesterId] = courses
+        timetableBySemesterId[semesterId] = timetable
+    }
+
+    func restoreSemesterScopedCache(coursesBySemesterId: [String: [Course]], timetableBySemesterId: [String: [TimetableSlot]]) {
+        self.coursesBySemesterId = coursesBySemesterId
+        self.timetableBySemesterId = timetableBySemesterId
+
+        guard let semesterId = selectedSemester?.id, !semesterId.isEmpty else { return }
+        if let semCourses = coursesBySemesterId[semesterId] {
+            courses = semCourses
+        }
+        if let semTimetable = timetableBySemesterId[semesterId] {
+            timetable = semTimetable
+        }
+    }
+
+    // MARK: - Shared Timetable Import
+    func importSharedTimetable(_ payload: TimetableSharePayload) {
+        DispatchQueue.main.async {
+            self.timetable = payload.timetable
+            self.courses = payload.courses
+
+            let baseName = payload.semesterName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let displayName = (baseName?.isEmpty == false ? baseName! : "Shared timetable") + " (Shared)"
+            let sharedSemester = Semester(id: "shared-\(UUID().uuidString)", name: displayName)
+            self.selectedSemester = sharedSemester
+
+            if !self.semesters.contains(where: { $0.id == sharedSemester.id }) {
+                self.semesters.insert(sharedSemester, at: 0)
+            }
+        }
     }
 
     /// Prints the complete VTOP HTML/response body to the Xcode console (no truncation).
@@ -1243,6 +1281,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.courses = courses
                 self.timetable = timetable
+                self.cacheCurrentSemesterScheduleIfNeeded()
                 self.logger.success("✅ Loaded \(courses.count) courses and \(timetable.count) timetable slots", context: "DataManager")
                 self.persistCache()
                 if chainToAttendance {
@@ -1265,6 +1304,12 @@ class DataManager: ObservableObject {
         selectedSemester = semester
         UserDefaults.standard.set(semester.id, forKey: "semesterId")
         UserDefaults.standard.set(semester.name, forKey: "semester")
+
+        if let cachedCourses = coursesBySemesterId[semester.id],
+           let cachedTimetable = timetableBySemesterId[semester.id] {
+            courses = cachedCourses
+            timetable = cachedTimetable
+        }
         persistCache()
 
         guard webView != nil else {
@@ -3005,6 +3050,7 @@ class DataManager: ObservableObject {
     }
 
     private func persistCache() {
+        cacheCurrentSemesterScheduleIfNeeded()
         VTOPDataCache.persistSnapshot(
             studentProfile: studentProfile,
             gradeHistoryRows: gradeHistoryRows,
@@ -3029,7 +3075,9 @@ class DataManager: ObservableObject {
             portalCredentials: portalCredentials,
             rankEntries: rankEntries,
             deanPortraitData: deanPortraitData,
-            hodPortraitData: hodPortraitData
+            hodPortraitData: hodPortraitData,
+            coursesBySemesterId: coursesBySemesterId,
+            timetableBySemesterId: timetableBySemesterId
         )
         DispatchQueue.main.async {
             self.cachePersistedAt = VTOPDiskCache.readMeta().lastPersistedAt
@@ -3226,6 +3274,8 @@ class DataManager: ObservableObject {
             self.rankEntries = []
             self.deanPortraitData = nil
             self.hodPortraitData = nil
+            self.coursesBySemesterId = [:]
+            self.timetableBySemesterId = [:]
             self.errorMessage = nil
             self.loadingMessage = ""
         }

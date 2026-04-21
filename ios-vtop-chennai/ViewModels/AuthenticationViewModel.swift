@@ -745,6 +745,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         isAuthenticated = false
         username = ""
         password = ""
+        dataManager?.clearCachedVTOPData()
 
         // Clear webview cookies
         let dataStore = WKWebsiteDataStore.default()

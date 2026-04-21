@@ -1036,7 +1036,17 @@ struct ProfileTabView: View {
                     }
                 }
 
-                Section(header: Text("Profile & sync")) {
+                Section(header: Text("Profile")) {
+                    NavigationLink(destination: FullStudentProfileView().environmentObject(dataManager)) {
+                        Label("Full profile", systemImage: "person.text.rectangle")
+                    }
+
+                    Link(destination: URL(string: "https://drive.google.com/drive/folders/1Z4tBts_Y55n4m8yRSyV7WzKocVHpi9yC")!) {
+                        Label("Study Materials", systemImage: "books.vertical.fill")
+                    }
+                }
+
+                Section(header: Text("Sync & app")) {
                     if dataManager.lastSuccessfulSyncAt != nil || dataManager.cachePersistedAt != nil {
                         VStack(alignment: .leading, spacing: 6) {
                             if let sync = dataManager.lastSuccessfulSyncAt {
@@ -1060,10 +1070,6 @@ struct ProfileTabView: View {
                             }
                         }
                         .padding(.vertical, 4)
-                    }
-
-                    NavigationLink(destination: FullStudentProfileView().environmentObject(dataManager)) {
-                        Label("Full profile", systemImage: "person.text.rectangle")
                     }
 
                     // Replace with your real form URL when ready.
@@ -1141,7 +1147,7 @@ struct ProfileTabView: View {
                     authViewModel.signOut()
                 }
             } message: {
-                Text("You will need to sign in again.")
+                Text("You will need to sign in again. All cached data on this device will be cleared.")
             }
             .alert("Clear cache?", isPresented: $confirmClearCache) {
                 Button("Cancel", role: .cancel) {}

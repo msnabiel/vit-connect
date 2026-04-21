@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TimetableView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
@@ -6,6 +7,11 @@ struct TimetableView: View {
 
     /// 0 = Sunday … 6 = Saturday (matches `TimetableSlot` weekday columns).
     @State private var selectedDay = Calendar.current.component(.weekday, from: Date()) - 1
+    @State private var shareItems: [Any] = []
+    @State private var isShareSheetPresented = false
+    @State private var shareErrorMessage: String?
+    @State private var exportItems: [Any] = []
+    @State private var isExportSheetPresented = false
 
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -21,74 +27,127 @@ struct TimetableView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !dataManager.semesters.isEmpty {
-                Menu {
-                    ForEach(dataManager.semesters) { sem in
-                        Button(sem.name) {
-                            dataManager.refreshTimetableAndCoursesForSemester(sem, completion: nil)
-                        }
-                    }
+            semesterPicker
+            weekdayStrip
+            timetableContent
+        }
+        .navigationTitle("Timetable")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    shareTimetable()
                 } label: {
-                    HStack(spacing: 8) {
-                        Text("Semester — \(semesterMenuTitle)")
-                            .font(.body.weight(.medium))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundColor(Color(uiColor: .systemBlue))
-                    }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemBackground))
-                    )
+                    Image(systemName: "square.and.arrow.up")
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
+                .accessibilityLabel("Share timetable")
+                .disabled(dataManager.timetable.isEmpty)
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    exportTimetableJSON()
+                } label: {
+                    Image(systemName: "doc.badge.arrow.up")
+                }
+                .accessibilityLabel("Export timetable JSON")
+                .disabled(dataManager.timetable.isEmpty)
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                MainSyncToolbarButton()
+            }
+        }
+        .sheet(isPresented: $isShareSheetPresented) {
+            ActivityViewController(activityItems: shareItems)
+        }
+        .sheet(isPresented: $isExportSheetPresented) {
+            ActivityViewController(activityItems: exportItems)
+        }
+        .alert("Unable to share", isPresented: Binding(
+            get: { shareErrorMessage != nil },
+            set: { if !$0 { shareErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {
+                shareErrorMessage = nil
+            }
+        } message: {
+            Text(shareErrorMessage ?? "")
+        }
+    }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(orderedWeekdayIndices, id: \.self) { dayIndex in
-                        Button {
-                            selectedDay = dayIndex
-                        } label: {
-                            VStack(spacing: 4) {
-                                Text(weekdays[dayIndex])
-                                    .font(.system(size: 14, weight: selectedDay == dayIndex ? .bold : .medium))
-                                    .foregroundColor(selectedDay == dayIndex ? .white : .primary)
+    @ViewBuilder
+    private var semesterPicker: some View {
+        if !dataManager.semesters.isEmpty {
+            Menu {
+                ForEach(dataManager.semesters) { sem in
+                    Button(sem.name) {
+                        dataManager.refreshTimetableAndCoursesForSemester(sem, completion: nil)
+                    }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text("Semester — \(semesterMenuTitle)")
+                        .font(.body.weight(.medium))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(Color(uiColor: .systemBlue))
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemBackground))
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+        }
+    }
 
-                                if isToday(dayIndex: dayIndex) {
-                                    Circle()
-                                        .fill(selectedDay == dayIndex ? Color.white : Color.accentColor)
-                                        .frame(width: 6, height: 6)
-                                } else {
-                                    Circle()
-                                        .fill(Color.clear)
-                                        .frame(width: 6, height: 6)
-                                }
+    private var weekdayStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(orderedWeekdayIndices, id: \.self) { dayIndex in
+                    Button {
+                        selectedDay = dayIndex
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(weekdays[dayIndex])
+                                .font(.system(size: 14, weight: selectedDay == dayIndex ? .bold : .medium))
+                                .foregroundColor(selectedDay == dayIndex ? .white : .primary)
+
+                            if isToday(dayIndex: dayIndex) {
+                                Circle()
+                                    .fill(selectedDay == dayIndex ? Color.white : Color.accentColor)
+                                    .frame(width: 6, height: 6)
+                            } else {
+                                Circle()
+                                    .fill(Color.clear)
+                                    .frame(width: 6, height: 6)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(selectedDay == dayIndex ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
-                            )
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(selectedDay == dayIndex ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16)
             }
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+        }
+        .padding(.vertical, 12)
+    }
 
-            // Timetable content
+    private var timetableContent: some View {
+        Group {
             if dataManager.timetable.isEmpty {
                 EmptyStateView(
                     icon: "calendar",
@@ -128,14 +187,13 @@ struct TimetableView: View {
                 }
             }
         }
-        .navigationTitle("Timetable")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                TimetableToolbarLink()
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                MainSyncToolbarButton()
+        .overlay(alignment: .bottom) {
+            if !dataManager.timetable.isEmpty {
+                Text("Import tip: open a shared `vitstudent://timetable?...` link on this device and the timetable will auto-import.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
             }
         }
     }
@@ -151,6 +209,49 @@ struct TimetableView: View {
             .filter { $0.matchingCourse(on: selectedDay, courses: dataManager.courses) != nil }
             .sorted { $0.startTime < $1.startTime }
     }
+
+    private func shareTimetable() {
+        let payload = TimetableSharePayload(
+            semesterName: dataManager.selectedSemester?.name,
+            timetable: dataManager.timetable,
+            courses: dataManager.courses
+        )
+
+        guard let deepLink = TimetableShareCodec.makeDeepLink(for: payload) else {
+            shareErrorMessage = "Could not generate timetable deep link."
+            return
+        }
+
+        let deepLinkString = deepLink.absoluteString
+        shareItems = [
+            "Import my timetable in VIT Student:\n\(deepLinkString)"
+        ]
+        isShareSheetPresented = true
+    }
+
+    private func exportTimetableJSON() {
+        let payload = TimetableSharePayload(
+            semesterName: dataManager.selectedSemester?.name,
+            timetable: dataManager.timetable,
+            courses: dataManager.courses
+        )
+        guard let jsonFile = TimetableShareCodec.writePayloadFile(payload) else {
+            shareErrorMessage = "Could not export timetable JSON file."
+            return
+        }
+        exportItems = [jsonFile]
+        isExportSheetPresented = true
+    }
+}
+
+private struct ActivityViewController: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct TimetableSlotCard: View {

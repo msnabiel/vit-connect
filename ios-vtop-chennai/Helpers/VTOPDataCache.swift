@@ -75,6 +75,8 @@ enum VTOPDataCache {
         static let rankEntries = "rankEntries.json"
         static let deanPortrait = "deanPortrait.bin"
         static let hodPortrait = "hodPortrait.bin"
+        static let coursesBySemester = "coursesBySemester.json"
+        static let timetableBySemester = "timetableBySemester.json"
     }
 
     /// Removes persisted snapshots (disk + legacy UserDefaults).
@@ -121,7 +123,9 @@ enum VTOPDataCache {
         portalCredentials: [VTOPPortalCredential],
         rankEntries: [VTOPRankEntry],
         deanPortraitData: Data?,
-        hodPortraitData: Data?
+        hodPortraitData: Data?,
+        coursesBySemesterId: [String: [Course]],
+        timetableBySemesterId: [String: [TimetableSlot]]
     ) {
         if let studentProfile { VTOPDiskCache.save(studentProfile, fileName: FileName.studentProfile) }
         VTOPDiskCache.save(gradeHistoryRows, fileName: FileName.gradeHistoryRows)
@@ -151,6 +155,8 @@ enum VTOPDataCache {
         VTOPDiskCache.save(rankEntries, fileName: FileName.rankEntries)
         VTOPDiskCache.saveData(deanPortraitData, fileName: FileName.deanPortrait)
         VTOPDiskCache.saveData(hodPortraitData, fileName: FileName.hodPortrait)
+        VTOPDiskCache.save(coursesBySemesterId, fileName: FileName.coursesBySemester)
+        VTOPDiskCache.save(timetableBySemesterId, fileName: FileName.timetableBySemester)
 
         for k in LegacyKey.allKeys {
             UserDefaults.standard.removeObject(forKey: k)
@@ -210,6 +216,8 @@ enum VTOPDataCache {
             let scheduledEventRows: [VTOPScheduledEventRow] = loadFromDiskOrMigrate([VTOPScheduledEventRow].self, file: FileName.scheduledEventRows, legacyKey: LegacyKey.scheduledEventRows) ?? []
             let portalCredentials: [VTOPPortalCredential] = loadFromDiskOrMigrate([VTOPPortalCredential].self, file: FileName.portalCredentials, legacyKey: LegacyKey.portalCredentials) ?? []
             let rankEntries: [VTOPRankEntry] = loadFromDiskOrMigrate([VTOPRankEntry].self, file: FileName.rankEntries, legacyKey: LegacyKey.rankEntries) ?? []
+            let coursesBySemesterId: [String: [Course]] = VTOPDiskCache.load([String: [Course]].self, fileName: FileName.coursesBySemester) ?? [:]
+            let timetableBySemesterId: [String: [TimetableSlot]] = VTOPDiskCache.load([String: [TimetableSlot]].self, fileName: FileName.timetableBySemester) ?? [:]
 
             let marksReportSemesterId = UserDefaults.standard.string(forKey: LegacyKey.marksReportSemesterId)
             let examScheduleSemesterId = UserDefaults.standard.string(forKey: LegacyKey.examScheduleSemesterId)
@@ -244,6 +252,7 @@ enum VTOPDataCache {
                 dm.rankEntries = rankEntries
                 dm.deanPortraitData = deanPortraitData
                 dm.hodPortraitData = hodPortraitData
+                dm.restoreSemesterScopedCache(coursesBySemesterId: coursesBySemesterId, timetableBySemesterId: timetableBySemesterId)
                 dm.cachePersistedAt = meta.lastPersistedAt
             }
         }
