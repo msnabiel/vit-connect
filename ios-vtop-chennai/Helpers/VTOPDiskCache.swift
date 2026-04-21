@@ -71,6 +71,11 @@ enum VTOPDiskCache {
         return try? Data(contentsOf: url)
     }
 
+    static func removeFile(fileName: String) {
+        let url = cacheDirectory.appendingPathComponent(fileName)
+        try? FileManager.default.removeItem(at: url)
+    }
+
     static func clearAllFiles() {
         let fm = FileManager.default
         guard let names = try? fm.contentsOfDirectory(atPath: cacheDirectory.path) else { return }

@@ -501,10 +501,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "VIT Student";
-				INFOPLIST_KEY_CFBundleURLTypes = "$(inherited)";
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleTypeRole = Editor;
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLName = "com.msnabiel.ios-vtop-chennai.timetable";
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLSchemes_0 = vitstudent;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlocks saved login with Face ID.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -538,10 +534,6 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "VIT Student";
-				INFOPLIST_KEY_CFBundleURLTypes = "$(inherited)";
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleTypeRole = Editor;
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLName = "com.msnabiel.ios-vtop-chennai.timetable";
-				INFOPLIST_KEY_CFBundleURLTypes_0_CFBundleURLSchemes_0 = vitstudent;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlocks saved login with Face ID.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

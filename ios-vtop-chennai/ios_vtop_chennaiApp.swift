@@ -6,6 +6,8 @@ struct ios_vtop_chennaiApp: App {
     let persistenceController = PersistenceController.shared
     @StateObject private var authViewModel = AuthenticationViewModel()
     @StateObject private var dataManager = DataManager()
+    @StateObject private var friendsStore = FriendsTimetableStore()
+    @StateObject private var notesAndTodosStore = NotesAndTodosStore()
 
     init() {
         VTOPNotificationScheduler.registerDelegate()
@@ -17,6 +19,8 @@ struct ios_vtop_chennaiApp: App {
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
                 .environmentObject(authViewModel)
                 .environmentObject(dataManager)
+                .environmentObject(friendsStore)
+                .environmentObject(notesAndTodosStore)
                 .onAppear {
                     authViewModel.dataManager = dataManager
                     VTOPNotificationScheduler.requestAuthorizationIfNeeded()
@@ -37,7 +41,6 @@ struct RootView: View {
     }
     private let debugLogPath = "/Users/msnabiel/Desktop/ios-vtop-chennai/.cursor/debug-a1b485.log"
     private var debugAuthInstanceId: String { String(ObjectIdentifier(authViewModel).hashValue) }
-    @State private var sharedTimetableImportNotice: String?
 
     // #region agent log
     private func emitDebugLog(hypothesisId: String, location: String, message: String, data: [String: Any]) {
@@ -108,9 +111,6 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: authViewModel.isAuthenticated)
-        .onOpenURL { url in
-            handleIncomingDeepLink(url)
-        }
         .alert(
             "Full sync limit",
             isPresented: Binding(
@@ -142,19 +142,6 @@ struct RootView: View {
                 Text("You can run at most 3 full syncs per hour. You have \(n) full sync(s) remaining before you reach that limit. To refresh only one area with less load on VTOP, pull to refresh on that screen.")
             }
         }
-        .alert(
-            "Timetable imported",
-            isPresented: Binding(
-                get: { sharedTimetableImportNotice != nil },
-                set: { if !$0 { sharedTimetableImportNotice = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) {
-                sharedTimetableImportNotice = nil
-            }
-        } message: {
-            Text(sharedTimetableImportNotice ?? "")
-        }
         #if DEBUG
         .onChange(of: authViewModel.isAuthenticated) { _, newValue in
             print("⚠️ DEBUG: RootView auth → \(newValue)")
@@ -162,10 +149,4 @@ struct RootView: View {
         #endif
     }
 
-    private func handleIncomingDeepLink(_ url: URL) {
-        guard let payload = TimetableShareCodec.decodeDeepLink(url) else { return }
-        dataManager.importSharedTimetable(payload)
-        let title = payload.semesterName?.isEmpty == false ? payload.semesterName! : "Shared timetable"
-        sharedTimetableImportNotice = "\(title) imported successfully."
-    }
 }

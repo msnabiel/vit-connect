@@ -8,6 +8,18 @@ struct HomeView: View {
     /// Bumped when the Profile tab is selected so nested `NavigationView` pops back to the profile root.
     @State private var profileTabRootId = 0
     @State private var homeTabRootId = 0
+    @State private var homeCaptchaText = ""
+
+    private var homeCaptchaSheetBinding: Binding<Bool> {
+        Binding(
+            get: { authViewModel.showCaptcha && !authViewModel.showReCaptchaWebView },
+            set: { newValue in
+                if !newValue {
+                    authViewModel.showCaptcha = false
+                }
+            }
+        )
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -58,12 +70,52 @@ struct HomeView: View {
         .sheet(isPresented: $showSemesterSelection) {
             SemesterSelectionView()
         }
-        .sheet(isPresented: $authViewModel.isBackgroundSync) {
-            BackgroundSyncView()
+        .sheet(isPresented: homeCaptchaSheetBinding) {
+            NavigationStack {
+                CaptchaInputView(
+                    captchaImage: authViewModel.captchaImage,
+                    captchaInput: $homeCaptchaText,
+                    embedNavigationWrapper: false,
+                    onSubmit: {
+                        authViewModel.submitLogin(captchaText: homeCaptchaText)
+                        homeCaptchaText = ""
+                    },
+                    onCancel: {
+                        authViewModel.showCaptcha = false
+                        authViewModel.isLoading = false
+                        authViewModel.isAttemptingSessionRecovery = false
+                        homeCaptchaText = ""
+                    }
+                )
+                .navigationTitle("Verification")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            authViewModel.showCaptcha = false
+                            authViewModel.isLoading = false
+                            authViewModel.isAttemptingSessionRecovery = false
+                            homeCaptchaText = ""
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $authViewModel.showReCaptchaWebView) {
+            if let webView = authViewModel.getWebView() {
+                ReCaptchaView(webView: webView, isPresented: $authViewModel.showReCaptchaWebView)
+            }
         }
         .overlay(alignment: .bottom) {
             if dataManager.isLoading {
                 DataLoadingOverlay(message: dataManager.loadingMessage)
+            } else if authViewModel.isLoading,
+                      authViewModel.isAttemptingSessionRecovery,
+                      !authViewModel.showCaptcha,
+                      !authViewModel.showReCaptchaWebView {
+                DataLoadingOverlay(message: "Signing in to VTOP…")
             }
         }
         .onAppear {
@@ -931,6 +983,7 @@ struct PerformanceCard: View {
 struct ProfileTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var friendsStore: FriendsTimetableStore
     @AppStorage("vtop_dark_mode") private var darkModeEnabled = false
     @AppStorage(VTOPPrivacyStorage.maskCGPA) private var maskCGPA = false
     @AppStorage(VTOPPrivacyStorage.maskCredits) private var maskCredits = false
@@ -1001,6 +1054,20 @@ struct ProfileTabView: View {
                         Label("Courses", systemImage: "book.fill")
                     }
 
+                    NavigationLink(destination: GPACalculatorView().environmentObject(dataManager)) {
+                        HStack {
+                            Label("GPA Calculator", systemImage: "function")
+                            Spacer()
+                            Text("BETA")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
+                    NavigationLink(destination: NotesAndTodosHubView()) {
+                        Label("Notes & To-Do", systemImage: "pencil.and.list.clipboard")
+                    }
+
                     NavigationLink(destination: TimetableView().environmentObject(authViewModel).environmentObject(dataManager)) {
                         Label("Timetable", systemImage: "calendar")
                     }
@@ -1043,6 +1110,24 @@ struct ProfileTabView: View {
 
                     Link(destination: URL(string: "https://drive.google.com/drive/folders/1Z4tBts_Y55n4m8yRSyV7WzKocVHpi9yC")!) {
                         Label("Study Materials", systemImage: "books.vertical.fill")
+                    }
+                }
+
+                Section(header: Text("Friends")) {
+                    NavigationLink(destination: ImportFriendsTimetableView().environmentObject(friendsStore)) {
+                        Label("Import timetable", systemImage: "square.and.arrow.down")
+                    }
+                    NavigationLink(destination: FriendsTimetableListView().environmentObject(friendsStore)) {
+                        Label("Friends timetable", systemImage: "person.2.square.stack")
+                    }
+                    NavigationLink(destination: CompareTimetablesView().environmentObject(dataManager).environmentObject(friendsStore)) {
+                        HStack {
+                            Label("Compare timetables", systemImage: "rectangle.2.swap")
+                            Spacer()
+                            Text("BETA")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
 
@@ -1100,10 +1185,8 @@ struct ProfileTabView: View {
                         Label("Dark mode", systemImage: "moon.fill")
                     }
 
-                    Button {
-                        confirmClearCache = true
-                    } label: {
-                        Label("Clear cache", systemImage: "trash")
+                    NavigationLink(destination: CacheManagementView()) {
+                        Label("Cache management", systemImage: "externaldrive.fill")
                     }
                 }
 
@@ -1169,4 +1252,6 @@ struct ProfileTabView: View {
     return HomeView()
         .environmentObject(authViewModel)
         .environmentObject(dataManager)
+        .environmentObject(FriendsTimetableStore())
+        .environmentObject(NotesAndTodosStore())
 }

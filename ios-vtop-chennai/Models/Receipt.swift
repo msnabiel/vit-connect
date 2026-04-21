@@ -5,12 +5,15 @@ struct Receipt: Codable, Identifiable, Hashable {
     var number: Int
     var amount: Double
     var date: Int64  // Timestamp
+    /// Campus code from VTOP table (e.g. CHN), when present.
+    var campusCode: String?
 
-    init(id: Int, number: Int, amount: Double, date: Int64) {
+    init(id: Int, number: Int, amount: Double, date: Int64, campusCode: String? = nil) {
         self.id = id
         self.number = number
         self.amount = amount
         self.date = date
+        self.campusCode = campusCode
     }
 
     var paymentDate: Date {

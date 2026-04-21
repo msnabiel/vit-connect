@@ -56,6 +56,10 @@ class DataManager: ObservableObject {
     /// Shown in offline banner (e.g. session vs network).
     @Published var lastDataFetchFailureReason: String?
 
+    /// Called when the WebView session cannot be extracted (expired session, blank page, etc.).
+    /// The `AuthenticationViewModel` can attach a handler to attempt auto re-login.
+    var onSessionExpired: (() -> Void)?
+
     // MARK: - Private Properties
     private weak var webView: WKWebView?
     private let logger = VTOPLogger.shared
@@ -216,9 +220,14 @@ class DataManager: ObservableObject {
     private func reportSessionExtractionFailed() {
         DispatchQueue.main.async {
             self.countsCurrentSessionTowardManualFullSyncQuota = false
-            self.lastDataFetchFailureReason = "VTOP session is not available. Sign out and sign in again to sync."
+            self.lastDataFetchFailureReason = "VTOP session expired. Trying to sign you back in…"
             self.isLoading = false
             self.loadingMessage = ""
+        }
+
+        // Kick off a recovery attempt (auto re-login) if the auth layer is listening.
+        DispatchQueue.main.async { [weak self] in
+            self?.onSessionExpired?()
         }
     }
 
@@ -320,6 +329,14 @@ class DataManager: ObservableObject {
 
         guard let authorizedID = authorizedID, let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
+            if chainIntoSelectSemester {
+                clearSyncProgress()
+            } else {
+                DispatchQueue.main.async {
+                    self.loadingMessage = ""
+                    completion?()
+                }
+            }
             return
         }
 
@@ -450,6 +467,7 @@ class DataManager: ObservableObject {
         guard let authorizedID = authorizedID, let csrfToken = csrfToken else {
             logger.error("Missing session data", context: "DataManager")
             clearSyncProgress()
+            completion?()
             return
         }
 
@@ -985,6 +1003,54 @@ class DataManager: ObservableObject {
         if let n = any as? NSNumber { return Int(n.doubleValue.rounded()) }
         if let s = any as? String { return Int(s.trimmingCharacters(in: .whitespacesAndNewlines)) }
         return nil
+    }
+
+    /// WKWebView / JSON may hand back `NSArray` of `NSDictionary`; normalize to `[[String: Any]]`.
+    private static func coerceReceiptPayloadArray(_ any: Any?) -> [[String: Any]]? {
+        guard let any else { return nil }
+        if let a = any as? [[String: Any]] { return a }
+        if let arr = any as? [Any] { return arr.compactMap { $0 as? [String: Any] } }
+        return nil
+    }
+
+    private static func doubleFromJSON(_ any: Any?) -> Double? {
+        if let d = any as? Double { return d }
+        if let i = any as? Int { return Double(i) }
+        if let n = any as? NSNumber { return n.doubleValue }
+        if let s = any as? String {
+            let t = s.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "")
+            return Double(t)
+        }
+        return nil
+    }
+
+    /// Parses VTOP receipt dates like `31-JUL-2025` to epoch ms.
+    private static func parseReceiptDateMillis(_ dateString: String) -> Int64 {
+        let trimmed = dateString.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = normalizeReceiptDateDayMonthYear(trimmed)
+        let formats = ["dd-MMM-yyyy", "d-MMM-yyyy", "dd-MMM-yy", "d-MMM-yy"]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        for f in formats {
+            formatter.dateFormat = f
+            if let date = formatter.date(from: normalized) {
+                return Int64(date.timeIntervalSince1970 * 1000)
+            }
+        }
+        return Int64(Date().timeIntervalSince1970 * 1000)
+    }
+
+    /// `31-JUL-2025` → `31-Jul-2025` for `DateFormatter` month parsing.
+    private static func normalizeReceiptDateDayMonthYear(_ s: String) -> String {
+        let parts = s.split(separator: "-").map(String.init)
+        guard parts.count == 3 else { return s }
+        let day = parts[0]
+        let monRaw = parts[1]
+        let year = parts[2]
+        let monLower = monRaw.lowercased()
+        let mon = monLower.prefix(1).uppercased() + monLower.dropFirst()
+        return "\(day)-\(mon)-\(year)"
     }
 
     private static func optionalTrimmedString(_ any: Any?) -> String? {
@@ -2774,26 +2840,39 @@ class DataManager: ObservableObject {
                 async: false,
                 success: function(res) {
                     result.rawGetReceiptsApplno = res;
-                    $(res).find('table tbody tr').each(function() {
+                    var $root = $(res);
+                    // Prefer #onlineReceipt; fall back to full fragment (some responses differ slightly).
+                    var $scope = $root.find('#onlineReceipt');
+                    if (!$scope.length) { $scope = $root.filter('#onlineReceipt'); }
+                    if (!$scope.length) { $scope = $root; }
+                    // Any table under the receipt section (main + alumni use .table-bordered variants).
+                    $scope.find('table tr').each(function() {
                         var cells = $(this).find('td');
-                        if (cells.length >= 3) {
-                            var number = parseInt(cells.eq(0).text().trim()) || 0;
-                            var amount = parseFloat(cells.eq(1).text().trim().replace(/[^0-9.]/g, '')) || 0;
-                            var date = cells.eq(2).text().trim();
-
-                            if (number > 0) {
-                                result.receipts.push({
-                                    number: number,
-                                    amount: amount,
-                                    date: date
-                                });
-                            }
+                        if (cells.length < 5) { return; }
+                        var numText = cells.eq(0).text().trim().replace(/,/g, '');
+                        if (!/^\\d+$/.test(numText)) { return; }
+                        var number = parseInt(numText, 10) || 0;
+                        var dateStr = cells.eq(1).text().trim();
+                        var amount = parseFloat(cells.eq(2).text().trim().replace(/[^0-9.]/g, '')) || 0;
+                        var campus = cells.eq(3).text().trim();
+                        if (number > 0 && dateStr.length > 0) {
+                            result.receipts.push({
+                                number: number,
+                                amount: amount,
+                                date: dateStr,
+                                campus: campus
+                            });
                         }
                     });
                 },
                 error: function(xhr, st, err) { }
             });
-            return result;
+            // WKWebView bridging of nested objects is unreliable; return JSON like other evaluators.
+            try {
+                return JSON.stringify(result);
+            } catch (e) {
+                return JSON.stringify({ receipts: [], rawGetReceiptsApplno: '', error: String(e) });
+            }
         })();
         """
 
@@ -2813,8 +2892,19 @@ class DataManager: ObservableObject {
                 return
             }
 
-            guard let raw = result as? [String: Any],
-                  let receiptsData = raw["receipts"] as? [[String: Any]] else {
+            let raw: [String: Any]?
+            if let str = result as? String,
+               let data = str.data(using: .utf8),
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                raw = obj
+            } else if let dict = result as? [String: Any] {
+                raw = dict
+            } else {
+                raw = nil
+            }
+
+            guard let raw,
+                  let receiptsData = Self.coerceReceiptPayloadArray(raw["receipts"]) else {
                 self.logger.error("Invalid receipts response", context: "DataManager")
                 if continueFullSyncChain {
                     self.fetchScheduledEvents()
@@ -2831,24 +2921,15 @@ class DataManager: ObservableObject {
 
             var receipts: [Receipt] = []
             for (index, receiptDict) in receiptsData.enumerated() {
-                guard let number = receiptDict["number"] as? Int,
-                      let amount = receiptDict["amount"] as? Double,
+                let number = Self.intFromJSON(receiptDict["number"]) ?? 0
+                let amount = Self.doubleFromJSON(receiptDict["amount"]) ?? 0
+                guard number > 0,
                       let dateString = receiptDict["date"] as? String else { continue }
+                let campus = (receiptDict["campus"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let campusCode = (campus?.isEmpty == false) ? campus : nil
 
-                // Convert date string (DD-MMM-YYYY format) to timestamp
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "dd-MMM-yyyy"
-                dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-
-                let timestamp: Int64
-                if let date = dateFormatter.date(from: dateString) {
-                    timestamp = Int64(date.timeIntervalSince1970 * 1000)
-                } else {
-                    // Fallback to current time if parsing fails
-                    timestamp = Int64(Date().timeIntervalSince1970 * 1000)
-                }
-
-                receipts.append(Receipt(id: index + 1, number: number, amount: amount, date: timestamp))
+                let timestamp: Int64 = Self.parseReceiptDateMillis(dateString)
+                receipts.append(Receipt(id: index + 1, number: number, amount: amount, date: timestamp, campusCode: campusCode))
             }
 
             DispatchQueue.main.async {
@@ -3280,6 +3361,54 @@ class DataManager: ObservableObject {
             self.loadingMessage = ""
         }
         logger.info("🗑️ Cleared VTOP cache (UserDefaults + in-memory snapshot)", context: "DataManager")
+    }
+
+    /// Updates disk + memory when the user toggles a VTOP cache bucket in Cache management.
+    func applyVTOPCacheBucket(enabled: Bool, bucket: AppCacheSettings.VTOPBucket) {
+        if enabled {
+            loadCachedData()
+        } else {
+            VTOPDataCache.clearVTOPBucket(bucket)
+            DispatchQueue.main.async {
+                self.clearInMemoryVTOPFields(for: bucket)
+            }
+        }
+    }
+
+    private func clearInMemoryVTOPFields(for bucket: AppCacheSettings.VTOPBucket) {
+        switch bucket {
+        case .profileSummary:
+            studentProfile = nil
+        case .academic:
+            courses = []
+            timetable = []
+            attendance = []
+            semesters = []
+            selectedSemester = nil
+            attendanceSemesterOptions = []
+            restoreSemesterScopedCache(coursesBySemesterId: [:], timetableBySemesterId: [:])
+        case .marksAndGrades:
+            gradeHistoryRows = []
+            marks = []
+            cumulativeMarks = []
+            marksReportSemesterOptions = []
+            marksReportRows = []
+            marksReportSemesterId = nil
+        case .exams:
+            exams = []
+            examScheduleSemesterOptions = []
+            examScheduleSemesterId = nil
+        case .receipts:
+            receipts = []
+        case .campusExtras:
+            staff = []
+            spotlights = []
+            scheduledEventRows = []
+            portalCredentials = []
+            rankEntries = []
+            deanPortraitData = nil
+            hodPortraitData = nil
+        }
     }
 
     // MARK: - Helper: Get WebView

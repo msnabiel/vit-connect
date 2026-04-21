@@ -10,8 +10,7 @@ struct TimetableView: View {
     @State private var shareItems: [Any] = []
     @State private var isShareSheetPresented = false
     @State private var shareErrorMessage: String?
-    @State private var exportItems: [Any] = []
-    @State private var isExportSheetPresented = false
+    @State private var preparedShareFileURL: URL?
 
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -44,23 +43,23 @@ struct TimetableView: View {
                 .disabled(dataManager.timetable.isEmpty)
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    exportTimetableJSON()
-                } label: {
-                    Image(systemName: "doc.badge.arrow.up")
-                }
-                .accessibilityLabel("Export timetable JSON")
-                .disabled(dataManager.timetable.isEmpty)
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
                 MainSyncToolbarButton()
             }
         }
+        .onAppear {
+            prepareShareFileIfNeeded()
+        }
+        .onChange(of: dataManager.timetable) { _, _ in
+            prepareShareFileIfNeeded()
+        }
+        .onChange(of: dataManager.courses) { _, _ in
+            prepareShareFileIfNeeded()
+        }
+        .onChange(of: dataManager.selectedSemester?.id) { _, _ in
+            prepareShareFileIfNeeded()
+        }
         .sheet(isPresented: $isShareSheetPresented) {
             ActivityViewController(activityItems: shareItems)
-        }
-        .sheet(isPresented: $isExportSheetPresented) {
-            ActivityViewController(activityItems: exportItems)
         }
         .alert("Unable to share", isPresented: Binding(
             get: { shareErrorMessage != nil },
@@ -189,7 +188,7 @@ struct TimetableView: View {
         }
         .overlay(alignment: .bottom) {
             if !dataManager.timetable.isEmpty {
-                Text("Import tip: open a shared `vitstudent://timetable?...` link on this device and the timetable will auto-import.")
+                Text("Share tip: this exports timetable JSON for your friends to import from Profile > Friends.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)
@@ -211,36 +210,30 @@ struct TimetableView: View {
     }
 
     private func shareTimetable() {
-        let payload = TimetableSharePayload(
-            semesterName: dataManager.selectedSemester?.name,
-            timetable: dataManager.timetable,
-            courses: dataManager.courses
-        )
-
-        guard let deepLink = TimetableShareCodec.makeDeepLink(for: payload) else {
-            shareErrorMessage = "Could not generate timetable deep link."
+        if preparedShareFileURL == nil {
+            prepareShareFileIfNeeded()
+        }
+        guard let fileURL = preparedShareFileURL else {
+            shareErrorMessage = "Could not prepare timetable JSON."
             return
         }
-
-        let deepLinkString = deepLink.absoluteString
-        shareItems = [
-            "Import my timetable in VIT Student:\n\(deepLinkString)"
-        ]
+        shareItems = [fileURL]
         isShareSheetPresented = true
     }
 
-    private func exportTimetableJSON() {
+    private func prepareShareFileIfNeeded() {
         let payload = TimetableSharePayload(
             semesterName: dataManager.selectedSemester?.name,
             timetable: dataManager.timetable,
             courses: dataManager.courses
         )
-        guard let jsonFile = TimetableShareCodec.writePayloadFile(payload) else {
-            shareErrorMessage = "Could not export timetable JSON file."
-            return
+        let registerNumber = dataManager.studentProfile?.registrationNumber?.uppercased()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let file = TimetableShareCodec.writePayloadFile(payload, filePrefix: registerNumber)
+            DispatchQueue.main.async {
+                self.preparedShareFileURL = file
+            }
         }
-        exportItems = [jsonFile]
-        isExportSheetPresented = true
     }
 }
 

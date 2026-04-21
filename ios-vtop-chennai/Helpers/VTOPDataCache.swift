@@ -127,48 +127,66 @@ enum VTOPDataCache {
         coursesBySemesterId: [String: [Course]],
         timetableBySemesterId: [String: [TimetableSlot]]
     ) {
-        if let studentProfile { VTOPDiskCache.save(studentProfile, fileName: FileName.studentProfile) }
-        VTOPDiskCache.save(gradeHistoryRows, fileName: FileName.gradeHistoryRows)
-        VTOPDiskCache.save(courses, fileName: FileName.courses)
-        VTOPDiskCache.save(timetable, fileName: FileName.timetable)
-        VTOPDiskCache.save(attendance, fileName: FileName.attendance)
-        VTOPDiskCache.save(marks, fileName: FileName.marks)
-        VTOPDiskCache.save(cumulativeMarks, fileName: FileName.cumulativeMarks)
-        VTOPDiskCache.save(exams, fileName: FileName.exams)
-        VTOPDiskCache.save(staff, fileName: FileName.staff)
-        VTOPDiskCache.save(semesters, fileName: FileName.semesters)
-        if let selectedSemester { VTOPDiskCache.save(selectedSemester, fileName: FileName.selectedSemester) }
-        VTOPDiskCache.save(attendanceSemesterOptions, fileName: FileName.attendanceSemesterOptions)
-        VTOPDiskCache.save(marksReportSemesterOptions, fileName: FileName.marksReportSemesterOptions)
-        VTOPDiskCache.save(marksReportRows, fileName: FileName.marksReportRows)
-        if let marksReportSemesterId {
-            UserDefaults.standard.set(marksReportSemesterId, forKey: LegacyKey.marksReportSemesterId)
+        func bucketOn(_ b: AppCacheSettings.VTOPBucket) -> Bool {
+            AppCacheSettings.VTOPBucket.isEnabled(b)
         }
-        VTOPDiskCache.save(examScheduleSemesterOptions, fileName: FileName.examScheduleSemesterOptions)
-        if let examScheduleSemesterId {
-            UserDefaults.standard.set(examScheduleSemesterId, forKey: LegacyKey.examScheduleSemesterId)
+
+        if bucketOn(.profileSummary), let studentProfile {
+            VTOPDiskCache.save(studentProfile, fileName: FileName.studentProfile)
         }
-        VTOPDiskCache.save(spotlights, fileName: FileName.spotlights)
-        VTOPDiskCache.save(receipts, fileName: FileName.receipts)
-        VTOPDiskCache.save(scheduledEventRows, fileName: FileName.scheduledEventRows)
-        VTOPDiskCache.save(portalCredentials, fileName: FileName.portalCredentials)
-        VTOPDiskCache.save(rankEntries, fileName: FileName.rankEntries)
-        VTOPDiskCache.saveData(deanPortraitData, fileName: FileName.deanPortrait)
-        VTOPDiskCache.saveData(hodPortraitData, fileName: FileName.hodPortrait)
-        VTOPDiskCache.save(coursesBySemesterId, fileName: FileName.coursesBySemester)
-        VTOPDiskCache.save(timetableBySemesterId, fileName: FileName.timetableBySemester)
+        if bucketOn(.marksAndGrades) {
+            VTOPDiskCache.save(gradeHistoryRows, fileName: FileName.gradeHistoryRows)
+        }
+        if bucketOn(.academic) {
+            VTOPDiskCache.save(courses, fileName: FileName.courses)
+            VTOPDiskCache.save(timetable, fileName: FileName.timetable)
+            VTOPDiskCache.save(attendance, fileName: FileName.attendance)
+            VTOPDiskCache.save(semesters, fileName: FileName.semesters)
+            if let selectedSemester { VTOPDiskCache.save(selectedSemester, fileName: FileName.selectedSemester) }
+            VTOPDiskCache.save(attendanceSemesterOptions, fileName: FileName.attendanceSemesterOptions)
+            VTOPDiskCache.save(coursesBySemesterId, fileName: FileName.coursesBySemester)
+            VTOPDiskCache.save(timetableBySemesterId, fileName: FileName.timetableBySemester)
+        }
+        if bucketOn(.marksAndGrades) {
+            VTOPDiskCache.save(marks, fileName: FileName.marks)
+            VTOPDiskCache.save(cumulativeMarks, fileName: FileName.cumulativeMarks)
+            VTOPDiskCache.save(marksReportSemesterOptions, fileName: FileName.marksReportSemesterOptions)
+            VTOPDiskCache.save(marksReportRows, fileName: FileName.marksReportRows)
+            if let marksReportSemesterId {
+                UserDefaults.standard.set(marksReportSemesterId, forKey: LegacyKey.marksReportSemesterId)
+            }
+        }
+        if bucketOn(.exams) {
+            VTOPDiskCache.save(exams, fileName: FileName.exams)
+            VTOPDiskCache.save(examScheduleSemesterOptions, fileName: FileName.examScheduleSemesterOptions)
+            if let examScheduleSemesterId {
+                UserDefaults.standard.set(examScheduleSemesterId, forKey: LegacyKey.examScheduleSemesterId)
+            }
+        }
+        if bucketOn(.campusExtras) {
+            VTOPDiskCache.save(staff, fileName: FileName.staff)
+            VTOPDiskCache.save(spotlights, fileName: FileName.spotlights)
+            VTOPDiskCache.save(scheduledEventRows, fileName: FileName.scheduledEventRows)
+            VTOPDiskCache.save(portalCredentials, fileName: FileName.portalCredentials)
+            VTOPDiskCache.save(rankEntries, fileName: FileName.rankEntries)
+            VTOPDiskCache.saveData(deanPortraitData, fileName: FileName.deanPortrait)
+            VTOPDiskCache.saveData(hodPortraitData, fileName: FileName.hodPortrait)
+        }
+        if bucketOn(.receipts) {
+            VTOPDiskCache.save(receipts, fileName: FileName.receipts)
+        }
 
         for k in LegacyKey.allKeys {
             UserDefaults.standard.removeObject(forKey: k)
         }
 
-        if let p = studentProfile {
+        if bucketOn(.profileSummary), let p = studentProfile {
             UserDefaults.standard.set(p.name, forKey: "name")
             UserDefaults.standard.set(p.cgpa, forKey: "cgpa")
             UserDefaults.standard.set(p.totalCredits, forKey: "totalCredits")
             if let s = p.semester { UserDefaults.standard.set(s, forKey: "semester") }
         }
-        if let sel = selectedSemester {
+        if bucketOn(.academic), let sel = selectedSemester {
             UserDefaults.standard.set(sel.id, forKey: "semesterId")
             UserDefaults.standard.set(sel.name, forKey: "semester")
         }
@@ -176,57 +194,164 @@ enum VTOPDataCache {
         VTOPDiskCache.writeMeta(lastPersistedAt: Date())
     }
 
+    /// Removes on-disk VTOP files + related `UserDefaults` keys for one bucket (e.g. when the user turns caching off).
+    static func clearVTOPBucket(_ bucket: AppCacheSettings.VTOPBucket) {
+        switch bucket {
+        case .profileSummary:
+            VTOPDiskCache.removeFile(fileName: FileName.studentProfile)
+            UserDefaults.standard.removeObject(forKey: LegacyKey.studentProfile)
+            for k in ["name", "cgpa", "totalCredits"] as [String] { UserDefaults.standard.removeObject(forKey: k) }
+        case .academic:
+            for f in [
+                FileName.courses, FileName.timetable, FileName.attendance, FileName.semesters,
+                FileName.selectedSemester, FileName.attendanceSemesterOptions,
+                FileName.coursesBySemester, FileName.timetableBySemester
+            ] { VTOPDiskCache.removeFile(fileName: f) }
+            for k in [
+                LegacyKey.courses, LegacyKey.timetable, LegacyKey.attendance, LegacyKey.semesters,
+                LegacyKey.selectedSemester, LegacyKey.attendanceSemesterOptions
+            ] { UserDefaults.standard.removeObject(forKey: k) }
+            UserDefaults.standard.removeObject(forKey: "semesterId")
+            UserDefaults.standard.removeObject(forKey: "semester")
+        case .marksAndGrades:
+            for f in [
+                FileName.gradeHistoryRows, FileName.marks, FileName.cumulativeMarks,
+                FileName.marksReportSemesterOptions, FileName.marksReportRows
+            ] { VTOPDiskCache.removeFile(fileName: f) }
+            for k in [
+                LegacyKey.gradeHistoryRows, LegacyKey.marks, LegacyKey.cumulativeMarks,
+                LegacyKey.marksReportSemesterOptions, LegacyKey.marksReportRows,
+                LegacyKey.marksReportSemesterId
+            ] { UserDefaults.standard.removeObject(forKey: k) }
+        case .exams:
+            for f in [FileName.exams, FileName.examScheduleSemesterOptions] { VTOPDiskCache.removeFile(fileName: f) }
+            for k in [LegacyKey.exams, LegacyKey.examScheduleSemesterOptions, LegacyKey.examScheduleSemesterId] {
+                UserDefaults.standard.removeObject(forKey: k)
+            }
+        case .receipts:
+            VTOPDiskCache.removeFile(fileName: FileName.receipts)
+            UserDefaults.standard.removeObject(forKey: LegacyKey.receipts)
+        case .campusExtras:
+            for f in [
+                FileName.staff, FileName.spotlights, FileName.scheduledEventRows,
+                FileName.portalCredentials, FileName.rankEntries, FileName.deanPortrait, FileName.hodPortrait
+            ] { VTOPDiskCache.removeFile(fileName: f) }
+            for k in [
+                LegacyKey.staff, LegacyKey.spotlights, LegacyKey.scheduledEventRows,
+                LegacyKey.portalCredentials, LegacyKey.rankEntries, LegacyKey.deanPortraitData, LegacyKey.hodPortraitData
+            ] { UserDefaults.standard.removeObject(forKey: k) }
+        }
+    }
+
     /// Loads cache off the main thread, then applies on `MainActor`.
     static func restoreInto(_ dm: DataManager) {
         Task.detached(priority: .userInitiated) {
-            let profile: StudentProfile? = loadFromDiskOrMigrate(
-                StudentProfile.self,
-                file: FileName.studentProfile,
-                legacyKey: LegacyKey.studentProfile
-            ) ?? {
-                if let name = UserDefaults.standard.string(forKey: "name") {
-                    let cgpa = UserDefaults.standard.double(forKey: "cgpa")
-                    let totalCredits = UserDefaults.standard.double(forKey: "totalCredits")
-                    let semester = UserDefaults.standard.string(forKey: "semester")
-                    return StudentProfile(name: name, cgpa: cgpa, totalCredits: totalCredits, semester: semester)
-                }
-                return nil
-            }()
+            func bucketOn(_ b: AppCacheSettings.VTOPBucket) -> Bool {
+                AppCacheSettings.VTOPBucket.isEnabled(b)
+            }
 
-            let gradeHistoryRows: [GradeHistoryCourseRow] = loadFromDiskOrMigrate(
-                [GradeHistoryCourseRow].self,
-                file: FileName.gradeHistoryRows,
-                legacyKey: LegacyKey.gradeHistoryRows
-            ) ?? []
-            let courses: [Course] = loadFromDiskOrMigrate([Course].self, file: FileName.courses, legacyKey: LegacyKey.courses) ?? []
-            let timetable: [TimetableSlot] = loadFromDiskOrMigrate([TimetableSlot].self, file: FileName.timetable, legacyKey: LegacyKey.timetable) ?? []
-            let attendance: [Attendance] = loadFromDiskOrMigrate([Attendance].self, file: FileName.attendance, legacyKey: LegacyKey.attendance) ?? []
-            let marks: [Mark] = loadFromDiskOrMigrate([Mark].self, file: FileName.marks, legacyKey: LegacyKey.marks) ?? []
-            let cumulativeMarks: [CumulativeMark] = loadFromDiskOrMigrate([CumulativeMark].self, file: FileName.cumulativeMarks, legacyKey: LegacyKey.cumulativeMarks) ?? []
-            let exams: [Exam] = loadFromDiskOrMigrate([Exam].self, file: FileName.exams, legacyKey: LegacyKey.exams) ?? []
-            let staff: [Staff] = loadFromDiskOrMigrate([Staff].self, file: FileName.staff, legacyKey: LegacyKey.staff) ?? []
-            let semesters: [Semester] = loadFromDiskOrMigrate([Semester].self, file: FileName.semesters, legacyKey: LegacyKey.semesters) ?? []
-            let selectedSemester: Semester? = loadFromDiskOrMigrate(Semester.self, file: FileName.selectedSemester, legacyKey: LegacyKey.selectedSemester)
-            let attendanceSemesterOptions: [Semester] = loadFromDiskOrMigrate([Semester].self, file: FileName.attendanceSemesterOptions, legacyKey: LegacyKey.attendanceSemesterOptions) ?? []
-            let marksReportSemesterOptions: [Semester] = loadFromDiskOrMigrate([Semester].self, file: FileName.marksReportSemesterOptions, legacyKey: LegacyKey.marksReportSemesterOptions) ?? []
-            let marksReportRows: [MarkReportRow] = loadFromDiskOrMigrate([MarkReportRow].self, file: FileName.marksReportRows, legacyKey: LegacyKey.marksReportRows) ?? []
-            let examScheduleSemesterOptions: [Semester] = loadFromDiskOrMigrate([Semester].self, file: FileName.examScheduleSemesterOptions, legacyKey: LegacyKey.examScheduleSemesterOptions) ?? []
-            let spotlights: [Spotlight] = loadFromDiskOrMigrate([Spotlight].self, file: FileName.spotlights, legacyKey: LegacyKey.spotlights) ?? []
-            let receipts: [Receipt] = loadFromDiskOrMigrate([Receipt].self, file: FileName.receipts, legacyKey: LegacyKey.receipts) ?? []
-            let scheduledEventRows: [VTOPScheduledEventRow] = loadFromDiskOrMigrate([VTOPScheduledEventRow].self, file: FileName.scheduledEventRows, legacyKey: LegacyKey.scheduledEventRows) ?? []
-            let portalCredentials: [VTOPPortalCredential] = loadFromDiskOrMigrate([VTOPPortalCredential].self, file: FileName.portalCredentials, legacyKey: LegacyKey.portalCredentials) ?? []
-            let rankEntries: [VTOPRankEntry] = loadFromDiskOrMigrate([VTOPRankEntry].self, file: FileName.rankEntries, legacyKey: LegacyKey.rankEntries) ?? []
-            let coursesBySemesterId: [String: [Course]] = VTOPDiskCache.load([String: [Course]].self, fileName: FileName.coursesBySemester) ?? [:]
-            let timetableBySemesterId: [String: [TimetableSlot]] = VTOPDiskCache.load([String: [TimetableSlot]].self, fileName: FileName.timetableBySemester) ?? [:]
+            let profile: StudentProfile? = bucketOn(.profileSummary)
+                ? (loadFromDiskOrMigrate(
+                    StudentProfile.self,
+                    file: FileName.studentProfile,
+                    legacyKey: LegacyKey.studentProfile
+                ) ?? {
+                    if let name = UserDefaults.standard.string(forKey: "name") {
+                        let cgpa = UserDefaults.standard.double(forKey: "cgpa")
+                        let totalCredits = UserDefaults.standard.double(forKey: "totalCredits")
+                        let semester = UserDefaults.standard.string(forKey: "semester")
+                        return StudentProfile(name: name, cgpa: cgpa, totalCredits: totalCredits, semester: semester)
+                    }
+                    return nil
+                }())
+                : nil
 
-            let marksReportSemesterId = UserDefaults.standard.string(forKey: LegacyKey.marksReportSemesterId)
-            let examScheduleSemesterId = UserDefaults.standard.string(forKey: LegacyKey.examScheduleSemesterId)
-            let deanPortraitData = VTOPDiskCache.loadData(fileName: FileName.deanPortrait)
-                ?? UserDefaults.standard.data(forKey: LegacyKey.deanPortraitData)
-            let hodPortraitData = VTOPDiskCache.loadData(fileName: FileName.hodPortrait)
-                ?? UserDefaults.standard.data(forKey: LegacyKey.hodPortraitData)
+            let gradeHistoryRows: [GradeHistoryCourseRow] = bucketOn(.marksAndGrades)
+                ? (loadFromDiskOrMigrate(
+                    [GradeHistoryCourseRow].self,
+                    file: FileName.gradeHistoryRows,
+                    legacyKey: LegacyKey.gradeHistoryRows
+                ) ?? [])
+                : []
+            let courses: [Course] = bucketOn(.academic)
+                ? (loadFromDiskOrMigrate([Course].self, file: FileName.courses, legacyKey: LegacyKey.courses) ?? [])
+                : []
+            let timetable: [TimetableSlot] = bucketOn(.academic)
+                ? (loadFromDiskOrMigrate([TimetableSlot].self, file: FileName.timetable, legacyKey: LegacyKey.timetable) ?? [])
+                : []
+            let attendance: [Attendance] = bucketOn(.academic)
+                ? (loadFromDiskOrMigrate([Attendance].self, file: FileName.attendance, legacyKey: LegacyKey.attendance) ?? [])
+                : []
+            let marks: [Mark] = bucketOn(.marksAndGrades)
+                ? (loadFromDiskOrMigrate([Mark].self, file: FileName.marks, legacyKey: LegacyKey.marks) ?? [])
+                : []
+            let cumulativeMarks: [CumulativeMark] = bucketOn(.marksAndGrades)
+                ? (loadFromDiskOrMigrate([CumulativeMark].self, file: FileName.cumulativeMarks, legacyKey: LegacyKey.cumulativeMarks) ?? [])
+                : []
+            let exams: [Exam] = bucketOn(.exams)
+                ? (loadFromDiskOrMigrate([Exam].self, file: FileName.exams, legacyKey: LegacyKey.exams) ?? [])
+                : []
+            let staff: [Staff] = bucketOn(.campusExtras)
+                ? (loadFromDiskOrMigrate([Staff].self, file: FileName.staff, legacyKey: LegacyKey.staff) ?? [])
+                : []
+            let semesters: [Semester] = bucketOn(.academic)
+                ? (loadFromDiskOrMigrate([Semester].self, file: FileName.semesters, legacyKey: LegacyKey.semesters) ?? [])
+                : []
+            let selectedSemester: Semester? = bucketOn(.academic)
+                ? loadFromDiskOrMigrate(Semester.self, file: FileName.selectedSemester, legacyKey: LegacyKey.selectedSemester)
+                : nil
+            let attendanceSemesterOptions: [Semester] = bucketOn(.academic)
+                ? (loadFromDiskOrMigrate([Semester].self, file: FileName.attendanceSemesterOptions, legacyKey: LegacyKey.attendanceSemesterOptions) ?? [])
+                : []
+            let marksReportSemesterOptions: [Semester] = bucketOn(.marksAndGrades)
+                ? (loadFromDiskOrMigrate([Semester].self, file: FileName.marksReportSemesterOptions, legacyKey: LegacyKey.marksReportSemesterOptions) ?? [])
+                : []
+            let marksReportRows: [MarkReportRow] = bucketOn(.marksAndGrades)
+                ? (loadFromDiskOrMigrate([MarkReportRow].self, file: FileName.marksReportRows, legacyKey: LegacyKey.marksReportRows) ?? [])
+                : []
+            let examScheduleSemesterOptions: [Semester] = bucketOn(.exams)
+                ? (loadFromDiskOrMigrate([Semester].self, file: FileName.examScheduleSemesterOptions, legacyKey: LegacyKey.examScheduleSemesterOptions) ?? [])
+                : []
+            let spotlights: [Spotlight] = bucketOn(.campusExtras)
+                ? (loadFromDiskOrMigrate([Spotlight].self, file: FileName.spotlights, legacyKey: LegacyKey.spotlights) ?? [])
+                : []
+            let receipts: [Receipt] = bucketOn(.receipts)
+                ? (loadFromDiskOrMigrate([Receipt].self, file: FileName.receipts, legacyKey: LegacyKey.receipts) ?? [])
+                : []
+            let scheduledEventRows: [VTOPScheduledEventRow] = bucketOn(.campusExtras)
+                ? (loadFromDiskOrMigrate([VTOPScheduledEventRow].self, file: FileName.scheduledEventRows, legacyKey: LegacyKey.scheduledEventRows) ?? [])
+                : []
+            let portalCredentials: [VTOPPortalCredential] = bucketOn(.campusExtras)
+                ? (loadFromDiskOrMigrate([VTOPPortalCredential].self, file: FileName.portalCredentials, legacyKey: LegacyKey.portalCredentials) ?? [])
+                : []
+            let rankEntries: [VTOPRankEntry] = bucketOn(.campusExtras)
+                ? (loadFromDiskOrMigrate([VTOPRankEntry].self, file: FileName.rankEntries, legacyKey: LegacyKey.rankEntries) ?? [])
+                : []
+            let coursesBySemesterId: [String: [Course]] = bucketOn(.academic)
+                ? (VTOPDiskCache.load([String: [Course]].self, fileName: FileName.coursesBySemester) ?? [:])
+                : [:]
+            let timetableBySemesterId: [String: [TimetableSlot]] = bucketOn(.academic)
+                ? (VTOPDiskCache.load([String: [TimetableSlot]].self, fileName: FileName.timetableBySemester) ?? [:])
+                : [:]
+
+            let marksReportSemesterId = bucketOn(.marksAndGrades)
+                ? UserDefaults.standard.string(forKey: LegacyKey.marksReportSemesterId)
+                : nil
+            let examScheduleSemesterId = bucketOn(.exams)
+                ? UserDefaults.standard.string(forKey: LegacyKey.examScheduleSemesterId)
+                : nil
+            let deanPortraitData = bucketOn(.campusExtras)
+                ? (VTOPDiskCache.loadData(fileName: FileName.deanPortrait)
+                    ?? UserDefaults.standard.data(forKey: LegacyKey.deanPortraitData))
+                : nil
+            let hodPortraitData = bucketOn(.campusExtras)
+                ? (VTOPDiskCache.loadData(fileName: FileName.hodPortrait)
+                    ?? UserDefaults.standard.data(forKey: LegacyKey.hodPortraitData))
+                : nil
 
             let meta = VTOPDiskCache.readMeta()
+            let marksBucketOn = bucketOn(.marksAndGrades)
+            let examsBucketOn = bucketOn(.exams)
             await MainActor.run {
                 dm.studentProfile = profile
                 dm.gradeHistoryRows = gradeHistoryRows
@@ -242,9 +367,11 @@ enum VTOPDataCache {
                 dm.attendanceSemesterOptions = attendanceSemesterOptions
                 dm.marksReportSemesterOptions = marksReportSemesterOptions
                 dm.marksReportRows = marksReportRows
-                if let sid = marksReportSemesterId, !sid.isEmpty { dm.marksReportSemesterId = sid }
+                if marksBucketOn, let sid = marksReportSemesterId, !sid.isEmpty { dm.marksReportSemesterId = sid }
+                if !marksBucketOn { dm.marksReportSemesterId = nil }
                 dm.examScheduleSemesterOptions = examScheduleSemesterOptions
-                if let sid = examScheduleSemesterId, !sid.isEmpty { dm.examScheduleSemesterId = sid }
+                if examsBucketOn, let sid = examScheduleSemesterId, !sid.isEmpty { dm.examScheduleSemesterId = sid }
+                if !examsBucketOn { dm.examScheduleSemesterId = nil }
                 dm.spotlights = spotlights
                 dm.receipts = receipts
                 dm.scheduledEventRows = scheduledEventRows
