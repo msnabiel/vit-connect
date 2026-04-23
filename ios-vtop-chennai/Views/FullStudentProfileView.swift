@@ -56,6 +56,24 @@ struct FullStudentProfileView: View {
                                 .foregroundColor(FullProfileStyle.summaryLabelColor)
                         }
                     }
+                    if let required = profile.totalCreditsRequired, required > 0 {
+                        LabeledContent {
+                            Text(String(format: "%.0f", required))
+                                .foregroundColor(Color.blue.opacity(0.92))
+                        } label: {
+                            Text("Total credits required")
+                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                        }
+                    }
+                    if let nonGraded = profile.nonGradedCoreRequirement, nonGraded >= 0 {
+                        LabeledContent {
+                            Text(String(format: "%.1f", nonGraded))
+                                .foregroundColor(Color.red.opacity(0.88))
+                        } label: {
+                            Text("Non-graded core requirement")
+                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                        }
+                    }
                 } header: {
                     FullProfileSectionHeader(title: "Summary")
                 }
@@ -110,15 +128,19 @@ private struct ProfileAccordionSectionBlock: View {
 
     var body: some View {
         Section {
-            ForEach(section.rows) { row in
-                VStack(alignment: .leading, spacing: 4) {
+            // Index-based ids: VTOP often repeats the same key|value (e.g. CITY, STATE) in one section.
+            ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
+                HStack(alignment: .top, spacing: 12) {
                     Text(row.key)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(accent)
+                        .frame(minWidth: 108, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(row.value.isEmpty ? "—" : row.value)
                         .font(.body)
                         .foregroundColor(FullProfileStyle.valueColor)
                         .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.vertical, 2)
             }

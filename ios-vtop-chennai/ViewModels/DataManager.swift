@@ -698,6 +698,38 @@ class DataManager: ObservableObject {
                     });
                     profile.nameFromHistory = nameFromHistory;
 
+                    function parseDashboardCgpaCredits(resCgpaCredits) {
+                        var $cg = $(new DOMParser().parseFromString(resCgpaCredits, 'text/html'));
+                        $cg.find('li').each(function() {
+                            var txt = ($(this).text() || '').replace(/\\s+/g, ' ').trim();
+                            if (!txt) return;
+                            var low = txt.toLowerCase();
+                            var num = parseFloat(txt.replace(/[^0-9.]/g, ''));
+                            if (isNaN(num)) return;
+                            if (low.indexOf('total credits required') >= 0) {
+                                profile.totalCreditsRequired = num;
+                            } else if (low.indexOf('earned credits') >= 0) {
+                                profile.totalCredits = num;
+                            } else if (low.indexOf('current cgpa') >= 0) {
+                                profile.cgpa = num;
+                            } else if (low.indexOf('non-graded core requirement') >= 0) {
+                                profile.nonGradedCoreRequirement = num;
+                            }
+                        });
+                    }
+
+                    $.ajax({
+                        type: 'POST',
+                        url: '/vtop/get/dashboard/current/cgpa/credits',
+                        data: 'verifyMenu=true&authorizedID=' + encodeURIComponent('\(authorizedID)') + '&_csrf=' + encodeURIComponent('\(csrfToken)') + '&nocache=' + Date.now(),
+                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        async: false,
+                        success: function(resCgpaCredits) {
+                            parseDashboardCgpaCredits(resCgpaCredits);
+                        },
+                        error: function(xhr2, st2, err2) { }
+                    });
+
                     var parsed = false;
                     $doc.find('h3.box-title, h3').each(function() {
                         var titleText = $(this).text();
@@ -859,6 +891,8 @@ class DataManager: ObservableObject {
         let cgpa = dict["cgpa"] as? Double ?? 0.0
         let totalCredits = dict["totalCredits"] as? Double ?? 0.0
         let creditsRegistered = Self.doubleIfPresent(dict["creditsRegistered"])
+        let totalCreditsRequired = Self.doubleIfPresent(dict["totalCreditsRequired"])
+        let nonGradedCoreRequirement = Self.doubleIfPresent(dict["nonGradedCoreRequirement"])
         let registrationNumber = dict["registrationNumber"] as? String
         let vitEmail = dict["vitEmail"] as? String
         let programBranch = dict["programBranch"] as? String
@@ -915,6 +949,8 @@ class DataManager: ObservableObject {
             cgpa: cgpa,
             totalCredits: totalCredits,
             creditsRegistered: creditsRegistered,
+            totalCreditsRequired: totalCreditsRequired,
+            nonGradedCoreRequirement: nonGradedCoreRequirement,
             registrationNumber: registrationNumber,
             vitEmail: vitEmail,
             programBranch: programBranch,

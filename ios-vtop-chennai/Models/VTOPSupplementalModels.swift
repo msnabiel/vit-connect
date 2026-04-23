@@ -6,6 +6,7 @@ struct ProfileKeyValueRow: Codable, Hashable, Identifiable {
     let key: String
     let value: String
 
+    /// Not guaranteed unique (VTOP repeats labels/values). Use section-scoped index in `ForEach`, not this alone.
     var id: String { "\(key)|\(value)" }
 }
 

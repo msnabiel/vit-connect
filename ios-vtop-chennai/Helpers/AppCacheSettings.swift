@@ -2,6 +2,9 @@ import Foundation
 
 /// User-controlled flags for what is allowed to persist on disk / restore at launch.
 enum AppCacheSettings {
+    private static let activeRegisterNumberKey = "cache_active_register_number"
+    private static let clearCacheOnSignOutKey = "cache_clear_on_sign_out"
+
     private static func isOn(_ key: String, default defaultOn: Bool = true) -> Bool {
         if UserDefaults.standard.object(forKey: key) == nil { return defaultOn }
         return UserDefaults.standard.bool(forKey: key)
@@ -9,6 +12,36 @@ enum AppCacheSettings {
 
     private static func setOn(_ key: String, _ on: Bool) {
         UserDefaults.standard.set(on, forKey: key)
+    }
+
+    private static func normalizedRegisterNumber(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let filtered = trimmed
+            .uppercased()
+            .map { ch in ch.isLetter || ch.isNumber || ch == "-" || ch == "_" ? ch : "_" }
+        return String(filtered)
+    }
+
+    static func activeRegisterNumber() -> String? {
+        normalizedRegisterNumber(UserDefaults.standard.string(forKey: activeRegisterNumberKey))
+    }
+
+    static func setActiveRegisterNumber(_ value: String?) {
+        guard let normalized = normalizedRegisterNumber(value) else {
+            UserDefaults.standard.removeObject(forKey: activeRegisterNumberKey)
+            return
+        }
+        UserDefaults.standard.set(normalized, forKey: activeRegisterNumberKey)
+    }
+
+    static func clearCacheOnSignOutEnabled() -> Bool {
+        isOn(clearCacheOnSignOutKey, default: false)
+    }
+
+    static func setClearCacheOnSignOutEnabled(_ enabled: Bool) {
+        setOn(clearCacheOnSignOutKey, enabled)
     }
 
     // MARK: - VTOP snapshot buckets

@@ -17,7 +17,22 @@ struct CacheManagementView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section(header: Text("Sign out behavior")) {
+                Toggle(isOn: clearOnSignOutBinding) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Clear VTOP cache on sign out")
+                        Text("Default is Off. When enabled, signing out also deletes saved VTOP data.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             Section(header: Text("VTOP — save on device")) {
+                LabeledContent("Cache linked to register no.") {
+                    Text(AppCacheSettings.activeRegisterNumber() ?? "Not linked yet")
+                        .foregroundStyle(.secondary)
+                }
                 if let cached = dataManager.cachePersistedAt {
                     LabeledContent("Last saved") {
                         Text(cached.formatted(date: .abbreviated, time: .shortened))
@@ -162,6 +177,13 @@ struct CacheManagementView: View {
                 AppCacheSettings.UserStore.setEnabled(.notesAndTodos, newValue)
                 notesStore.applyCacheSettingsPreference()
             }
+        )
+    }
+
+    private var clearOnSignOutBinding: Binding<Bool> {
+        Binding(
+            get: { AppCacheSettings.clearCacheOnSignOutEnabled() },
+            set: { AppCacheSettings.setClearCacheOnSignOutEnabled($0) }
         )
     }
 }
