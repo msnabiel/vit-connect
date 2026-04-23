@@ -46,6 +46,9 @@ private enum GPAKeyboardFocus: Hashable {
 }
 
 struct GPACalculatorView: View {
+    /// Shared label column width for HStack label | field rows.
+    fileprivate static let fieldLabelMinWidth: CGFloat = 168
+
     @EnvironmentObject var dataManager: DataManager
     @State private var courses: [GPACourseInput] = [
         GPACourseInput(name: "Course 1", creditsText: "3", grade: .a)
@@ -106,13 +109,17 @@ struct GPACalculatorView: View {
             Section {
                 LabeledContent("Current CGPA", value: String(format: "%.2f", currentCGPA))
                 LabeledContent("Completed credits", value: String(format: "%.0f", completedCredits))
-                VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text("Remaining credits to graduate")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    TextField("Remaining credits to graduate", text: $remainingCreditsText)
+                        .frame(minWidth: GPACalculatorView.fieldLabelMinWidth, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    TextField("Credits", text: $remainingCreditsText)
                         .keyboardType(.decimalPad)
                         .focused($keyboardFocus, equals: .remainingCredits)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 Button {
                     applySuggestedRemainingCredits()
@@ -130,13 +137,17 @@ struct GPACalculatorView: View {
                     requiredGPA: requiredGPA(for: 8.5)
                 )
 
-                VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text("Custom target CGPA")
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    TextField("Custom target CGPA", text: $customTargetText)
+                        .frame(minWidth: GPACalculatorView.fieldLabelMinWidth, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    TextField("e.g. 9.00", text: $customTargetText)
                         .keyboardType(.decimalPad)
                         .focused($keyboardFocus, equals: .customTarget)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 TargetNeedRow(
                     title: "Need for custom target",
@@ -177,31 +188,39 @@ private struct GPACourseInputRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("Course name")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
-                TextField("Course name", text: $course.name)
+                    .frame(minWidth: GPACalculatorView.fieldLabelMinWidth, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField("Name", text: $course.name)
                     .focused(keyboardFocus, equals: .courseName(course.id))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("Credits")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
-                TextField("Credits", text: $course.creditsText)
+                    .frame(minWidth: GPACalculatorView.fieldLabelMinWidth, alignment: .leading)
+                TextField("0", text: $course.creditsText)
                     .keyboardType(.decimalPad)
                     .focused(keyboardFocus, equals: .courseCredits(course.id))
+                    .multilineTextAlignment(.trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 12) {
                 Text("Grade")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Picker("Grade", selection: $course.grade) {
+                    .frame(minWidth: GPACalculatorView.fieldLabelMinWidth, alignment: .leading)
+                Picker("", selection: $course.grade) {
                     ForEach(GPAGrade.allCases) { grade in
                         Text("\(grade.rawValue) (\(Int(grade.points)))").tag(grade)
                     }
                 }
                 .pickerStyle(.menu)
+                Spacer(minLength: 0)
             }
         }
         .padding(.vertical, 4)

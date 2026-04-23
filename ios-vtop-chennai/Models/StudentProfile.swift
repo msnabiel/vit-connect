@@ -7,6 +7,10 @@ struct StudentProfile: Codable, Identifiable {
     var totalCredits: Double
     /// Credits registered (when provided by CGPA summary table on grade history).
     var creditsRegistered: Double?
+    /// Program total required credits from `/get/dashboard/current/cgpa/credits`.
+    var totalCreditsRequired: Double?
+    /// Non-graded core requirement from `/get/dashboard/current/cgpa/credits`.
+    var nonGradedCoreRequirement: Double?
     var registrationNumber: String?
     var vitEmail: String?
     var programBranch: String?
@@ -25,6 +29,8 @@ struct StudentProfile: Codable, Identifiable {
         cgpa: Double,
         totalCredits: Double,
         creditsRegistered: Double? = nil,
+        totalCreditsRequired: Double? = nil,
+        nonGradedCoreRequirement: Double? = nil,
         registrationNumber: String? = nil,
         vitEmail: String? = nil,
         programBranch: String? = nil,
@@ -41,6 +47,8 @@ struct StudentProfile: Codable, Identifiable {
         self.cgpa = cgpa
         self.totalCredits = totalCredits
         self.creditsRegistered = creditsRegistered
+        self.totalCreditsRequired = totalCreditsRequired
+        self.nonGradedCoreRequirement = nonGradedCoreRequirement
         self.registrationNumber = registrationNumber
         self.vitEmail = vitEmail
         self.programBranch = programBranch

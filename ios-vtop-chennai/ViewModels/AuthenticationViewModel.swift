@@ -168,6 +168,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
            let savedPassword = keychainHelper.getPassword() {
             self.username = savedUsername
             self.password = savedPassword
+            AppCacheSettings.setActiveRegisterNumber(savedUsername)
             logger.info("Found saved credentials for user: \(savedUsername)", context: "Keychain")
         } else {
             logger.debug("No saved credentials found", context: "Keychain")
@@ -177,6 +178,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     // MARK: - Sign In
     func signIn() {
         logger.info("🔐 Sign in initiated for user: \(username)", context: "SignIn")
+        AppCacheSettings.setActiveRegisterNumber(username)
 
         guard !username.isEmpty, !password.isEmpty else {
             let error = "Please enter username and password"
@@ -777,7 +779,9 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         showReCaptchaWebView = false
         isAttemptingSessionRecovery = false
         errorMessage = nil
-        dataManager?.clearCachedVTOPData()
+        if AppCacheSettings.clearCacheOnSignOutEnabled() {
+            dataManager?.clearCachedVTOPData()
+        }
 
         // Clear webview cookies
         let dataStore = WKWebsiteDataStore.default()
@@ -807,6 +811,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         // Set credentials
         self.username = savedUsername
         self.password = savedPassword
+        AppCacheSettings.setActiveRegisterNumber(savedUsername)
 
         self.isAttemptingSessionRecovery = true
 

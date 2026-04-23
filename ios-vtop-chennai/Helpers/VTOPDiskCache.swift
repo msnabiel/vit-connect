@@ -15,7 +15,10 @@ enum VTOPDiskCache {
 
     static var storageRoot: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let dir = base.appendingPathComponent("VTOP", isDirectory: true)
+        let namespace = AppCacheSettings.activeRegisterNumber() ?? "shared"
+        let dir = base
+            .appendingPathComponent("VTOP", isDirectory: true)
+            .appendingPathComponent(namespace, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }

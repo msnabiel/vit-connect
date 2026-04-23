@@ -1046,6 +1046,30 @@ struct ProfileTabView: View {
                             )
                         }
                         .padding(.vertical, 2)
+
+                        if let required = profile.totalCreditsRequired {
+                            HStack {
+                                Text("Total credits required")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(String(format: "%.0f", required))
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .padding(.vertical, 2)
+                        }
+
+                        if let nonGraded = profile.nonGradedCoreRequirement {
+                            HStack {
+                                Text("Non-graded core requirement")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(String(format: "%.1f", nonGraded))
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .padding(.vertical, 2)
+                        }
                     }
                 }
 
@@ -1230,7 +1254,7 @@ struct ProfileTabView: View {
                     authViewModel.signOut()
                 }
             } message: {
-                Text("You will need to sign in again. All cached data on this device will be cleared.")
+                Text("You will need to sign in again. Cached data is cleared only if enabled in Cache management.")
             }
             .alert("Clear cache?", isPresented: $confirmClearCache) {
                 Button("Cancel", role: .cancel) {}
