@@ -12,7 +12,7 @@ struct VTOPGlanceSnapshot: Codable, Sendable {
     /// Short lines for “today” (e.g. "09:00 · Course · Venue")
     var todaySlotLines: [String]
 
-    static let appGroupIdentifier = "group.com.msnabiel.vit-student"
+    static let appGroupIdentifier = "group.com.msnabiel.vit-connect"
     static let snapshotFileName = "glance_snapshot.json"
 
     static func sharedSnapshotURL() -> URL? {

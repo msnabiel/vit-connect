@@ -49,7 +49,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		232936FC2F9278500060E2AB /* ios-vtop-chennai.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ios-vtop-chennai.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		232936FC2F9278500060E2AB /* VIT Connect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "VIT Connect.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		232937112F9278530060E2AB /* ios-vtop-chennaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2329371B2F9278530060E2AB /* ios-vtop-chennaiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2AB01002F9278500060E2AB /* VTOPGlanceWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VTOPGlanceWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -137,7 +137,7 @@
 		232936FD2F9278500060E2AB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				232936FC2F9278500060E2AB /* ios-vtop-chennai.app */,
+				232936FC2F9278500060E2AB /* VIT Connect.app */,
 				E2AB01002F9278500060E2AB /* VTOPGlanceWidgetExtension.appex */,
 				232937112F9278530060E2AB /* ios-vtop-chennaiTests.xctest */,
 				2329371B2F9278530060E2AB /* ios-vtop-chennaiUITests.xctest */,
@@ -169,7 +169,7 @@
 			packageProductDependencies = (
 			);
 			productName = "ios-vtop-chennai";
-			productReference = 232936FC2F9278500060E2AB /* ios-vtop-chennai.app */;
+			productReference = 232936FC2F9278500060E2AB /* VIT Connect.app */;
 			productType = "com.apple.product-type.application";
 		};
 		232937102F9278530060E2AB /* ios-vtop-chennaiTests */ = {
@@ -495,12 +495,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ios-vtop-chennai/ios-vtop-chennai.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"ios-vtop-chennai/Preview Content\"";
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "VIT Student";
+				INFOPLIST_KEY_CFBundleDisplayName = "VIT Connect";
+				INFOPLIST_KEY_CFBundleName = "VIT Connect";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlocks saved login with Face ID.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -513,8 +515,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-student";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect";
+				PRODUCT_NAME = "VIT Connect";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -528,12 +530,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ios-vtop-chennai/ios-vtop-chennai.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"ios-vtop-chennai/Preview Content\"";
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "VIT Student";
+				INFOPLIST_KEY_CFBundleDisplayName = "VIT Connect";
+				INFOPLIST_KEY_CFBundleName = "VIT Connect";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlocks saved login with Face ID.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -546,8 +550,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-student";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect";
+				PRODUCT_NAME = "VIT Connect";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -569,7 +573,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ios-vtop-chennai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ios-vtop-chennai";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VIT Connect.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/VIT Connect";
 			};
 			name = Debug;
 		};
@@ -588,7 +592,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ios-vtop-chennai.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ios-vtop-chennai";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VIT Connect.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/VIT Connect";
 			};
 			name = Release;
 		};
@@ -642,7 +646,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-student.VTOPGlanceWidget";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect.VTOPGlanceWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -667,7 +671,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-student.VTOPGlanceWidget";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect.VTOPGlanceWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;

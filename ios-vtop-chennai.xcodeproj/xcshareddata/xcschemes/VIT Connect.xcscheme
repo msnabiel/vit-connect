@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "232936FB2F9278500060E2AB"
-               BuildableName = "ios-vtop-chennai.app"
+               BuildableName = "VIT Connect.app"
                BlueprintName = "ios-vtop-chennai"
                ReferencedContainer = "container:ios-vtop-chennai.xcodeproj">
             </BuildableReference>
@@ -68,7 +68,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "232936FB2F9278500060E2AB"
-            BuildableName = "ios-vtop-chennai.app"
+            BuildableName = "VIT Connect.app"
             BlueprintName = "ios-vtop-chennai"
             ReferencedContainer = "container:ios-vtop-chennai.xcodeproj">
          </BuildableReference>
@@ -85,7 +85,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "232936FB2F9278500060E2AB"
-            BuildableName = "ios-vtop-chennai.app"
+            BuildableName = "VIT Connect.app"
             BlueprintName = "ios-vtop-chennai"
             ReferencedContainer = "container:ios-vtop-chennai.xcodeproj">
          </BuildableReference>

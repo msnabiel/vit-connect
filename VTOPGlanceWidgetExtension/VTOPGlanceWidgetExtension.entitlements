@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.msnabiel.vit-student</string>
+		<string>group.com.msnabiel.vit-connect</string>
 	</array>
 </dict>
 </plist>
