@@ -13,7 +13,7 @@ private struct GlanceSnapshotDTO: Codable {
     var nextClassEnd: Date?
     var todaySlotLines: [String]
 
-    private static let appGroupId = "group.com.msnabiel.ios-vtop-chennai"
+    private static let appGroupId = "group.com.msnabiel.vit-student"
     private static let fileName = "glance_snapshot.json"
 
     static func load() -> GlanceSnapshotDTO? {
