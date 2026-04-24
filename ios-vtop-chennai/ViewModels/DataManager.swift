@@ -66,6 +66,8 @@ class DataManager: ObservableObject {
     private var authorizedID: String?
     private var csrfToken: String?
     private var syncDebounceItem: DispatchWorkItem?
+    /// Fires if a manual full sync stays in the loading state too long (hung WebView JS, network, etc.).
+    private var fullSyncStallWatchdogItem: DispatchWorkItem?
     private var coursesBySemesterId: [String: [Course]] = [:]
     private var timetableBySemesterId: [String: [TimetableSlot]] = [:]
     /// Set for the lifetime of one `extractSessionData` → … → `finishDataFetching` chain. Only `performSyncAll` starts a chain with this true so post-login fetches never touch UserDefaults quota.
@@ -74,6 +76,9 @@ class DataManager: ObservableObject {
     /// Rolling window for manual full-sync completions recorded in `finishDataFetching` when `countsCurrentSessionTowardManualFullSyncQuota` is true.
     private static let fullSyncQuotaWindow: TimeInterval = 3600
     private static let fullSyncQuotaMaxPerWindow = 3
+    /// Manual full sync / session extraction should not spin indefinitely in the UI.
+    private static let fullSyncStallTimeout: TimeInterval = 60
+    static let signInOrSyncStallUserMessage = "Could not sign in or finish syncing in time. Please sign out and sign in again, or try Full Sync again."
     private static let fullSyncCompletionTimesKey = "vtop_fullSyncCompletionTimes"
     /// Legacy single-date key (migrated into `fullSyncCompletionTimesKey`).
     private static let legacyLastFullSyncCompletedAtKey = "vtop_lastFullSyncCompletedAt"
@@ -207,9 +212,30 @@ class DataManager: ObservableObject {
         logger.debug("WebView reference set in DataManager", context: "DataManager")
     }
 
+    private func cancelFullSyncStallWatchdog() {
+        fullSyncStallWatchdogItem?.cancel()
+        fullSyncStallWatchdogItem = nil
+    }
+
+    private func scheduleFullSyncStallWatchdogIfNeeded() {
+        cancelFullSyncStallWatchdog()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            guard self.isLoading else { return }
+            self.logger.warning("Full sync stalled — timeout", context: "DataManager")
+            self.countsCurrentSessionTowardManualFullSyncQuota = false
+            self.lastDataFetchFailureReason = Self.signInOrSyncStallUserMessage
+            self.isLoading = false
+            self.loadingMessage = ""
+        }
+        fullSyncStallWatchdogItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.fullSyncStallTimeout, execute: work)
+    }
+
     /// Stops sync UI (toolbar spin, overlay) without implying a session error.
     private func clearSyncProgress() {
         DispatchQueue.main.async {
+            self.cancelFullSyncStallWatchdog()
             self.countsCurrentSessionTowardManualFullSyncQuota = false
             self.isLoading = false
             self.loadingMessage = ""
@@ -219,6 +245,7 @@ class DataManager: ObservableObject {
     /// Called when CSRF / authorized ID cannot be read from the WebView after retries (expired session, blank page, etc.).
     private func reportSessionExtractionFailed() {
         DispatchQueue.main.async {
+            self.cancelFullSyncStallWatchdog()
             self.countsCurrentSessionTowardManualFullSyncQuota = false
             self.lastDataFetchFailureReason = "VTOP session expired. Trying to sign you back in…"
             self.isLoading = false
@@ -453,6 +480,9 @@ class DataManager: ObservableObject {
 
         DispatchQueue.main.async {
             self.isLoading = true
+            if self.countsCurrentSessionTowardManualFullSyncQuota {
+                self.scheduleFullSyncStallWatchdogIfNeeded()
+            }
         }
 
         // Fetch in sequence
@@ -3153,6 +3183,7 @@ class DataManager: ObservableObject {
     private func finishDataFetching() {
         let completedAt = Date()
         DispatchQueue.main.async {
+            self.cancelFullSyncStallWatchdog()
             self.isLoading = false
             self.loadingMessage = ""
             self.lastDataFetchFailureReason = nil
@@ -3351,6 +3382,7 @@ class DataManager: ObservableObject {
         lastDataFetchFailureReason = nil
         isLoading = true
         loadingMessage = "Syncing…"
+        scheduleFullSyncStallWatchdogIfNeeded()
         extractSessionData(attempt: 1, incrementManualFullSyncQuotaOnCompletion: true)
     }
 

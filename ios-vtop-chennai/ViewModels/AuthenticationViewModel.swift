@@ -57,7 +57,9 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     // MARK: - Published Properties
     @Published var username: String = ""
     @Published var password: String = ""
-    @Published var isLoading: Bool = false
+    @Published var isLoading: Bool = false {
+        didSet { syncSignInStallWatchdog() }
+    }
     @Published var isAuthenticated: Bool = false {
         didSet {
             // #region agent log
@@ -78,14 +80,39 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     }
     @Published var loginSuccess: Bool = false
     @Published var errorMessage: String?
-    @Published var showCaptcha: Bool = false
+    @Published var showCaptcha: Bool = false {
+        didSet { syncSignInStallWatchdog() }
+    }
     @Published var captchaImage: UIImage?
     @Published var captchaType: CaptchaType = .defaultCaptcha
-    @Published var showReCaptchaWebView: Bool = false
+    @Published var showReCaptchaWebView: Bool = false {
+        didSet { syncSignInStallWatchdog() }
+    }
     @Published var rememberMe: Bool = true
 
     // MARK: - Constants
     private let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+    /// If sign-in never reaches captcha or home within this window, stop spinning and surface guidance.
+    private static let signInStallTimeout: TimeInterval = 60
+    private var signInStallWatchdogItem: DispatchWorkItem?
+
+    private func syncSignInStallWatchdog() {
+        signInStallWatchdogItem?.cancel()
+        signInStallWatchdogItem = nil
+        guard isLoading, !showCaptcha, !showReCaptchaWebView else { return }
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            guard self.isLoading, !self.showCaptcha, !self.showReCaptchaWebView else { return }
+            self.logger.warning("Sign-in progress stalled — timeout", context: "Auth")
+            let msg = DataManager.signInOrSyncStallUserMessage
+            self.isLoading = false
+            self.isAttemptingSessionRecovery = false
+            self.errorMessage = msg
+            self.dataManager?.lastDataFetchFailureReason = msg
+        }
+        signInStallWatchdogItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.signInStallTimeout, execute: work)
+    }
 
     override init() {
         super.init()
@@ -782,6 +809,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         if AppCacheSettings.clearCacheOnSignOutEnabled() {
             dataManager?.clearCachedVTOPData()
         }
+        dataManager?.lastDataFetchFailureReason = nil
 
         // Clear webview cookies
         let dataStore = WKWebsiteDataStore.default()
