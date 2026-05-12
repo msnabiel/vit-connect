@@ -298,8 +298,9 @@ struct HomeTabView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
-                        .background(Color.blue.opacity(0.1))
+                        .background(Color(uiColor: .systemBlue).opacity(0.18))
                         .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.blue.opacity(0.5), lineWidth: 3))
 
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -329,8 +330,9 @@ struct HomeTabView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding()
-                        .background(Color.green.opacity(0.1))
+                        .background(Color(uiColor: .systemGreen).opacity(0.18))
                         .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.green.opacity(0.5), lineWidth: 3))
                     }
                     .padding(.horizontal)
 
@@ -1117,6 +1119,10 @@ struct ProfileTabView: View {
                     NavigationLink(destination: EventHubView().environmentObject(dataManager)) {
                         Label("Event hub", systemImage: "calendar.badge.clock")
                     }
+
+                    NavigationLink(destination: NPTELQuizView()) {
+                        Label("NPTEL Quiz", systemImage: "brain.head.profile")
+                    }
                 }
 
                 Section(header: Text("Financial & Administrative")) {
@@ -1188,7 +1194,7 @@ struct ProfileTabView: View {
                     }
 
                     // Replace with your real form URL when ready.
-                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLSdMdt3ACkbQny7xn4U6u6plKn72sDo57D4lFlkWD_6WrqmF1g/viewform?usp=publish-editor")!) {
+                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLScN1VjOZJ0MqUrADnkt_WkYIclAT3KEpT0XSRa_jptUBAIfSQ/viewform")!) {
                         Label("Bugs & suggestions", systemImage: "ladybug.fill")
                     }
 

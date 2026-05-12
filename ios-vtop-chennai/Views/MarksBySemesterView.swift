@@ -89,38 +89,27 @@ struct MarksBySemesterView: View {
                         }
                     } else {
                         ForEach(groupedMarks, id: \.code) { sec in
+                            let sortedRows = sec.rows.sorted(by: { $0.markTitle.localizedCaseInsensitiveCompare($1.markTitle) == .orderedAscending })
+                            let totalScored = sortedRows.reduce(0.0) { $0 + $1.scoredMark }
+                            let totalMax = sortedRows.reduce(0.0) { $0 + $1.maxMark }
+                            let totalWeightage = sortedRows.reduce(0.0) { $0 + $1.weightageMark }
+                            let totalMaxWeightage = sortedRows.reduce(0.0) { $0 + $1.weightagePercent }
+                            let weightageProgress = totalMaxWeightage > 0 ? totalWeightage / totalMaxWeightage : 0
+
                             Section(header: Text(sectionHeader(code: sec.code, rows: sec.rows))
                                 .foregroundColor(.indigo)) {
-                                ForEach(sec.rows.sorted(by: { $0.markTitle.localizedCaseInsensitiveCompare($1.markTitle) == .orderedAscending })) { row in
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(row.markTitle)
-                                            .font(.body.weight(.semibold))
-                                            .foregroundColor(.primary)
-
-                                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                            Text("Scored \(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
-                                                .font(.subheadline.weight(.medium))
-                                                .foregroundColor(Color.green.opacity(0.92))
-                                            Text("·")
-                                                .font(.subheadline.weight(.medium))
-                                                .foregroundColor(.secondary)
-                                            Text("Weight \(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
-                                                .font(.subheadline.weight(.medium))
-                                                .foregroundColor(Color.orange.opacity(0.95))
-                                            if !row.status.isEmpty {
-                                                Text("·")
-                                                    .font(.subheadline.weight(.medium))
-                                                    .foregroundColor(.secondary)
-                                                Text(row.status)
-                                                    .font(.subheadline.weight(.medium))
-                                                    .foregroundColor(statusTextColor(row.status))
-                                            }
-                                        }
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.78)
-                                    }
-                                    .padding(.vertical, 4)
+                                ForEach(sortedRows) { row in
+                                    MarkRowView(row: row, formatNumber: formatNumber, statusTextColor: statusTextColor)
                                 }
+
+                                SubjectTotalFooterView(
+                                    totalScored: totalScored,
+                                    totalMax: totalMax,
+                                    totalWeightage: totalWeightage,
+                                    totalMaxWeightage: totalMaxWeightage,
+                                    weightageProgress: weightageProgress,
+                                    formatNumber: formatNumber
+                                )
                             }
                         }
                     }
@@ -193,6 +182,140 @@ struct MarksBySemesterView: View {
                 completion?()
             }
         }
+    }
+}
+
+// MARK: - Mark Row
+
+private struct MarkRowView: View {
+    let row: MarkReportRow
+    let formatNumber: (Double) -> String
+    let statusTextColor: (String) -> Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center) {
+                Text(row.markTitle)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(.primary)
+                Spacer()
+                Text("\(formatNumber(row.scoredMark)) / \(formatNumber(row.maxMark))")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(scoreColor(scored: row.scoredMark, max: row.maxMark))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .fill(scoreColor(scored: row.scoredMark, max: row.maxMark).opacity(0.15))
+                    )
+            }
+
+            HStack(spacing: 4) {
+                Image(systemName: "scalemass.fill")
+                    .font(.caption2)
+                    .foregroundColor(Color(uiColor: .systemOrange))
+                Text("Weightage \(formatNumber(row.weightageMark)) / \(formatNumber(row.weightagePercent))%")
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(Color(uiColor: .systemOrange))
+                if !row.status.isEmpty {
+                    Text("·")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(row.status)
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(statusTextColor(row.status))
+                }
+                if let avg = row.classAverage {
+                    Spacer()
+                    Text("Avg \(formatNumber(avg))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 5)
+    }
+
+    private func scoreColor(scored: Double, max: Double) -> Color {
+        guard max > 0 else { return .secondary }
+        let pct = scored / max
+        if pct >= 0.75 { return Color(uiColor: .systemGreen) }
+        if pct >= 0.5 { return Color(uiColor: .systemOrange) }
+        return Color(uiColor: .systemRed)
+    }
+}
+
+// MARK: - Subject Total Footer
+
+private struct SubjectTotalFooterView: View {
+    let totalScored: Double
+    let totalMax: Double
+    let totalWeightage: Double
+    let totalMaxWeightage: Double
+    let weightageProgress: Double
+    let formatNumber: (Double) -> String
+
+    private var progressColor: Color {
+        if weightageProgress >= 0.75 { return Color(uiColor: .systemGreen) }
+        if weightageProgress >= 0.5 { return Color(uiColor: .systemOrange) }
+        return Color(uiColor: .systemRed)
+    }
+
+    private var percentageText: String {
+        if totalMaxWeightage <= 0 { return "—" }
+        return String(format: "%.1f%%", weightageProgress * 100)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Total Scored")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(formatNumber(totalScored)) / \(formatNumber(totalMax))")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("Total Weightage")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(formatNumber(totalWeightage)) / \(formatNumber(totalMaxWeightage))%")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
+                }
+
+                Text(percentageText)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(progressColor)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(progressColor.opacity(0.15))
+                    )
+                    .padding(.leading, 8)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color(uiColor: .systemFill))
+                        .frame(height: 6)
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(progressColor)
+                        .frame(width: geo.size.width * CGFloat(min(weightageProgress, 1.0)), height: 6)
+                        .animation(.easeOut(duration: 0.4), value: weightageProgress)
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(.top, 4)
+        .padding(.bottom, 6)
     }
 }
 
