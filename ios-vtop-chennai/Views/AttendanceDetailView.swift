@@ -76,7 +76,7 @@ struct AttendanceDetailView: View {
 
     private static let semesterPickerHorizontalPadding: CGFloat = 16
     private static let semesterPickerTopPadding: CGFloat = 10
-    private static let semesterPickerBottomPadding: CGFloat = 8
+    private static let semesterPickerBottomPadding: CGFloat = 2
 
     var body: some View {
         VStack(spacing: 0) {
@@ -119,18 +119,20 @@ struct AttendanceDetailView: View {
                                     .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
                             )
                         }
+                        .buttonStyle(.plain)
                         .padding(.horizontal, Self.semesterPickerHorizontalPadding)
                         .padding(.top, Self.semesterPickerTopPadding)
                         .padding(.bottom, Self.semesterPickerBottomPadding)
                     }
-
                     List {
                         if dataManager.attendance.isEmpty {
                             Section {
                                 EmptyStateView(
                                     icon: "calendar.badge.exclamationmark",
                                     title: "No attendance yet",
-                                    message: "Choose a semester above, or pull down to refresh."
+                                    message: semesterChoices.isEmpty
+                                        ? "Pull down to refresh, or run a full sync."
+                                        : "Choose a semester above, or pull down to refresh."
                                 )
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 24)
@@ -140,7 +142,7 @@ struct AttendanceDetailView: View {
                             Section {
                                 overallAttendanceStrip
                             }
-                            .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 10, trailing: 0))
                             .listRowBackground(Color.clear)
 
                             Section {
@@ -149,7 +151,7 @@ struct AttendanceDetailView: View {
                                         course: attendance.matchingCatalogCourse(in: dataManager.courses),
                                         attendance: attendance
                                     )
-                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                    .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
                                 }
@@ -157,6 +159,8 @@ struct AttendanceDetailView: View {
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .listSectionSpacing(10)
+                    .contentMargins(.top, 0, for: .scrollContent)
                     .scrollContentBackground(.hidden)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }

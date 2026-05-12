@@ -180,6 +180,15 @@ enum VTOPDataCache {
             UserDefaults.standard.removeObject(forKey: k)
         }
 
+        // `LegacyKey.allKeys` includes these string IDs; the loop above would erase them right after we set them.
+        // Restore so Exam Schedule / marks-by-semester remember which term the cached rows belong to.
+        if bucketOn(.marksAndGrades), let id = marksReportSemesterId, !id.isEmpty {
+            UserDefaults.standard.set(id, forKey: LegacyKey.marksReportSemesterId)
+        }
+        if bucketOn(.exams), let id = examScheduleSemesterId, !id.isEmpty {
+            UserDefaults.standard.set(id, forKey: LegacyKey.examScheduleSemesterId)
+        }
+
         if bucketOn(.profileSummary), let p = studentProfile {
             UserDefaults.standard.set(p.name, forKey: "name")
             UserDefaults.standard.set(p.cgpa, forKey: "cgpa")

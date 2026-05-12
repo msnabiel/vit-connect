@@ -3,10 +3,14 @@ import SwiftUI
 struct MarksBySemesterView: View {
     @EnvironmentObject var dataManager: DataManager
     @State private var semesterId: String = ""
-    @State private var didLoadPicklist = false
     @State private var pickerPrimed = false
 
-    private var choices: [Semester] { dataManager.marksReportSemesterOptions }
+    /// Prefer options from the marks page (`StudentMarkView`); if that list is empty (session timing, HTML change, or load order), fall back to timetable semesters like the Attendance tab.
+    private var choices: [Semester] {
+        let fromMarks = dataManager.marksReportSemesterOptions
+        if !fromMarks.isEmpty { return fromMarks }
+        return dataManager.semesters
+    }
 
     private var marksSemesterDisplayName: String {
         if semesterId.isEmpty { return "…" }
@@ -140,8 +144,7 @@ struct MarksBySemesterView: View {
             }
         }
         .onAppear {
-            guard !didLoadPicklist else { return }
-            didLoadPicklist = true
+            // Always try to refresh the marks picklist when the screen shows (tab revisit after sync, or first open before session was ready).
             reloadPicklist()
         }
     }
@@ -170,13 +173,14 @@ struct MarksBySemesterView: View {
 
     private func reloadPicklist(completion: (() -> Void)? = nil) {
         dataManager.loadMarksSemesterPicklist {
-            let c = dataManager.marksReportSemesterOptions
+            let fromMarks = dataManager.marksReportSemesterOptions
+            let resolvedChoices = !fromMarks.isEmpty ? fromMarks : dataManager.semesters
             if semesterId.isEmpty {
-                if let sid = dataManager.marksReportSemesterId, c.contains(where: { $0.id == sid }) {
+                if let sid = dataManager.marksReportSemesterId, resolvedChoices.contains(where: { $0.id == sid }) {
                     semesterId = sid
-                } else if let sid = dataManager.selectedSemester?.id, c.contains(where: { $0.id == sid }) {
+                } else if let sid = dataManager.selectedSemester?.id, resolvedChoices.contains(where: { $0.id == sid }) {
                     semesterId = sid
-                } else if let first = c.first {
+                } else if let first = resolvedChoices.first {
                     semesterId = first.id
                 }
             }

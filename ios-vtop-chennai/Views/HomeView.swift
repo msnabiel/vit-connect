@@ -719,7 +719,8 @@ struct AttendanceTabView: View {
 
     private static let semesterPickerHorizontalPadding: CGFloat = 16
     private static let semesterPickerTopPadding: CGFloat = 10
-    private static let semesterPickerBottomPadding: CGFloat = 8
+    /// Minimal gap between picker and the grouped list (matches Marks density).
+    private static let semesterPickerBottomPadding: CGFloat = 2
 
     @ViewBuilder
     private var semesterPickerMenu: some View {
@@ -766,20 +767,23 @@ struct AttendanceTabView: View {
                     Color(uiColor: .systemGroupedBackground)
                         .ignoresSafeArea(edges: [.horizontal, .bottom])
                     VStack(spacing: 0) {
+                        // Same pattern as Marks: picker outside the List so width matches (insetGrouped + extra row insets was double-narrowing).
                         if !semesterChoices.isEmpty {
                             semesterPickerMenu
+                                .buttonStyle(.plain)
                                 .padding(.horizontal, Self.semesterPickerHorizontalPadding)
                                 .padding(.top, Self.semesterPickerTopPadding)
                                 .padding(.bottom, Self.semesterPickerBottomPadding)
                         }
-
                         List {
                             if dataManager.attendance.isEmpty {
                                 Section {
                                     EmptyStateView(
                                         icon: "calendar.badge.exclamationmark",
                                         title: "No attendance yet",
-                                        message: "Choose a semester above, or pull down to refresh."
+                                        message: semesterChoices.isEmpty
+                                            ? "Pull down to refresh, or run a full sync."
+                                            : "Choose a semester above, or pull down to refresh."
                                     )
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 24)
@@ -789,7 +793,7 @@ struct AttendanceTabView: View {
                                 Section {
                                     overallAttendanceStrip
                                 }
-                                .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 10, trailing: 0))
                                 .listRowBackground(Color.clear)
 
                                 Section {
@@ -798,7 +802,7 @@ struct AttendanceTabView: View {
                                             course: attendance.matchingCatalogCourse(in: dataManager.courses),
                                             attendance: attendance
                                         )
-                                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                                         .listRowBackground(Color.clear)
                                         .listRowSeparator(.hidden)
                                     }
@@ -806,6 +810,8 @@ struct AttendanceTabView: View {
                             }
                         }
                         .listStyle(.insetGrouped)
+                        .listSectionSpacing(10)
+                        .contentMargins(.top, 0, for: .scrollContent)
                         .scrollContentBackground(.hidden)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }

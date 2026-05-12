@@ -57,7 +57,7 @@ struct LoginView: View {
 
                                 TextField("Username", text: $viewModel.username)
                                     .font(.system(size: 17))
-                                    .textInputAutocapitalization(.never)
+                                    .textInputAutocapitalization(.characters)
                                     .disableAutocorrection(true)
                                     .textContentType(.username)
                                     .focused($focusedField, equals: .username)
