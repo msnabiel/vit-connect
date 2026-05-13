@@ -61,6 +61,16 @@ struct AttendanceDetailView: View {
                 }
             }
             .frame(height: 6)
+            if !maskOverallAttendance && r.total > 0 {
+                HStack(spacing: 5) {
+                    Image(systemName: attendanceFeedbackIcon(pct: r.pct))
+                        .font(.caption)
+                        .foregroundStyle(attendanceFeedbackColor(pct: r.pct))
+                    Text(attendanceFeedbackMessage(pct: r.pct, attended: r.attended, total: r.total))
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(attendanceFeedbackColor(pct: r.pct))
+                }
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,6 +82,22 @@ struct AttendanceDetailView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
         )
+    }
+
+    private func attendanceFeedbackColor(pct: Int) -> Color {
+        pct >= 85 ? .green : pct >= 75 ? .green : pct >= 65 ? .orange : .red
+    }
+
+    private func attendanceFeedbackIcon(pct: Int) -> String {
+        pct >= 85 ? "star.fill" : pct >= 75 ? "checkmark.circle.fill" : pct >= 65 ? "exclamationmark.triangle.fill" : "xmark.circle.fill"
+    }
+
+    private func attendanceFeedbackMessage(pct: Int, attended: Int, total: Int) -> String {
+        if pct >= 90 { return "Outstanding! Keep it up." }
+        if pct >= 85 { return "Great attendance! You're well on track." }
+        if pct >= 75 { return "You're doing well. Keep attending!" }
+        if pct >= 65 { return "At risk — attend more classes to reach 75%." }
+        return "Critical — attendance needs urgent improvement."
     }
 
     private static let semesterPickerHorizontalPadding: CGFloat = 16

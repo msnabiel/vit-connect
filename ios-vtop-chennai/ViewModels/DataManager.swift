@@ -70,6 +70,8 @@ class DataManager: ObservableObject {
     private var fullSyncStallWatchdogItem: DispatchWorkItem?
     private var coursesBySemesterId: [String: [Course]] = [:]
     private var timetableBySemesterId: [String: [TimetableSlot]] = [:]
+    private var marksBySemesterId: [String: [Mark]] = [:]
+    private var cumulativeMarksBySemesterId: [String: [CumulativeMark]] = [:]
     /// Set for the lifetime of one `extractSessionData` → … → `finishDataFetching` chain. Only `performSyncAll` starts a chain with this true so post-login fetches never touch UserDefaults quota.
     private var countsCurrentSessionTowardManualFullSyncQuota = false
 
@@ -141,11 +143,20 @@ class DataManager: ObservableObject {
         guard let semesterId = selectedSemester?.id, !semesterId.isEmpty else { return }
         coursesBySemesterId[semesterId] = courses
         timetableBySemesterId[semesterId] = timetable
+        if !marks.isEmpty { marksBySemesterId[semesterId] = marks }
+        if !cumulativeMarks.isEmpty { cumulativeMarksBySemesterId[semesterId] = cumulativeMarks }
     }
 
-    func restoreSemesterScopedCache(coursesBySemesterId: [String: [Course]], timetableBySemesterId: [String: [TimetableSlot]]) {
+    func restoreSemesterScopedCache(
+        coursesBySemesterId: [String: [Course]],
+        timetableBySemesterId: [String: [TimetableSlot]],
+        marksBySemesterId: [String: [Mark]] = [:],
+        cumulativeMarksBySemesterId: [String: [CumulativeMark]] = [:]
+    ) {
         self.coursesBySemesterId = coursesBySemesterId
         self.timetableBySemesterId = timetableBySemesterId
+        self.marksBySemesterId = marksBySemesterId
+        self.cumulativeMarksBySemesterId = cumulativeMarksBySemesterId
 
         guard let semesterId = selectedSemester?.id, !semesterId.isEmpty else { return }
         if let semCourses = coursesBySemesterId[semesterId] {
@@ -153,6 +164,12 @@ class DataManager: ObservableObject {
         }
         if let semTimetable = timetableBySemesterId[semesterId] {
             timetable = semTimetable
+        }
+        if let semMarks = marksBySemesterId[semesterId] {
+            marks = semMarks
+        }
+        if let semCumulativeMarks = cumulativeMarksBySemesterId[semesterId] {
+            cumulativeMarks = semCumulativeMarks
         }
     }
 
@@ -469,6 +486,20 @@ class DataManager: ObservableObject {
         // Save to UserDefaults
         UserDefaults.standard.set(semester.id, forKey: "semesterId")
         UserDefaults.standard.set(semester.name, forKey: "semester")
+
+        // Immediately show cached data for this semester if available
+        if let cachedCourses = coursesBySemesterId[semester.id] {
+            courses = cachedCourses
+        }
+        if let cachedTimetable = timetableBySemesterId[semester.id] {
+            timetable = cachedTimetable
+        }
+        if let cachedMarks = marksBySemesterId[semester.id] {
+            marks = cachedMarks
+        }
+        if let cachedCumulativeMarks = cumulativeMarksBySemesterId[semester.id] {
+            cumulativeMarks = cachedCumulativeMarks
+        }
 
         // Start fetching all data for this semester
         fetchAllData()
@@ -1701,6 +1732,10 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.marks = marks
                 self.cumulativeMarks = cumulativeMarks
+                if let semId = self.selectedSemester?.id, !semId.isEmpty {
+                    self.marksBySemesterId[semId] = marks
+                    self.cumulativeMarksBySemesterId[semId] = cumulativeMarks
+                }
                 if let g = semesterGpa, !g.isEmpty {
                     if var p = self.studentProfile {
                         p.gpa = g
@@ -3225,7 +3260,9 @@ class DataManager: ObservableObject {
             deanPortraitData: deanPortraitData,
             hodPortraitData: hodPortraitData,
             coursesBySemesterId: coursesBySemesterId,
-            timetableBySemesterId: timetableBySemesterId
+            timetableBySemesterId: timetableBySemesterId,
+            marksBySemesterId: marksBySemesterId,
+            cumulativeMarksBySemesterId: cumulativeMarksBySemesterId
         )
         DispatchQueue.main.async {
             self.cachePersistedAt = VTOPDiskCache.readMeta().lastPersistedAt

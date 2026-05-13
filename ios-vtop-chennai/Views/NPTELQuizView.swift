@@ -202,6 +202,7 @@ private struct NPTELWeekListView: View {
     let course: NPTELCourse
     @ObservedObject var store: NPTELQuizStore
     @AppStorage("nptel_immediate_feedback") private var immediateFeedback = true
+    @AppStorage("nptel_jumble_options") private var jumbleOptions = true
 
     private var accent: Color { courseAccents[course.id] ?? .blue }
 
@@ -212,13 +213,35 @@ private struct NPTELWeekListView: View {
                     Label("Show answer immediately", systemImage: "eye.fill")
                 }
                 .tint(accent)
+                Toggle(isOn: $jumbleOptions) {
+                    Label("Jumble questions & answers", systemImage: "shuffle")
+                }
+                .tint(accent)
             } footer: {
-                Text(immediateFeedback ? "Correct/wrong shown right after you pick." : "Answers revealed only on the results page.")
+                Text(jumbleOptions ? "Questions and answer choices shuffled each attempt." : "Questions and choices shown in original order.")
                     .font(.caption)
             }
 
             Section(header: Text("Weeks")) {
                 let sortedWeeks = course.questionsByWeek.keys.sorted()
+                let allQuestions = sortedWeeks.flatMap { course.questionsByWeek[$0] ?? [] }
+
+                NavigationLink(destination: NPTELWeekQuizView(
+                    courseId: course.id,
+                    courseName: course.name,
+                    week: 0,
+                    questions: allQuestions,
+                    nextWeekQuestions: nil,
+                    nextWeek: nil,
+                    immediateFeedback: immediateFeedback,
+                    jumbleOptions: jumbleOptions,
+                    store: store
+                )) {
+                    NPTELWeekRow(week: 0, questionCount: allQuestions.count, record: nil, accent: accent)
+                }
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
+
                 ForEach(sortedWeeks, id: \.self) { week in
                     let qs = course.questionsByWeek[week] ?? []
                     let rec = store.record(courseId: course.id, week: week)
@@ -231,6 +254,7 @@ private struct NPTELWeekListView: View {
                         nextWeekQuestions: nextWeek.map { course.questionsByWeek[$0] ?? [] },
                         nextWeek: nextWeek,
                         immediateFeedback: immediateFeedback,
+                        jumbleOptions: jumbleOptions,
                         store: store
                     )) {
                         NPTELWeekRow(week: week, questionCount: qs.count, record: rec, accent: accent)
@@ -253,18 +277,26 @@ private struct NPTELWeekRow: View {
     let record: QuizRecord?
     let accent: Color
 
+    private var isAllWeeks: Bool { week == 0 }
+
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(accent.opacity(record != nil ? 0.2 : 0.1))
                     .frame(width: 40, height: 40)
-                Text("\(week)")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(accent)
+                if isAllWeeks {
+                    Image(systemName: "books.vertical.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(accent)
+                } else {
+                    Text("\(week)")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(accent)
+                }
             }
             HStack(spacing: 0) {
-                Text("Week \(week)")
+                Text(isAllWeeks ? "All Weeks" : "Week \(week)")
                     .font(.headline)
                 Text("  ·  \(questionCount)Q")
                     .font(.subheadline)
@@ -302,6 +334,7 @@ fileprivate struct NPTELWeekQuizView: View {
     let nextWeekQuestions: [NPTELQuestion]?
     let nextWeek: Int?
     let immediateFeedback: Bool
+    let jumbleOptions: Bool
     @ObservedObject var store: NPTELQuizStore
 
     private var accent: Color { courseAccents[courseId] ?? .blue }
@@ -341,7 +374,7 @@ fileprivate struct NPTELWeekQuizView: View {
                 quizBody
             }
         }
-        .navigationTitle("Week \(week)")
+        .navigationTitle(week == 0 ? "All Weeks" : "Week \(week)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -390,9 +423,9 @@ fileprivate struct NPTELWeekQuizView: View {
                             selected: picked == option,
                             accent: accent
                         ) {
-                            guard picked == nil else { return }
+                            // In immediate feedback mode, lock selection once picked
+                            guard picked == nil || !immediateFeedback else { return }
                             selectedOptions[currentIndex] = option
-                            if option == q.answer { score += 1 }
                         }
                     }
                 }
@@ -452,7 +485,10 @@ fileprivate struct NPTELWeekQuizView: View {
     }
 
     private func restart() {
-        shuffledQuestions = questions.shuffled()
+        let baseQuestions = jumbleOptions ? questions.shuffled() : questions
+        shuffledQuestions = baseQuestions.map { q in
+            jumbleOptions ? NPTELQuestion(question: q.question, options: q.options.shuffled(), answer: q.answer) : q
+        }
         selectedOptions = Array(repeating: nil, count: shuffledQuestions.count)
         currentIndex = 0
         score = 0
@@ -555,6 +591,7 @@ private struct NPTELResultView: View {
     @State private var showShare = false
     @State private var goNextWeek = false
     @AppStorage("nptel_immediate_feedback") private var immediateFeedback = true
+    @AppStorage("nptel_jumble_options") private var jumbleOptions = true
 
     private var skipped: Int { selectedOptions.filter { $0 == nil }.count }
     private var wrong: Int { total - score - skipped }
@@ -643,6 +680,7 @@ private struct NPTELResultView: View {
                             nextWeekQuestions: nil,
                             nextWeek: nil,
                             immediateFeedback: immediateFeedback,
+                            jumbleOptions: jumbleOptions,
                             store: store
                         ), isActive: $goNextWeek) { EmptyView() }
                     }

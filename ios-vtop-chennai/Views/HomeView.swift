@@ -198,6 +198,158 @@ struct PrivacyMaskToggleButton: View {
     }
 }
 
+// MARK: - Greeting Banner
+
+private struct GreetingBannerView: View {
+    let greeting: String
+    let greetingEmoji: String
+    let name: String
+    let semester: String?
+    let hour: Int
+
+    private var gradientColors: [Color] {
+        switch hour {
+        case 5..<12:
+            return [Color(red: 0.27, green: 0.55, blue: 0.98), Color(red: 0.48, green: 0.40, blue: 0.96)]
+        case 12..<17:
+            return [Color(red: 0.22, green: 0.58, blue: 1.0), Color(red: 0.36, green: 0.44, blue: 0.94)]
+        default:
+            return [Color(red: 0.15, green: 0.25, blue: 0.72), Color(red: 0.28, green: 0.18, blue: 0.60)]
+        }
+    }
+
+    private var avatarImage: String {
+        switch hour {
+        case 5..<12: return "sunrise.fill"
+        case 12..<17: return "sun.max.fill"
+        default: return "moon.stars.fill"
+        }
+    }
+
+    private var avatarColors: [Color] {
+        switch hour {
+        case 5..<12: return [Color(red: 1.0, green: 0.6, blue: 0.2), Color(red: 0.9, green: 0.3, blue: 0.15)]
+        case 12..<17: return [Color(red: 1.0, green: 0.8, blue: 0.1), Color(red: 1.0, green: 0.5, blue: 0.0)]
+        default: return [Color(red: 0.3, green: 0.2, blue: 0.6), Color(red: 0.1, green: 0.05, blue: 0.35)]
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            // Background gradient
+            LinearGradient(colors: gradientColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            // Decorative clouds
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    Group {
+                        cloudShape(size: 28, opacity: 0.18, offsetY: -6)
+                        cloudShape(size: 22, opacity: 0.13, offsetY: 2)
+                    }
+                    .padding(.trailing, 100)
+                }
+                Spacer()
+            }
+
+            // VIT clock tower silhouette (right side)
+            VITClockTowerShape()
+                .fill(Color.white.opacity(0.13))
+                .frame(width: 90, height: 110)
+                .padding(.trailing, 12)
+                .padding(.bottom, 0)
+
+            // Content
+            HStack(alignment: .center, spacing: 14) {
+                // Avatar circle
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(colors: avatarColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                        )
+                        .frame(width: 58, height: 58)
+                    Image(systemName: avatarImage)
+                        .font(.system(size: 26))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                }
+                .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
+                        Text(greeting)
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(.white)
+                        Text(greetingEmoji)
+                            .font(.system(size: 18))
+                    }
+
+                    Text(name)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.88))
+                        .lineLimit(1)
+
+                    if let semester {
+                        Text(semester)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.95))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Color.white.opacity(0.22)))
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 100)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: gradientColors[0].opacity(0.35), radius: 12, y: 4)
+    }
+
+    private func cloudShape(size: CGFloat, opacity: Double, offsetY: CGFloat) -> some View {
+        Ellipse()
+            .fill(Color.white.opacity(opacity))
+            .frame(width: size * 2, height: size)
+            .offset(y: offsetY)
+    }
+}
+
+private struct VITClockTowerShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width, h = rect.height
+        // Base building body
+        p.addRect(CGRect(x: w*0.25, y: h*0.55, width: w*0.5, height: h*0.45))
+        // Main tower shaft
+        p.addRect(CGRect(x: w*0.35, y: h*0.25, width: w*0.30, height: h*0.35))
+        // Clock face level
+        p.addRect(CGRect(x: w*0.30, y: h*0.18, width: w*0.40, height: h*0.12))
+        // Belfry
+        p.addRect(CGRect(x: w*0.33, y: h*0.10, width: w*0.34, height: h*0.10))
+        // Pointed spire
+        p.move(to: CGPoint(x: w*0.50, y: 0))
+        p.addLine(to: CGPoint(x: w*0.33, y: h*0.12))
+        p.addLine(to: CGPoint(x: w*0.67, y: h*0.12))
+        p.closeSubpath()
+        // Door arch
+        var door = Path()
+        door.move(to: CGPoint(x: w*0.42, y: h*1.0))
+        door.addLine(to: CGPoint(x: w*0.42, y: h*0.72))
+        door.addArc(center: CGPoint(x: w*0.50, y: h*0.72), radius: w*0.08, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: true)
+        door.addLine(to: CGPoint(x: w*0.58, y: h*1.0))
+        p.addPath(door)
+        // Windows on tower
+        p.addRect(CGRect(x: w*0.42, y: h*0.30, width: w*0.16, height: h*0.10))
+        p.addRect(CGRect(x: w*0.42, y: h*0.44, width: w*0.16, height: h*0.08))
+        return p
+    }
+}
+
 // MARK: - Home Tab
 struct HomeTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
@@ -237,36 +389,16 @@ struct HomeTabView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         OfflineDataBanner(showSyncMetadata: true)
-                        // Greeting Section
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                                Text(greetingEmoji)
-                                    .font(.system(size: 30))
-                                    .accessibilityHidden(true)
-                                Text(greeting)
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundColor(.primary)
-                            }
-
-                            Text(dataManager.studentProfile.map(\.displayNameWithSalutation) ?? authViewModel.username)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.secondary)
-
-                            if let semester = dataManager.selectedSemester?.name {
-                                Text(semester)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.accentColor)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        Capsule()
-                                            .fill(Color.accentColor.opacity(0.1))
-                                    )
-                            }
-                        }
+                        // Greeting Banner
+                        GreetingBannerView(
+                            greeting: greeting,
+                            greetingEmoji: greetingEmoji,
+                            name: dataManager.studentProfile.map(\.displayNameWithSalutation) ?? authViewModel.username,
+                            semester: dataManager.selectedSemester?.name,
+                            hour: currentHour
+                        )
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
-                        .padding(.bottom, 8)
 
                     // Academic Performance Cards
                     HStack(spacing: 12) {

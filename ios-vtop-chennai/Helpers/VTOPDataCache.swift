@@ -77,6 +77,8 @@ enum VTOPDataCache {
         static let hodPortrait = "hodPortrait.bin"
         static let coursesBySemester = "coursesBySemester.json"
         static let timetableBySemester = "timetableBySemester.json"
+        static let marksBySemester = "marksBySemester.json"
+        static let cumulativeMarksBySemester = "cumulativeMarksBySemester.json"
     }
 
     /// Removes persisted snapshots (disk + legacy UserDefaults).
@@ -125,7 +127,9 @@ enum VTOPDataCache {
         deanPortraitData: Data?,
         hodPortraitData: Data?,
         coursesBySemesterId: [String: [Course]],
-        timetableBySemesterId: [String: [TimetableSlot]]
+        timetableBySemesterId: [String: [TimetableSlot]],
+        marksBySemesterId: [String: [Mark]],
+        cumulativeMarksBySemesterId: [String: [CumulativeMark]]
     ) {
         func bucketOn(_ b: AppCacheSettings.VTOPBucket) -> Bool {
             AppCacheSettings.VTOPBucket.isEnabled(b)
@@ -152,6 +156,8 @@ enum VTOPDataCache {
             VTOPDiskCache.save(cumulativeMarks, fileName: FileName.cumulativeMarks)
             VTOPDiskCache.save(marksReportSemesterOptions, fileName: FileName.marksReportSemesterOptions)
             VTOPDiskCache.save(marksReportRows, fileName: FileName.marksReportRows)
+            VTOPDiskCache.save(marksBySemesterId, fileName: FileName.marksBySemester)
+            VTOPDiskCache.save(cumulativeMarksBySemesterId, fileName: FileName.cumulativeMarksBySemester)
             if let marksReportSemesterId {
                 UserDefaults.standard.set(marksReportSemesterId, forKey: LegacyKey.marksReportSemesterId)
             }
@@ -342,6 +348,12 @@ enum VTOPDataCache {
             let timetableBySemesterId: [String: [TimetableSlot]] = bucketOn(.academic)
                 ? (VTOPDiskCache.load([String: [TimetableSlot]].self, fileName: FileName.timetableBySemester) ?? [:])
                 : [:]
+            let marksBySemesterId: [String: [Mark]] = bucketOn(.marksAndGrades)
+                ? (VTOPDiskCache.load([String: [Mark]].self, fileName: FileName.marksBySemester) ?? [:])
+                : [:]
+            let cumulativeMarksBySemesterId: [String: [CumulativeMark]] = bucketOn(.marksAndGrades)
+                ? (VTOPDiskCache.load([String: [CumulativeMark]].self, fileName: FileName.cumulativeMarksBySemester) ?? [:])
+                : [:]
 
             let marksReportSemesterId = bucketOn(.marksAndGrades)
                 ? UserDefaults.standard.string(forKey: LegacyKey.marksReportSemesterId)
@@ -388,7 +400,7 @@ enum VTOPDataCache {
                 dm.rankEntries = rankEntries
                 dm.deanPortraitData = deanPortraitData
                 dm.hodPortraitData = hodPortraitData
-                dm.restoreSemesterScopedCache(coursesBySemesterId: coursesBySemesterId, timetableBySemesterId: timetableBySemesterId)
+                dm.restoreSemesterScopedCache(coursesBySemesterId: coursesBySemesterId, timetableBySemesterId: timetableBySemesterId, marksBySemesterId: marksBySemesterId, cumulativeMarksBySemesterId: cumulativeMarksBySemesterId)
                 dm.cachePersistedAt = meta.lastPersistedAt
             }
         }

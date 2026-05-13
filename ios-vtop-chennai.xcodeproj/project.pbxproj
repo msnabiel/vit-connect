@@ -495,7 +495,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ios-vtop-chennai/ios-vtop-chennai.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"ios-vtop-chennai/Preview Content\"";
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				ENABLE_PREVIEWS = YES;
@@ -534,7 +534,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ios-vtop-chennai/ios-vtop-chennai.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"ios-vtop-chennai/Preview Content\"";
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				ENABLE_PREVIEWS = YES;

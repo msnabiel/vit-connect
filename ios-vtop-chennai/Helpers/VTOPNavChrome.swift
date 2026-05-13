@@ -16,9 +16,7 @@ extension EnvironmentValues {
 
 // MARK: - Leading icon → Home
 
-enum VTOPNavChrome {
-    static let leadingSystemImage = "building.columns.fill"
-}
+enum VTOPNavChrome {}
 
 private struct VTOPNavLeadingIconModifier: ViewModifier {
     @Environment(\.selectHomeTab) private var selectHomeTab
@@ -29,9 +27,10 @@ private struct VTOPNavLeadingIconModifier: ViewModifier {
                 Button {
                     selectHomeTab?()
                 } label: {
-                    Image(systemName: VTOPNavChrome.leadingSystemImage)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(.primary)
+                    Image("VITConnectIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
                 }
                 .buttonStyle(.plain)
                 .disabled(selectHomeTab == nil)
