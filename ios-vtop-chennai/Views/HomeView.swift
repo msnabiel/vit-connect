@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
@@ -228,8 +229,8 @@ private struct GreetingBannerView: View {
 
     private var avatarColors: [Color] {
         switch hour {
-        case 5..<12: return [Color(red: 1.0, green: 0.6, blue: 0.2), Color(red: 0.9, green: 0.3, blue: 0.15)]
-        case 12..<17: return [Color(red: 1.0, green: 0.8, blue: 0.1), Color(red: 1.0, green: 0.5, blue: 0.0)]
+        case 5..<12: return [Color(red: 0.95, green: 0.82, blue: 0.32), Color(red: 0.80, green: 0.62, blue: 0.12)]
+        case 12..<17: return [Color(red: 0.92, green: 0.80, blue: 0.28), Color(red: 0.78, green: 0.64, blue: 0.10)]
         default: return [Color(red: 0.3, green: 0.2, blue: 0.6), Color(red: 0.1, green: 0.05, blue: 0.35)]
         }
     }
@@ -308,7 +309,7 @@ private struct GreetingBannerView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 100)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: gradientColors[0].opacity(0.35), radius: 12, y: 4)
+        .shadow(color: Color.black.opacity(0.18), radius: 12, y: 4)
     }
 
     private func cloudShape(size: CGFloat, opacity: Double, offsetY: CGFloat) -> some View {
@@ -355,6 +356,7 @@ struct HomeTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
     @State private var currentHour = Calendar.current.component(.hour, from: Date())
+    private let foregroundPublisher = NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
     @AppStorage(VTOPPrivacyStorage.maskCGPA) private var maskCGPA = false
     @AppStorage(VTOPPrivacyStorage.maskCredits) private var maskCredits = false
     @AppStorage(VTOPPrivacyStorage.maskOverallAttendance) private var maskOverallAttendance = false
@@ -402,138 +404,212 @@ struct HomeTabView: View {
 
                     // Academic Performance Cards
                     HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
+                        // CGPA Card
+                        ZStack(alignment: .bottomTrailing) {
+                            Circle()
+                                .fill(Color.blue.opacity(0.16))
+                                .frame(width: 80, height: 80)
+                                .offset(x: 18, y: 18)
+                            Circle()
+                                .fill(Color.blue.opacity(0.11))
+                                .frame(width: 50, height: 50)
+                                .offset(x: 2, y: 8)
+
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.blue.opacity(0.13))
+                                            .frame(width: 34, height: 34)
+                                        Image(systemName: "person.text.rectangle.fill")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(.blue)
+                                    }
+                                    Spacer()
+                                    PrivacyMaskToggleButton(
+                                        isMasked: $maskCGPA,
+                                        accessibilityShow: "Show CGPA",
+                                        accessibilityHide: "Mask CGPA"
+                                    )
+                                }
+                                .padding(.bottom, 10)
+
+                                Text(maskCGPA ? "••••" : String(format: "%.2f", dataManager.studentProfile?.cgpa ?? 0.0))
+                                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+
                                 Text("CGPA")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.secondary)
-                                Spacer(minLength: 4)
-                                PrivacyMaskToggleButton(
-                                    isMasked: $maskCGPA,
-                                    accessibilityShow: "Show CGPA",
-                                    accessibilityHide: "Mask CGPA"
-                                )
+                                    .padding(.top, 2)
                             }
-
-                            Text(maskCGPA ? "••••" : String(format: "%.2f", dataManager.studentProfile?.cgpa ?? 0.0))
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.blue)
-
-                            HStack(spacing: 4) {
-                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.blue)
-                                Text("Academic")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(uiColor: .systemBlue).opacity(0.18))
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.blue.opacity(0.5), lineWidth: 3))
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color.blue.opacity(0.07))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color.blue.opacity(0.35), lineWidth: 1.5)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("Credits")
-                                    .font(.system(size: 13, weight: .medium))
+                        // Credits Card
+                        ZStack(alignment: .bottomTrailing) {
+                            Circle()
+                                .fill(Color.green.opacity(0.16))
+                                .frame(width: 80, height: 80)
+                                .offset(x: 18, y: 18)
+                            Circle()
+                                .fill(Color.green.opacity(0.11))
+                                .frame(width: 50, height: 50)
+                                .offset(x: 2, y: 8)
+
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.green.opacity(0.13))
+                                            .frame(width: 34, height: 34)
+                                        Image(systemName: "checkmark.seal.fill")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(.green)
+                                    }
+                                    Spacer()
+                                    PrivacyMaskToggleButton(
+                                        isMasked: $maskCredits,
+                                        accessibilityShow: "Show credits",
+                                        accessibilityHide: "Mask credits"
+                                    )
+                                }
+                                .padding(.bottom, 10)
+
+                                Text(maskCredits ? "•••" : String(format: "%.0f", dataManager.studentProfile?.totalCredits ?? 0.0))
+                                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+
+                                Text("Credits Earned")
+                                    .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.secondary)
-                                Spacer(minLength: 4)
-                                PrivacyMaskToggleButton(
-                                    isMasked: $maskCredits,
-                                    accessibilityShow: "Show credits",
-                                    accessibilityHide: "Mask credits"
-                                )
+                                    .padding(.top, 2)
                             }
-
-                            Text(maskCredits ? "•••" : String(format: "%.0f", dataManager.studentProfile?.totalCredits ?? 0.0))
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.green)
-
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.green)
-                                Text("Earned")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(uiColor: .systemGreen).opacity(0.18))
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.green.opacity(0.5), lineWidth: 3))
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color.green.opacity(0.07))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color.green.opacity(0.35), lineWidth: 1.5)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     .padding(.horizontal)
 
                     // Attendance Card
-                    ZStack(alignment: .topTrailing) {
-                        NavigationLink(destination: AttendanceDetailView()) {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
+                    NavigationLink(destination: AttendanceDetailView()) {
+                        let totalAttended = dataManager.attendance.reduce(0) { $0 + $1.attended }
+                        let totalClasses = dataManager.attendance.reduce(0) { $0 + $1.total }
+                        let overallPercentage = totalClasses > 0 ? Int(ceil(Double(totalAttended) * 100.0 / Double(totalClasses))) : 0
+                        let attColor: Color = overallPercentage >= 75 ? .green : (overallPercentage >= 65 ? .orange : .red)
+                        let statusLabel = overallPercentage >= 75 ? "On track" : overallPercentage >= 65 ? "At risk" : "Critical"
+
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "calendar.badge.checkmark")
+                                .font(.system(size: 70, weight: .regular))
+                                .foregroundColor(attColor.opacity(0.11))
+                                .offset(x: -16, y: 10)
+
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Header: icon + title + eye + chevron all in one row
+                                HStack(spacing: 8) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(attColor.opacity(0.13))
+                                            .frame(width: 32, height: 32)
+                                        Image(systemName: "calendar.badge.checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(attColor)
+                                    }
                                     Text("Overall Attendance")
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(.primary)
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                        .padding(.trailing, 36)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    PrivacyMaskToggleButton(
+                                        isMasked: $maskOverallAttendance,
+                                        accessibilityShow: "Show overall attendance",
+                                        accessibilityHide: "Mask overall attendance"
+                                    )
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(Color(uiColor: .tertiaryLabel))
                                 }
 
                                 if !dataManager.attendance.isEmpty {
-                                    let totalAttended = dataManager.attendance.reduce(0) { $0 + $1.attended }
-                                    let totalClasses = dataManager.attendance.reduce(0) { $0 + $1.total }
-                                    let overallPercentage = totalClasses > 0 ? Int(ceil(Double(totalAttended) * 100.0 / Double(totalClasses))) : 0
+                                    HStack(alignment: .lastTextBaseline, spacing: 10) {
+                                        Text(maskOverallAttendance ? "–" : "\(overallPercentage)%")
+                                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                                            .foregroundColor(attColor)
 
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(maskOverallAttendance ? "•••%" : "\(overallPercentage)%")
-                                                .font(.system(size: 32, weight: .bold))
-                                                .foregroundColor(overallPercentage >= 75 ? .green : (overallPercentage >= 65 ? .orange : .red))
-
-                                            Text(maskOverallAttendance ? "••• / ••• classes" : "\(totalAttended)/\(totalClasses) classes")
-                                                .font(.system(size: 13))
-                                                .foregroundColor(.secondary)
+                                        if !maskOverallAttendance && totalClasses > 0 {
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text(statusLabel)
+                                                    .font(.system(size: 11, weight: .bold))
+                                                    .foregroundColor(attColor)
+                                                    .padding(.horizontal, 9)
+                                                    .padding(.vertical, 3)
+                                                    .background(Capsule().fill(attColor.opacity(0.13)))
+                                                Text("\(totalAttended) / \(totalClasses) classes")
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.secondary)
+                                            }
                                         }
-
                                         Spacer()
+                                    }
 
-                                        Image(systemName: "calendar.badge.checkmark")
-                                            .font(.system(size: 36))
-                                            .foregroundColor((overallPercentage >= 75 ? Color.green : (overallPercentage >= 65 ? Color.orange : Color.red)).opacity(0.3))
+                                    if !maskOverallAttendance && totalClasses > 0 {
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule().fill(Color(uiColor: .quaternarySystemFill))
+                                                Capsule()
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: [attColor.opacity(0.9), attColor.opacity(0.6)],
+                                                            startPoint: .leading, endPoint: .trailing
+                                                        )
+                                                    )
+                                                    .frame(width: max(6, geo.size.width * CGFloat(overallPercentage) / 100.0))
+                                            }
+                                        }
+                                        .frame(height: 6)
                                     }
                                 } else {
-                                    Text("No attendance data available")
+                                    Text("No attendance data")
                                         .font(.system(size: 14))
                                         .foregroundColor(.secondary)
+                                        .padding(.top, 4)
                                 }
                             }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
-                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.plain)
-
-                        PrivacyMaskToggleButton(
-                            isMasked: $maskOverallAttendance,
-                            accessibilityShow: "Show overall attendance",
-                            accessibilityHide: "Mask overall attendance"
+                        .frame(maxWidth: .infinity, minHeight: 100)
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color(uiColor: .secondarySystemGroupedBackground))
                         )
-                        .padding(.top, 10)
-                        .padding(.trailing, 10)
-                        .zIndex(1)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color(uiColor: .separator).opacity(0.4), lineWidth: 0.5)
+                        )
                     }
+                    .buttonStyle(.plain)
                     .padding(.horizontal)
 
                     // Timetable Section
@@ -616,6 +692,9 @@ struct HomeTabView: View {
                         dataManager.refreshHomeSummary { cont.resume() }
                     }
                 }
+            }
+            .onReceive(foregroundPublisher) { _ in
+                currentHour = Calendar.current.component(.hour, from: Date())
             }
             .navigationBarTitle("VIT Chennai", displayMode: .inline)
             .vtopNavLeadingIcon()
