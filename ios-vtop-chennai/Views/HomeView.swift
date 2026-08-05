@@ -472,7 +472,7 @@ struct HomeTabView: View {
                         .padding(.horizontal, 16)
 
                         // Career banner
-                        if let openRoleURL = URL(string: "https://apps.apple.com/us/app/openrole-ai-job-search/id6775263884") {
+                        if let openRoleURL = URL(string: "itms-apps://apps.apple.com/us/app/openrole-ai-job-search/id6775263884") {
                             Link(destination: openRoleURL) {
                             HStack(spacing: 10) {
                                 Image(systemName: "briefcase.fill")
