@@ -1,12 +1,57 @@
 import SwiftUI
 import Combine
 
+@MainActor
+private enum VTOPShareSheetPresenter {
+    static func presentAppShareSheet() {
+        let activityVC = UIActivityViewController(
+            activityItems: [URL(string: "https://apps.apple.com/us/app/vit-connect/id6764813035")!],
+            applicationActivities: nil
+        )
+
+        let scene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+        guard let window = scene?.windows.first(where: { $0.isKeyWindow }) ?? scene?.windows.first,
+              let rootViewController = window.rootViewController else { return }
+
+        let presenter = topViewController(from: rootViewController)
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = presenter.view
+            popover.sourceRect = CGRect(
+                x: presenter.view.bounds.midX,
+                y: presenter.view.bounds.midY,
+                width: 0,
+                height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
+        presenter.present(activityVC, animated: true)
+    }
+
+    private static func topViewController(from viewController: UIViewController) -> UIViewController {
+        if let presented = viewController.presentedViewController {
+            return topViewController(from: presented)
+        }
+        if let navigation = viewController as? UINavigationController,
+           let visible = navigation.visibleViewController {
+            return topViewController(from: visible)
+        }
+        if let tab = viewController as? UITabBarController,
+           let selected = tab.selectedViewController {
+            return topViewController(from: selected)
+        }
+        return viewController
+    }
+}
+
 struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
     @State private var selectedTab = 0
     @State private var showSemesterSelection = false
-    /// Bumped when the Profile tab is selected so nested `NavigationView` pops back to the profile root.
+    /// Bumped when the Profile tab is selected so nested `NavigationStack` pops back to the profile root.
     @State private var profileTabRootId = 0
     @State private var homeTabRootId = 0
     @State private var homeCaptchaText = ""
@@ -25,49 +70,34 @@ struct HomeView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             // Home Tab
-            HomeTabView()
-                .id(homeTabRootId)
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(0)
+            Tab("Home", systemImage: "house.fill", value: 0) {
+                HomeTabView()
+                    .id(homeTabRootId)
+            }
 
             // Attendance Tab
-            AttendanceTabView()
-                .tabItem {
-                    Label("Attendance", systemImage: "calendar.badge.checkmark")
-                }
-                .tag(1)
+            Tab("Attendance", systemImage: "calendar.badge.checkmark", value: 1) {
+                AttendanceTabView()
+            }
 
             // Marks (full mark report by term; replaces former Performance tab)
-            PerformanceTabView()
-                .tabItem {
-                    Label("Marks", systemImage: "doc.text.magnifyingglass")
-                }
-                .tag(2)
+            Tab("Marks", systemImage: "doc.text.magnifyingglass", value: 2) {
+                PerformanceTabView()
+            }
+
+            // Games
+            Tab("Games", systemImage: "gamecontroller.fill", value: 4) {
+                GamesView()
+            }
 
             // Profile Tab
-            ProfileTabView()
-                .id(profileTabRootId)
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-                .tag(3)
-        }
-        .overlay(alignment: .topLeading) {
-            TabBarReselectBridge(handlers: [
-                0: { homeTabRootId += 1 },
-                3: { profileTabRootId += 1 }
-            ])
-            .frame(width: 0, height: 0)
-            .allowsHitTesting(false)
-        }
-        .environment(\.selectHomeTab) {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedTab = 0
+            Tab("Profile", systemImage: "person.fill", value: 3) {
+                ProfileTabView()
+                    .id(profileTabRootId)
             }
         }
-        .accentColor(.blue)
+        .environment(\.selectHomeTab, $selectedTab)
+        .tint(.blue)
         .sheet(isPresented: $showSemesterSelection) {
             SemesterSelectionView()
         }
@@ -109,9 +139,24 @@ struct HomeView: View {
                 ReCaptchaView(webView: webView, isPresented: $authViewModel.showReCaptchaWebView)
             }
         }
+        .onOpenURL { url in
+            guard let route = VTOPDeepLinkRoute(url: url) else { return }
+            switch route {
+            case .home:
+                selectedTab = 0
+                homeTabRootId += 1
+            case .attendance:
+                selectedTab = 1
+            case .marks:
+                selectedTab = 2
+            case .timetable, .exams, .events:
+                selectedTab = 3
+                profileTabRootId += 1
+            }
+        }
         .overlay(alignment: .bottom) {
-            if dataManager.isLoading {
-                DataLoadingOverlay(message: dataManager.loadingMessage)
+            if syncState.isLoading {
+                DataLoadingOverlay(message: syncState.loadingMessage)
             } else if authViewModel.isLoading,
                       authViewModel.isAttemptingSessionRecovery,
                       !authViewModel.showCaptcha,
@@ -155,8 +200,8 @@ struct DataLoadingOverlay: View {
         HStack(alignment: .center, spacing: 10) {
             VTOPSmoothSyncArrow(isRunning: true, font: .system(size: 16, weight: .medium), foreground: .white)
             Text(line)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white)
+                .vtopFont(size: 15, weight: .medium)
+.foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
         }
@@ -189,8 +234,8 @@ struct PrivacyMaskToggleButton: View {
             isMasked.toggle()
         } label: {
             Image(systemName: isMasked ? "eye" : "eye.slash")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .vtopFont(size: 14, weight: .semibold)
+.foregroundStyle(.secondary)
                 .padding(6)
                 .contentShape(Rectangle())
         }
@@ -271,8 +316,8 @@ private struct GreetingBannerView: View {
                         )
                         .frame(width: 58, height: 58)
                     Image(systemName: avatarImage)
-                        .font(.system(size: 26))
-                        .foregroundColor(.white)
+                        .vtopFont(size: 26)
+.foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                 }
                 .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
@@ -280,21 +325,21 @@ private struct GreetingBannerView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
                         Text(greeting)
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
+                            .vtopFont(size: 20, weight: .bold)
+.foregroundStyle(.white)
                         Text(greetingEmoji)
-                            .font(.system(size: 18))
-                    }
+                            .vtopFont(size: 18)
+}
 
                     Text(name)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.88))
+                        .vtopFont(size: 14, weight: .medium)
+.foregroundStyle(.white.opacity(0.88))
                         .lineLimit(1)
 
                     if let semester {
                         Text(semester)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.95))
+                            .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(.white.opacity(0.95))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
                             .background(Capsule().fill(Color.white.opacity(0.22)))
@@ -355,11 +400,28 @@ private struct VITClockTowerShape: Shape {
 struct HomeTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
+    @State private var showAcademicSearch = false
     @State private var currentHour = Calendar.current.component(.hour, from: Date())
     private let foregroundPublisher = NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
     @AppStorage(VTOPPrivacyStorage.maskCGPA) private var maskCGPA = false
     @AppStorage(VTOPPrivacyStorage.maskCredits) private var maskCredits = false
     @AppStorage(VTOPPrivacyStorage.maskOverallAttendance) private var maskOverallAttendance = false
+    @AppStorage(VTOPPersonalizationPreferences.dashboardLayoutKey) private var dashboardLayoutRaw = VTOPPersonalizationPreferences.DashboardLayout.standard.rawValue
+    @AppStorage(VTOPPersonalizationPreferences.visibleCardsKey) private var visibleCardsRaw = VTOPPersonalizationPreferences.DashboardCard.allCases.map(\.rawValue).joined(separator: ",")
+    @AppStorage(VTOPPersonalizationPreferences.attendanceThresholdKey) private var attendanceThreshold = 75
+    @AppStorage(VTOPPersonalizationPreferences.showPercentagesKey) private var showPercentages = true
+
+    private var dashboardLayout: VTOPPersonalizationPreferences.DashboardLayout {
+        .init(rawValue: dashboardLayoutRaw) ?? .standard
+    }
+    private var visibleCards: Set<VTOPPersonalizationPreferences.DashboardCard> {
+        Set(visibleCardsRaw.split(separator: ",").compactMap { VTOPPersonalizationPreferences.DashboardCard(rawValue: String($0)) })
+    }
+
+    private func shareApp() {
+        VTOPShareSheetPresenter.presentAppShareSheet()
+    }
 
     var greeting: String {
         switch currentHour {
@@ -372,35 +434,110 @@ struct HomeTabView: View {
         }
     }
 
-    var greetingEmoji: String {
-        switch currentHour {
-        case 5..<12:
-            return "🌅"
-        case 12..<17:
-            return "☀️"
-        default:
-            return "🌙"
-        }
-    }
-
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(uiColor: .systemGroupedBackground)
                     .ignoresSafeArea()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: dashboardLayout.spacing) {
                         OfflineDataBanner(showSyncMetadata: true)
                         // Greeting Banner
-                        GreetingBannerView(
+                        TodayCard(
                             greeting: greeting,
-                            greetingEmoji: greetingEmoji,
-                            name: dataManager.studentProfile.map(\.displayNameWithSalutation) ?? authViewModel.username,
+                            name: dataManager.studentProfile?.name ?? authViewModel.username,
                             semester: dataManager.selectedSemester?.name,
                             hour: currentHour
                         )
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
+
+                        Button {
+                            showAcademicSearch = true
+                        } label: {
+                            Label("Search courses, marks, exams and more", systemImage: "magnifyingglass")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 13)
+                                .background(.background, in: .rect(cornerRadius: 14, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Color.primary.opacity(0.08))
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Search academic data")
+                        .padding(.horizontal, 16)
+
+                        // Career banner
+                        Link(destination: URL(string: "https://apps.apple.com/us/app/openrole-ai-job-search/id6775263884")!) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "briefcase.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.blue)
+                                Text("Looking for internships? Try OpenRole")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Image(systemName: "arrow.up.right.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.blue.opacity(0.05), in: .rect(cornerRadius: 12, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(Color.blue.opacity(0.15), lineWidth: 1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 16)
+
+                        if syncState.isLoading && dataManager.studentProfile == nil {
+                            HomeSkeletonView()
+                        }
+
+                        if dataManager.studentProfile != nil {
+                            GradeTargetCard()
+                                .environmentObject(dataManager)
+                                .padding(.horizontal, 16)
+                        }
+
+                        if visibleCards.contains(.nextClass) {
+                            NextClassCockpitCard(
+                                upcoming: VTOPScheduleEngine.nextUpcomingSlot(
+                                    timetable: dataManager.timetable,
+                                    courses: dataManager.courses
+                                )
+                            )
+                            .padding(.horizontal, 16)
+                        }
+
+                        if visibleCards.contains(.exams) {
+                            UpcomingExamCockpitCard(exams: dataManager.exams)
+                                .padding(.horizontal, 16)
+                        }
+
+                        if visibleCards.contains(.attendance) {
+                            AttendanceInsightsCard(
+                                attendance: dataManager.attendance,
+                                threshold: attendanceThreshold,
+                                showPercentages: showPercentages
+                            )
+                            .padding(.horizontal, 16)
+                        }
+
+                        if visibleCards.contains(.marks) {
+                            MarksInsightsCard(
+                                marks: dataManager.marks,
+                                courses: dataManager.courses,
+                                showPercentages: showPercentages
+                            )
+                            .padding(.horizontal, 16)
+                        }
 
                     // Academic Performance Cards
                     HStack(spacing: 12) {
@@ -422,8 +559,8 @@ struct HomeTabView: View {
                                             .fill(Color.blue.opacity(0.13))
                                             .frame(width: 34, height: 34)
                                         Image(systemName: "person.text.rectangle.fill")
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundColor(.blue)
+                                            .vtopFont(size: 15, weight: .semibold)
+.foregroundStyle(.blue)
                                     }
                                     Spacer()
                                     PrivacyMaskToggleButton(
@@ -435,12 +572,12 @@ struct HomeTabView: View {
                                 .padding(.bottom, 10)
 
                                 Text(maskCGPA ? "••••" : String(format: "%.2f", dataManager.studentProfile?.cgpa ?? 0.0))
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .foregroundColor(.primary)
+                                    .vtopFont(size: 30, weight: .bold, design: .rounded)
+.foregroundStyle(.primary)
 
                                 Text("CGPA")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 12, weight: .semibold)
+.foregroundStyle(.secondary)
                                     .padding(.top, 2)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -475,8 +612,8 @@ struct HomeTabView: View {
                                             .fill(Color.green.opacity(0.13))
                                             .frame(width: 34, height: 34)
                                         Image(systemName: "checkmark.seal.fill")
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundColor(.green)
+                                            .vtopFont(size: 15, weight: .semibold)
+.foregroundStyle(.green)
                                     }
                                     Spacer()
                                     PrivacyMaskToggleButton(
@@ -488,12 +625,12 @@ struct HomeTabView: View {
                                 .padding(.bottom, 10)
 
                                 Text(maskCredits ? "•••" : String(format: "%.0f", dataManager.studentProfile?.totalCredits ?? 0.0))
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .foregroundColor(.primary)
+                                    .vtopFont(size: 30, weight: .bold, design: .rounded)
+.foregroundStyle(.primary)
 
-                                Text("Credits Earned")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.secondary)
+                                Text("Credits")
+                                    .vtopFont(size: 12, weight: .semibold)
+.foregroundStyle(.secondary)
                                     .padding(.top, 2)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -522,8 +659,8 @@ struct HomeTabView: View {
 
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "calendar.badge.checkmark")
-                                .font(.system(size: 70, weight: .regular))
-                                .foregroundColor(attColor.opacity(0.11))
+                                .vtopFont(size: 70, weight: .regular)
+.foregroundStyle(attColor.opacity(0.11))
                                 .offset(x: -16, y: 10)
 
                             VStack(alignment: .leading, spacing: 10) {
@@ -534,12 +671,12 @@ struct HomeTabView: View {
                                             .fill(attColor.opacity(0.13))
                                             .frame(width: 32, height: 32)
                                         Image(systemName: "calendar.badge.checkmark")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(attColor)
+                                            .vtopFont(size: 14, weight: .semibold)
+.foregroundStyle(attColor)
                                     }
                                     Text("Overall Attendance")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.primary)
+                                        .vtopFont(size: 14, weight: .semibold)
+.foregroundStyle(.primary)
                                     Spacer()
                                     PrivacyMaskToggleButton(
                                         isMasked: $maskOverallAttendance,
@@ -547,27 +684,27 @@ struct HomeTabView: View {
                                         accessibilityHide: "Mask overall attendance"
                                     )
                                     Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(Color(uiColor: .tertiaryLabel))
+                                        .vtopFont(size: 12, weight: .semibold)
+.foregroundStyle(Color(uiColor: .tertiaryLabel))
                                 }
 
                                 if !dataManager.attendance.isEmpty {
                                     HStack(alignment: .lastTextBaseline, spacing: 10) {
                                         Text(maskOverallAttendance ? "–" : "\(overallPercentage)%")
-                                            .font(.system(size: 40, weight: .bold, design: .rounded))
-                                            .foregroundColor(attColor)
+                                            .vtopFont(size: 40, weight: .bold, design: .rounded)
+.foregroundStyle(attColor)
 
                                         if !maskOverallAttendance && totalClasses > 0 {
                                             VStack(alignment: .leading, spacing: 3) {
                                                 Text(statusLabel)
-                                                    .font(.system(size: 11, weight: .bold))
-                                                    .foregroundColor(attColor)
+                                                    .vtopFont(size: 11, weight: .bold)
+.foregroundStyle(attColor)
                                                     .padding(.horizontal, 9)
                                                     .padding(.vertical, 3)
                                                     .background(Capsule().fill(attColor.opacity(0.13)))
                                                 Text("\(totalAttended) / \(totalClasses) classes")
-                                                    .font(.system(size: 12, weight: .medium))
-                                                    .foregroundColor(.secondary)
+                                                    .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(.secondary)
                                             }
                                         }
                                         Spacer()
@@ -591,8 +728,8 @@ struct HomeTabView: View {
                                     }
                                 } else {
                                     Text("No attendance data")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
+                                        .vtopFont(size: 14)
+.foregroundStyle(.secondary)
                                         .padding(.top, 4)
                                 }
                             }
@@ -616,26 +753,25 @@ struct HomeTabView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Today's Schedule")
-                                .font(.system(size: 17, weight: .semibold))
-
+                                .vtopFont(size: 17, weight: .semibold)
                             Spacer()
 
                             NavigationLink(destination: TimetableView()) {
                                 HStack(spacing: 4) {
                                     Text("View All")
-                                        .font(.system(size: 14, weight: .medium))
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                }
-                                .foregroundColor(.accentColor)
+                                        .vtopFont(size: 14, weight: .medium)
+Image(systemName: "chevron.right")
+                                        .vtopFont(size: 12, weight: .semibold)
+}
+                                .foregroundStyle(Color.accentColor)
                             }
                         }
                         .padding(.horizontal)
 
                         if dataManager.timetable.isEmpty {
                             Text("No classes today")
-                                .font(.system(size: 15))
-                                .foregroundColor(.secondary)
+                                .vtopFont(size: 15)
+.foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity)
                                 .padding()
                         } else {
@@ -645,17 +781,17 @@ struct HomeTabView: View {
                             if todaySlots.isEmpty {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(.green)
+                                        .vtopFont(size: 20)
+.foregroundStyle(.green)
 
                                     Text("No classes scheduled for today!")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(.secondary)
+                                        .vtopFont(size: 15)
+.foregroundStyle(.secondary)
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity)
                                 .background(Color.green.opacity(0.1))
-                                .cornerRadius(12)
+                                .clipShape(.rect(cornerRadius: 12))
                                 .padding(.horizontal)
                             } else {
                                 VStack(spacing: 12) {
@@ -666,8 +802,8 @@ struct HomeTabView: View {
                                     if todaySlots.count > 3 {
                                         NavigationLink(destination: TimetableView()) {
                                             Text("+ \(todaySlots.count - 3) more classes")
-                                                .font(.system(size: 14, weight: .medium))
-                                                .foregroundColor(.accentColor)
+                                                .vtopFont(size: 14, weight: .medium)
+.foregroundStyle(Color.accentColor)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 12)
                                                 .background(
@@ -688,23 +824,32 @@ struct HomeTabView: View {
                 }
                 .scrollContentBackground(.hidden)
                 .refreshable {
-                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                        dataManager.refreshHomeSummary { cont.resume() }
-                    }
+                    await dataManager.refreshHomeSummary()
                 }
             }
             .onReceive(foregroundPublisher) { _ in
                 currentHour = Calendar.current.component(.hour, from: Date())
             }
-            .navigationBarTitle("VIT Chennai", displayMode: .inline)
+            .navigationTitle("VIT Chennai")
+            .navigationBarTitleDisplayMode(.inline)
             .vtopNavLeadingIcon()
             .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: shareApp) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Share app")
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     TimetableToolbarLink()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     MainSyncToolbarButton()
                 }
+            }
+            .sheet(isPresented: $showAcademicSearch) {
+                AcademicSearchView()
+                    .environmentObject(dataManager)
             }
         }
     }
@@ -742,12 +887,12 @@ struct TodaySlotView: View {
                 // Time
                 VStack(alignment: .leading, spacing: 2) {
                     Text(slot.startTime)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 12, weight: .semibold)
+.foregroundStyle(.secondary)
 
                     Text(slot.endTime)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 12)
+.foregroundStyle(.secondary)
                 }
                 .frame(width: 60, alignment: .leading)
 
@@ -755,34 +900,34 @@ struct TodaySlotView: View {
                 Rectangle()
                     .fill(typeColor)
                     .frame(width: 4)
-                    .cornerRadius(2)
+                    .clipShape(.rect(cornerRadius: 2))
 
                 // Course details
                 VStack(alignment: .leading, spacing: 4) {
                     Text(course.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .lineLimit(1)
+                        .vtopFont(size: 15, weight: .semibold)
+.lineLimit(1)
 
                     HStack {
                         Label(course.venue, systemImage: "mappin.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .vtopFont(size: 12)
+.foregroundStyle(.secondary)
 
                         Spacer()
 
                         Text(course.type.rawValue)
-                            .font(.system(size: 11, weight: .medium))
-                            .padding(.horizontal, 6)
+                            .vtopFont(size: 11, weight: .medium)
+.padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background(typeColor.opacity(0.2))
-                            .foregroundColor(typeColor)
-                            .cornerRadius(4)
+                            .foregroundStyle(typeColor)
+                            .clipShape(.rect(cornerRadius: 4))
                     }
                 }
             }
             .padding(12)
             .background(Color(uiColor: .secondarySystemBackground))
-            .cornerRadius(10)
+            .clipShape(.rect(cornerRadius: 10))
             .shadow(color: Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
         }
     }
@@ -811,12 +956,12 @@ struct TimetableSlotView: View {
             // Time indicator
             VStack(alignment: .leading, spacing: 4) {
                 Text(time.components(separatedBy: " - ")[0])
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 12, weight: .semibold)
+.foregroundStyle(.secondary)
 
                 Text(time.components(separatedBy: " - ")[1])
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 12)
+.foregroundStyle(.secondary)
             }
             .frame(width: 80, alignment: .leading)
 
@@ -828,29 +973,28 @@ struct TimetableSlotView: View {
             // Course details
             VStack(alignment: .leading, spacing: 4) {
                 Text(course)
-                    .font(.system(size: 16, weight: .semibold))
-
+                    .vtopFont(size: 16, weight: .semibold)
                 HStack {
                     Label(room, systemImage: "mappin.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 12)
+.foregroundStyle(.secondary)
 
                     Spacer()
 
                     Text(type)
-                        .font(.system(size: 12, weight: .medium))
-                        .padding(.horizontal, 8)
+                        .vtopFont(size: 12, weight: .medium)
+.padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(typeColor.opacity(0.2))
-                        .foregroundColor(typeColor)
-                        .cornerRadius(6)
+                        .foregroundStyle(typeColor)
+                        .clipShape(.rect(cornerRadius: 6))
                 }
             }
             .padding(.leading, 8)
         }
         .padding()
         .background(Color(.systemBackground))
-        .cornerRadius(12)
+        .clipShape(.rect(cornerRadius: 12))
         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
 }
@@ -937,39 +1081,18 @@ struct AttendanceTabView: View {
 
     @ViewBuilder
     private var semesterPickerMenu: some View {
-        Menu {
-            ForEach(semesterChoices) { sem in
-                Button(sem.name) {
-                    attendanceSemesterId = sem.id
-                    if attendancePickerPrimed {
-                        dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
-                    }
-                }
+        SemesterMenuView(
+            choices: semesterChoices,
+            selectedName: attendanceSemesterDisplayName,
+            tint: Color(uiColor: .systemBlue),
+            bottomPadding: Self.semesterPickerBottomPadding,
+            onSelect: { semester in
+            attendanceSemesterId = semester.id
+            if attendancePickerPrimed {
+                dataManager.refreshAttendance(semesterSubId: semester.id, continueAfterMarks: false)
             }
-        } label: {
-            HStack(spacing: 8) {
-                Text("Semester — \(attendanceSemesterDisplayName)")
-                    .font(.body.weight(.medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(Color(uiColor: .systemBlue))
             }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
-            )
-        }
+        )
     }
 
     var body: some View {
@@ -1036,17 +1159,11 @@ struct AttendanceTabView: View {
             .navigationBarTitleDisplayMode(.inline)
             .vtopOpaqueNavigationBar()
             .refreshable {
-                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                    if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
-                        dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false) {
-                            cont.resume()
-                        }
-                    } else {
-                        dataManager.loadAttendanceSemesterPicklist {
-                            cont.resume()
-                        }
+                if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
+                    await dataManager.refreshAttendance(for: attendanceSemesterId)
+                } else {
+                    await dataManager.loadAttendanceSemesterPicklist()
                     }
-                }
             }
             .vtopNavLeadingIcon()
             .toolbar {
@@ -1106,126 +1223,37 @@ struct PerformanceTabView: View {
     }
 }
 
-// Old placeholder performance tab (keeping for reference)
-struct OldPerformanceTabView: View {
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
-                    PerformanceCard(
-                        courseName: "Computer Networks",
-                        courseCode: "CSE3001",
-                        cat1: 25,
-                        cat2: 23,
-                        finalMarks: 48
-                    )
-
-                    PerformanceCard(
-                        courseName: "Database Management",
-                        courseCode: "CSE2004",
-                        cat1: 28,
-                        cat2: 26,
-                        finalMarks: 54
-                    )
-
-                    PerformanceCard(
-                        courseName: "Software Engineering",
-                        courseCode: "CSE3005",
-                        cat1: 24,
-                        cat2: 27,
-                        finalMarks: 51
-                    )
-                }
-                .padding()
-            }
-            .navigationBarTitle("Performance", displayMode: .large)
-        }
-    }
-}
-
-struct PerformanceCard: View {
-    let courseName: String
-    let courseCode: String
-    let cat1: Int
-    let cat2: Int
-    let finalMarks: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(courseName)
-                .font(.headline)
-
-            Text(courseCode)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            HStack(spacing: 20) {
-                VStack {
-                    Text("CAT 1")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("\(cat1)/30")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                }
-
-                VStack {
-                    Text("CAT 2")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("\(cat2)/30")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                }
-
-                Spacer()
-
-                VStack {
-                    Text("Total")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("\(finalMarks)/60")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.blue)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-    }
-}
-
 // MARK: - Profile Tab
 struct ProfileTabView: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
     @EnvironmentObject var friendsStore: FriendsTimetableStore
-    @AppStorage("vtop_dark_mode") private var darkModeEnabled = false
     @AppStorage(VTOPPrivacyStorage.maskCGPA) private var maskCGPA = false
     @AppStorage(VTOPPrivacyStorage.maskCredits) private var maskCredits = false
     @State private var confirmSignOut = false
     @State private var confirmClearCache = false
 
+    private func shareApp() {
+        VTOPShareSheetPresenter.presentAppShareSheet()
+    }
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 OfflineDataBanner(showSyncMetadata: false)
                 List {
                 // Student Info Section
                 if let profile = dataManager.studentProfile {
-                    Section(header: Text("Student Information")) {
+                    Section("Student Information") {
                         HStack {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(profile.displayNameWithSalutation)
-                                    .font(.system(size: 18, weight: .bold))
-
+                                Text(profile.name)
+                                    .vtopFont(size: 18, weight: .bold)
                                 if let semester = profile.semester {
                                     Text(semester)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.secondary)
+                                        .vtopFont(size: 14, weight: .medium)
+.foregroundStyle(.secondary)
                                 }
                             }
                             Spacer()
@@ -1235,11 +1263,11 @@ struct ProfileTabView: View {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("CGPA")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
                                 Text(maskCGPA ? "••••" : String(format: "%.2f", profile.cgpa))
-                                    .font(.system(size: 16, weight: .semibold))
-                            }
+                                    .vtopFont(size: 16, weight: .semibold)
+}
                             Spacer()
                             PrivacyMaskToggleButton(
                                 isMasked: $maskCGPA,
@@ -1252,11 +1280,11 @@ struct ProfileTabView: View {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Credits")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
                                 Text(maskCredits ? "•••" : "\(Int(profile.totalCredits))")
-                                    .font(.system(size: 16, weight: .semibold))
-                            }
+                                    .vtopFont(size: 16, weight: .semibold)
+}
                             Spacer()
                             PrivacyMaskToggleButton(
                                 isMasked: $maskCredits,
@@ -1266,192 +1294,84 @@ struct ProfileTabView: View {
                         }
                         .padding(.vertical, 2)
 
+                        Button(action: shareApp) {
+                            HStack {
+                                Label("Share App", systemImage: "square.and.arrow.up")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 2)
+
                         if let required = profile.totalCreditsRequired {
                             HStack {
                                 Text("Total credits required")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
                                 Spacer()
                                 Text(String(format: "%.0f", required))
-                                    .font(.system(size: 15, weight: .semibold))
-                            }
+                                    .vtopFont(size: 15, weight: .semibold)
+}
                             .padding(.vertical, 2)
                         }
 
                         if let nonGraded = profile.nonGradedCoreRequirement {
                             HStack {
                                 Text("Non-graded core requirement")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
                                 Spacer()
                                 Text(String(format: "%.1f", nonGraded))
-                                    .font(.system(size: 15, weight: .semibold))
-                            }
+                                    .vtopFont(size: 15, weight: .semibold)
+}
                             .padding(.vertical, 2)
                         }
                     }
                 }
 
-                Section(header: Text("Academic Information")) {
-                    NavigationLink(destination: CoursesDetailView().environmentObject(dataManager)) {
-                        Label("Courses", systemImage: "book.fill")
+                Section("Academic Information") {
+                    NavigationLink(destination: ProfileHubView(hub: .classes)) {
+                        VTOPSettingsRow(icon: "books.vertical.fill", color: .blue, title: "Classes", detail: "Courses and timetable")
                     }
 
-                    NavigationLink(destination: GPACalculatorView().environmentObject(dataManager)) {
-                        HStack {
-                            Label("GPA Calculator", systemImage: "function")
-                            Spacer()
-                            Text("BETA")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.orange)
-                        }
-                    }
-
-                    NavigationLink(destination: NotesAndTodosHubView()) {
-                        Label("Notes & To-Do", systemImage: "pencil.and.list.clipboard")
-                    }
-
-                    NavigationLink(destination: TimetableView().environmentObject(authViewModel).environmentObject(dataManager)) {
-                        Label("Timetable", systemImage: "calendar")
-                    }
-
-                    NavigationLink(destination: GradeHistoryView().environmentObject(dataManager)) {
-                        Label("Grade history (all semesters)", systemImage: "chart.bar.doc.horizontal")
-                    }
-
-                    NavigationLink(destination: MarksBySemesterView().environmentObject(dataManager)) {
-                        Label("Marks", systemImage: "doc.text.magnifyingglass")
+                    NavigationLink(destination: ProfileHubView(hub: .performance)) {
+                        VTOPSettingsRow(icon: "chart.bar.xaxis", color: .purple, title: "Performance", detail: "Marks, grades, and GPA")
                     }
 
                     NavigationLink(destination: ExamScheduleView().environmentObject(dataManager)) {
-                        Label("Exam Schedule", systemImage: "calendar.and.person")
+                        VTOPSettingsRow(icon: "calendar.and.person", color: .red, title: "Exam Schedule", detail: "See upcoming examinations")
                     }
 
                     NavigationLink(destination: EventHubView().environmentObject(dataManager)) {
-                        Label("Event hub", systemImage: "calendar.badge.clock")
+                        VTOPSettingsRow(icon: "calendar.badge.clock", color: .cyan, title: "Event hub", detail: "Campus events and announcements")
                     }
 
-                    NavigationLink(destination: NPTELQuizView()) {
-                        Label("NPTEL Quiz", systemImage: "brain.head.profile")
+                    NavigationLink(destination: ProfileHubView(hub: .learning)) {
+                        VTOPSettingsRow(icon: "brain.head.profile", color: .pink, title: "Learning tools", detail: "Notes, to-dos, and NPTEL quizzes")
                     }
                 }
 
-                Section(header: Text("Financial & Administrative")) {
-                    NavigationLink(destination: ReceiptsView().environmentObject(dataManager)) {
-                        Label("Payment Receipts", systemImage: "doc.text.fill")
+                Section("Campus & community") {
+                    NavigationLink(destination: ProfileHubView(hub: .studentAccount)) {
+                        VTOPSettingsRow(icon: "person.text.rectangle", color: .indigo, title: "Student account", detail: "Profile, credentials, and receipts")
                     }
-
-                    NavigationLink(destination: StaffInformationView().environmentObject(dataManager)) {
-                        Label("Staff Information", systemImage: "person.2.fill")
-                    }
-
-                    NavigationLink(destination: PortalCredentialsView().environmentObject(dataManager)) {
-                        Label("Portal credentials & rank", systemImage: "key.fill")
+                    NavigationLink(destination: ProfileHubView(hub: .campusCommunity)) {
+                        VTOPSettingsRow(icon: "person.3.fill", color: .teal, title: "Campus & community", detail: "Staff, resources, and friends")
                     }
                 }
 
-                Section(header: Text("Profile")) {
-                    NavigationLink(destination: FullStudentProfileView().environmentObject(dataManager)) {
-                        Label("Full profile", systemImage: "person.text.rectangle")
-                    }
-
-                    Link(destination: URL(string: "https://drive.google.com/drive/folders/1Z4tBts_Y55n4m8yRSyV7WzKocVHpi9yC")!) {
-                        Label("Study Materials", systemImage: "books.vertical.fill")
+                Section("App settings") {
+                    NavigationLink(destination: ProfileHubView(hub: .appSettings)) {
+                        VTOPSettingsRow(icon: "gearshape.fill", color: .gray, title: "App settings", detail: "Personalization, sync, and cache")
                     }
                 }
 
-                Section(header: Text("Friends")) {
-                    NavigationLink(destination: ImportFriendsTimetableView().environmentObject(friendsStore)) {
-                        Label("Import timetable", systemImage: "square.and.arrow.down")
+                Section("About VIT Connect") {
+                    NavigationLink(destination: ProfileHubView(hub: .about)) {
+                        VTOPSettingsRow(icon: "info.circle.fill", color: .blue, title: "About VIT Connect", detail: "Legal, support, and upcoming features")
                     }
-                    NavigationLink(destination: FriendsTimetableListView().environmentObject(friendsStore)) {
-                        Label("Friends timetable", systemImage: "person.2.square.stack")
-                    }
-                    NavigationLink(destination: CompareTimetablesView().environmentObject(dataManager).environmentObject(friendsStore)) {
-                        HStack {
-                            Label("Compare timetables", systemImage: "rectangle.2.swap")
-                            Spacer()
-                            Text("BETA")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                }
-
-                Section(header: Text("Sync & app")) {
-                    if dataManager.lastSuccessfulSyncAt != nil || dataManager.cachePersistedAt != nil {
-                        VStack(alignment: .leading, spacing: 6) {
-                            if let sync = dataManager.lastSuccessfulSyncAt {
-                                Label {
-                                    Text("Last successful sync: \(sync.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.subheadline)
-                                } icon: {
-                                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            if let cached = dataManager.cachePersistedAt {
-                                Label {
-                                    Text("Data saved on device: \(cached.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                } icon: {
-                                    Image(systemName: "internaldrive.fill")
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-
-                    // Replace with your real form URL when ready.
-                    Link(destination: URL(string: "https://docs.google.com/forms/d/e/1FAIpQLScN1VjOZJ0MqUrADnkt_WkYIclAT3KEpT0XSRa_jptUBAIfSQ/viewform")!) {
-                        Label("Bugs & suggestions", systemImage: "ladybug.fill")
-                    }
-
-                    Button(action: {
-                        authViewModel.triggerSync()
-                    }) {
-                        HStack(alignment: .center, spacing: 8) {
-                            VTOPSmoothSyncArrow(
-                                isRunning: dataManager.isLoading,
-                                font: .body.weight(.medium),
-                                foreground: .primary
-                            )
-                            Text(dataManager.isLoading ? "Syncing…" : "Full Sync Data")
-                                .font(.body.weight(.medium))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                            Spacer(minLength: 0)
-                        }
-                    }
-                    .disabled(dataManager.isLoading)
-
-                    Toggle(isOn: $darkModeEnabled) {
-                        Label("Dark mode", systemImage: "moon.fill")
-                    }
-
-                    NavigationLink(destination: CacheManagementView()) {
-                        Label("Cache management", systemImage: "externaldrive.fill")
-                    }
-                }
-
-                Section(header: Text("Legal")) {
-                    NavigationLink(destination: PrivacyPolicyView()) {
-                        Label("Privacy policy", systemImage: "hand.raised.fill")
-                    }
-                    NavigationLink(destination: TermsAndConditionsView()) {
-                        Label("Terms and conditions", systemImage: "doc.plaintext")
-                    }
-                }
-
-                Section(header: Text("Upcoming updates")) {
-                    Text("VIT Bhopal and VIT Vellore — support coming soon.")
-                        .font(.subheadline)
-                    Text("Moodle integration — coming soon.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
                 }
 
                 Section {
@@ -1469,7 +1389,8 @@ struct ProfileTabView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationBarTitle("Profile", displayMode: .inline)
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
             .vtopOpaqueNavigationBar()
             .alert("Sign out?", isPresented: $confirmSignOut) {
                 Button("Cancel", role: .cancel) {}
@@ -1499,6 +1420,7 @@ struct ProfileTabView: View {
     return HomeView()
         .environmentObject(authViewModel)
         .environmentObject(dataManager)
+        .environmentObject(dataManager.syncState)
         .environmentObject(FriendsTimetableStore())
         .environmentObject(NotesAndTodosStore())
 }
