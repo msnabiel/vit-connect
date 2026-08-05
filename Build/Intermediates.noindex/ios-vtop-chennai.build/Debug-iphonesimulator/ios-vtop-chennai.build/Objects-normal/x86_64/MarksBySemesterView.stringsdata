@@ -1,0 +1,240 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/MarksBySemesterView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Marks",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "No semesters loaded. Sign in to VTOP, sync, then pull to refresh.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 108
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select a semester to load mark components.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "No mark rows for this semester. Tap refresh or try another term.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 119
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weightage",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@/%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 370
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@/%@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 379
+        }
+      },
+      {
+        "comment": "",
+        "key": "Avg %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 391
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@/%@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 446
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 450
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@/%@%%",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 454
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 459
+        }
+      },
+      {
+        "comment": "",
+        "key": "Class avg:",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 472
+        }
+      },
+      {
+        "comment": "",
+        "key": "Class avg:",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 492
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add class avg",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 515
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%@",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 539
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 73,
+          "startingLine": 539
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total Scored",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 624
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ / %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 628
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total Weightage",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 648
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ / %@%%",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 652
+        }
+      },
+      {
+        "comment": "",
+        "key": "Class Avg /100",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 677
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ / 100",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 681
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%@",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 693
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 89,
+          "startingLine": 693
+        }
+      },
+      {
+        "comment": "",
+        "key": "Class Average",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 708
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ / %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 712
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%@",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 724
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@",
+        "location": {
+          "startingColumn": 73,
+          "startingLine": 724
+        }
+      }
+    ]
+  },
+  "version": 1
+}

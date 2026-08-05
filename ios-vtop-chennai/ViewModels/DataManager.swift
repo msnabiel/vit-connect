@@ -3,6 +3,8 @@ import WebKit
 import Combine
 
 class DataManager: ObservableObject {
+    let syncState = DataManagerSyncState()
+
     // MARK: - Published Properties
     @Published var studentProfile: StudentProfile?
     @Published var courses: [Course] = []
@@ -42,20 +44,6 @@ class DataManager: ObservableObject {
     @Published var deanPortraitData: Data?
     @Published var hodPortraitData: Data?
 
-    @Published var isLoading: Bool = false
-    @Published var loadingMessage: String = ""
-    @Published var errorMessage: String?
-    /// Last time a snapshot was written to disk (`VTOPDiskCache`).
-    @Published var cachePersistedAt: Date?
-    /// Last successful end-to-end refresh (`finishDataFetching`).
-    @Published var lastSuccessfulSyncAt: Date?
-    /// Shown when the user has used all allowed full syncs in the rolling quota window.
-    @Published var fullSyncQuotaBlockedMessage: String?
-    /// When set, show a confirmation before starting full sync (toolbar / profile). Cleared on cancel or after starting sync.
-    @Published var fullSyncConfirmSlotsRemaining: Int?
-    /// Shown in offline banner (e.g. session vs network).
-    @Published var lastDataFetchFailureReason: String?
-
     /// Called when the WebView session cannot be extracted (expired session, blank page, etc.).
     /// The `AuthenticationViewModel` can attach a handler to attempt auto re-login.
     var onSessionExpired: (() -> Void)?
@@ -66,12 +54,16 @@ class DataManager: ObservableObject {
     private var authorizedID: String?
     private var csrfToken: String?
     private var syncDebounceItem: DispatchWorkItem?
+    private var cachePersistenceWorkItem: DispatchWorkItem?
+    private var cachePersistenceGeneration = UUID()
     /// Fires if a manual full sync stays in the loading state too long (hung WebView JS, network, etc.).
     private var fullSyncStallWatchdogItem: DispatchWorkItem?
+    private var refreshIntentObserver: NSObjectProtocol?
     private var coursesBySemesterId: [String: [Course]] = [:]
     private var timetableBySemesterId: [String: [TimetableSlot]] = [:]
     private var marksBySemesterId: [String: [Mark]] = [:]
     private var cumulativeMarksBySemesterId: [String: [CumulativeMark]] = [:]
+    private var cacheRestoreGeneration = UUID()
     /// Set for the lifetime of one `extractSessionData` → … → `finishDataFetching` chain. Only `performSyncAll` starts a chain with this true so post-login fetches never touch UserDefaults quota.
     private var countsCurrentSessionTowardManualFullSyncQuota = false
 
@@ -193,6 +185,7 @@ class DataManager: ObservableObject {
     /// Prints the complete VTOP HTML/response body to the Xcode console (no truncation).
     private func debugPrintFullVTOPResponse(_ label: String, _ body: String?) {
         #if DEBUG
+        guard UserDefaults.standard.bool(forKey: "vtop_verbose_response_logging") else { return }
         guard let body = body, !body.isEmpty else { return }
         print("🔍 FULL \(label) (length=\(body.count)):")
         print(body)
@@ -221,7 +214,20 @@ class DataManager: ObservableObject {
         logger.info("📦 DataManager initialized", context: "DataManager")
         Self.migrateLegacyFullSyncStorageIfNeeded()
         let pruned = Self.prunedFullSyncCompletionDates()
-        lastSuccessfulSyncAt = pruned.last
+        syncState.lastSuccessfulSyncAt = pruned.last
+        refreshIntentObserver = NotificationCenter.default.addObserver(
+            forName: .vtopRefreshRequested,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncAll()
+        }
+    }
+
+    deinit {
+        if let refreshIntentObserver {
+            NotificationCenter.default.removeObserver(refreshIntentObserver)
+        }
     }
 
     func setWebView(_ webView: WKWebView) {
@@ -238,12 +244,12 @@ class DataManager: ObservableObject {
         cancelFullSyncStallWatchdog()
         let work = DispatchWorkItem { [weak self] in
             guard let self = self else { return }
-            guard self.isLoading else { return }
+            guard self.syncState.isLoading else { return }
             self.logger.warning("Full sync stalled — timeout", context: "DataManager")
             self.countsCurrentSessionTowardManualFullSyncQuota = false
-            self.lastDataFetchFailureReason = Self.signInOrSyncStallUserMessage
-            self.isLoading = false
-            self.loadingMessage = ""
+            self.syncState.lastDataFetchFailureReason = Self.signInOrSyncStallUserMessage
+            self.syncState.isLoading = false
+            self.syncState.loadingMessage = ""
         }
         fullSyncStallWatchdogItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.fullSyncStallTimeout, execute: work)
@@ -254,8 +260,8 @@ class DataManager: ObservableObject {
         DispatchQueue.main.async {
             self.cancelFullSyncStallWatchdog()
             self.countsCurrentSessionTowardManualFullSyncQuota = false
-            self.isLoading = false
-            self.loadingMessage = ""
+            self.syncState.isLoading = false
+            self.syncState.loadingMessage = ""
         }
     }
 
@@ -264,9 +270,9 @@ class DataManager: ObservableObject {
         DispatchQueue.main.async {
             self.cancelFullSyncStallWatchdog()
             self.countsCurrentSessionTowardManualFullSyncQuota = false
-            self.lastDataFetchFailureReason = "VTOP session expired. Trying to sign you back in…"
-            self.isLoading = false
-            self.loadingMessage = ""
+            self.syncState.lastDataFetchFailureReason = "VTOP session expired. Trying to sign you back in…"
+            self.syncState.isLoading = false
+            self.syncState.loadingMessage = ""
         }
 
         // Kick off a recovery attempt (auto re-login) if the auth layer is listening.
@@ -377,7 +383,7 @@ class DataManager: ObservableObject {
                 clearSyncProgress()
             } else {
                 DispatchQueue.main.async {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -428,7 +434,7 @@ class DataManager: ObservableObject {
                     self.clearSyncProgress()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -442,7 +448,7 @@ class DataManager: ObservableObject {
                     self.clearSyncProgress()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -467,13 +473,13 @@ class DataManager: ObservableObject {
                     } else {
                         self.logger.warning("No semesters returned from VTOP", context: "DataManager")
                         self.clearSyncProgress()
-                        self.lastDataFetchFailureReason = "Could not load semesters. Sign out and sign in again, then sync."
+                        self.syncState.lastDataFetchFailureReason = "Could not load semesters. Sign out and sign in again, then sync."
                     }
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
-                self.persistCache()
+                self.scheduleCachePersistence()
             }
         }
     }
@@ -510,7 +516,7 @@ class DataManager: ObservableObject {
         logger.info("🚀 Starting sequential data fetch...", context: "DataManager")
 
         DispatchQueue.main.async {
-            self.isLoading = true
+            self.syncState.isLoading = true
             if self.countsCurrentSessionTowardManualFullSyncQuota {
                 self.scheduleFullSyncStallWatchdogIfNeeded()
             }
@@ -533,7 +539,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading profile..."
+            self.syncState.loadingMessage = "Loading profile..."
         }
 
         // `tryParseGradeTable` matches StudentGradeHistory markup in `Views/grades/grade.txt` (customTable, dual tableHeader rows, tableContent, detailsView rows skipped).
@@ -916,7 +922,7 @@ class DataManager: ObservableObject {
                     UserDefaults.standard.set(parsed.cgpa, forKey: "cgpa")
                     UserDefaults.standard.set(parsed.totalCredits, forKey: "totalCredits")
                     self.logger.success("✅ Profile loaded - Name: \(parsed.name), CGPA: \(parsed.cgpa), Credits: \(parsed.totalCredits), grade history rows: \(parsed.dedupedGrades.count) (raw \(parsed.rawGradeRowCount))", context: "DataManager")
-                    self.persistCache()
+                    self.scheduleCachePersistence()
                     if stopAfterTimetable {
                         self.fetchCoursesAndTimetable(chainToAttendance: false, completion: completion)
                     } else {
@@ -1172,7 +1178,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading courses..."
+            self.syncState.loadingMessage = "Loading courses..."
         }
 
         let script = """
@@ -1372,7 +1378,7 @@ class DataManager: ObservableObject {
                     self.fetchAttendance(continueAfterMarks: false, completion: completion)
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -1387,7 +1393,7 @@ class DataManager: ObservableObject {
                     self.fetchAttendance(continueAfterMarks: false, completion: completion)
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -1446,7 +1452,7 @@ class DataManager: ObservableObject {
                 self.timetable = timetable
                 self.cacheCurrentSemesterScheduleIfNeeded()
                 self.logger.success("✅ Loaded \(courses.count) courses and \(timetable.count) timetable slots", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if chainToAttendance {
                     if continueAfterAttendance {
                         self.fetchAttendance()
@@ -1454,7 +1460,7 @@ class DataManager: ObservableObject {
                         self.fetchAttendance(continueAfterMarks: false, completion: completion)
                     }
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -1473,7 +1479,7 @@ class DataManager: ObservableObject {
             courses = cachedCourses
             timetable = cachedTimetable
         }
-        persistCache()
+        scheduleCachePersistence()
 
         guard webView != nil else {
             logger.warning("WebView not ready for timetable refresh", context: "DataManager")
@@ -1482,7 +1488,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading timetable..."
+            self.syncState.loadingMessage = "Loading timetable..."
         }
         fetchCoursesAndTimetable(chainToAttendance: false, continueAfterAttendance: true, completion: completion)
     }
@@ -1499,7 +1505,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading marks..."
+            self.syncState.loadingMessage = "Loading marks..."
         }
 
         let script = """
@@ -1667,7 +1673,7 @@ class DataManager: ObservableObject {
                     self.fetchExams()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -1682,7 +1688,7 @@ class DataManager: ObservableObject {
                     self.fetchExams()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -1743,11 +1749,11 @@ class DataManager: ObservableObject {
                     }
                 }
                 self.logger.success("✅ Loaded \(marks.count) marks and \(cumulativeMarks.count) grades", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if continueChain {
                     self.fetchExams()
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -1820,7 +1826,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.attendanceSemesterOptions = list
                 self.logger.success("✅ Attendance semester picklist: \(list.count) options", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 completion?()
             }
         }
@@ -1881,7 +1887,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.marksReportSemesterOptions = list
                 self.logger.success("✅ Marks semester picklist: \(list.count) options", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 completion?()
             }
         }
@@ -1898,7 +1904,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading marks report…"
+            self.syncState.loadingMessage = "Loading marks report…"
         }
 
         let script = """
@@ -1982,7 +1988,7 @@ class DataManager: ObservableObject {
                 return
             }
             DispatchQueue.main.async {
-                self.loadingMessage = ""
+                self.syncState.loadingMessage = ""
             }
             if let error = error {
                 self.logger.error("Marks report: \(error.localizedDescription)", context: "DataManager")
@@ -2026,7 +2032,7 @@ class DataManager: ObservableObject {
                 self.marksReportRows = rows
                 self.marksReportSemesterId = semesterSubId
                 self.logger.success("✅ Marks report: \(rows.count) entries", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 completion?()
             }
         }
@@ -2042,7 +2048,7 @@ class DataManager: ObservableObject {
             logger.error("Missing session or semester data", context: "DataManager")
             if !continueAfterMarks {
                 DispatchQueue.main.async {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -2050,7 +2056,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading attendance..."
+            self.syncState.loadingMessage = "Loading attendance..."
         }
 
         let script = """
@@ -2194,7 +2200,7 @@ class DataManager: ObservableObject {
                     self.fetchMarks()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -2208,7 +2214,7 @@ class DataManager: ObservableObject {
                     self.fetchMarks()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -2258,11 +2264,11 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.attendance = attendance
                 self.logger.success("✅ Loaded attendance for \(attendance.count) courses", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if continueAfterMarks {
                     self.fetchMarks()
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -2326,7 +2332,7 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.examScheduleSemesterOptions = list
                 self.logger.success("✅ Exam schedule semester picklist: \(list.count) options", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 completion?()
             }
         }
@@ -2347,7 +2353,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading exams..."
+            self.syncState.loadingMessage = "Loading exams..."
         }
 
         fetchExamScheduleForSemester(semesterId, continueSyncChain: true, completion: nil)
@@ -2495,11 +2501,11 @@ class DataManager: ObservableObject {
                 self.exams = exams
                 self.examScheduleSemesterId = semesterSubId
                 self.logger.success("✅ Loaded \(exams.count) exam row(s)", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if continueSyncChain {
                     self.fetchStaff()
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -2520,7 +2526,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading staff info..."
+            self.syncState.loadingMessage = "Loading staff info..."
         }
 
         let script = """
@@ -2678,7 +2684,7 @@ class DataManager: ObservableObject {
                     self.fetchSpotlight()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -2691,7 +2697,7 @@ class DataManager: ObservableObject {
                     self.fetchSpotlight()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -2765,11 +2771,11 @@ class DataManager: ObservableObject {
                 self.deanPortraitData = deanPhoto
                 self.hodPortraitData = hodPhoto
                 self.logger.success("✅ Loaded \(staff.count) staff, \(credentials.count) portal credential(s), \(ranks.count) rank row(s)", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if continueFullSyncChain {
                     self.fetchSpotlight()
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -2790,7 +2796,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading announcements..."
+            self.syncState.loadingMessage = "Loading announcements..."
         }
 
         let script = """
@@ -2852,7 +2858,7 @@ class DataManager: ObservableObject {
                     self.fetchReceipts()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -2866,7 +2872,7 @@ class DataManager: ObservableObject {
                     self.fetchReceipts()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -2894,11 +2900,11 @@ class DataManager: ObservableObject {
             DispatchQueue.main.async {
                 self.spotlights = spotlights
                 self.logger.success("✅ Loaded \(spotlights.count) announcements", context: "DataManager")
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if continueFullSyncChain {
                     self.fetchReceipts()
                 } else {
-                    self.loadingMessage = ""
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -2921,7 +2927,7 @@ class DataManager: ObservableObject {
         }
 
         DispatchQueue.main.async {
-            self.loadingMessage = "Loading receipts..."
+            self.syncState.loadingMessage = "Loading receipts..."
         }
 
         let script = """
@@ -2986,7 +2992,7 @@ class DataManager: ObservableObject {
                     self.fetchScheduledEvents()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -3011,7 +3017,7 @@ class DataManager: ObservableObject {
                     self.fetchScheduledEvents()
                 } else {
                     DispatchQueue.main.async {
-                        self.loadingMessage = ""
+                        self.syncState.loadingMessage = ""
                         completion?()
                     }
                 }
@@ -3039,8 +3045,8 @@ class DataManager: ObservableObject {
                 if continueFullSyncChain {
                     self.fetchScheduledEvents()
                 } else {
-                    self.persistCache()
-                    self.loadingMessage = ""
+                    self.scheduleCachePersistence()
+                    self.syncState.loadingMessage = ""
                     completion?()
                 }
             }
@@ -3069,7 +3075,7 @@ class DataManager: ObservableObject {
             }
             DispatchQueue.main.async {
                 self.scheduledEventRows = rows
-                self.persistCache()
+                self.scheduleCachePersistence()
                 if !rows.isEmpty {
                     self.logger.success("✅ Event hub: \(rows.count) row(s)", context: "DataManager")
                 }
@@ -3219,21 +3225,52 @@ class DataManager: ObservableObject {
         let completedAt = Date()
         DispatchQueue.main.async {
             self.cancelFullSyncStallWatchdog()
-            self.isLoading = false
-            self.loadingMessage = ""
-            self.lastDataFetchFailureReason = nil
+            self.syncState.isLoading = false
+            self.syncState.loadingMessage = ""
+            self.syncState.lastDataFetchFailureReason = nil
             if self.countsCurrentSessionTowardManualFullSyncQuota {
                 Self.recordFullSyncCompleted(at: completedAt)
                 self.countsCurrentSessionTowardManualFullSyncQuota = false
             }
-            self.lastSuccessfulSyncAt = completedAt
-            self.persistCache()
+            self.syncState.lastSuccessfulSyncAt = completedAt
+            self.scheduleCachePersistence()
             self.logger.success("🎉 All data fetched successfully!", context: "DataManager")
         }
     }
 
-    private func persistCache() {
+    private func scheduleCachePersistence() {
+        cachePersistenceWorkItem?.cancel()
+        let generation = UUID()
+        cachePersistenceGeneration = generation
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.cachePersistenceGeneration == generation else { return }
+            self.persistCacheNow()
+        }
+        cachePersistenceWorkItem = work
+        if Thread.isMainThread {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.cachePersistenceGeneration == generation else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: work)
+            }
+        }
+    }
+
+    private func persistCacheNow() {
         cacheCurrentSemesterScheduleIfNeeded()
+        if let selectedSemester {
+            VTOPSwiftDataStore.shared.upsert(
+                semester: selectedSemester,
+                courses: courses,
+                timetable: timetable,
+                attendance: attendance,
+                marks: marks,
+                cumulativeMarks: cumulativeMarks,
+                exams: exams,
+                marksReportRows: marksReportRows
+            )
+        }
         VTOPDataCache.persistSnapshot(
             studentProfile: studentProfile,
             gradeHistoryRows: gradeHistoryRows,
@@ -3263,9 +3300,9 @@ class DataManager: ObservableObject {
             timetableBySemesterId: timetableBySemesterId,
             marksBySemesterId: marksBySemesterId,
             cumulativeMarksBySemesterId: cumulativeMarksBySemesterId
-        )
-        DispatchQueue.main.async {
-            self.cachePersistedAt = VTOPDiskCache.readMeta().lastPersistedAt
+        ) { [weak self] in
+            guard let self else { return }
+            self.syncState.cachePersistedAt = VTOPDiskCache.readMeta().lastPersistedAt
             self.publishGlanceSnapshotAndPeripherals()
         }
     }
@@ -3273,24 +3310,42 @@ class DataManager: ObservableObject {
     private func publishGlanceSnapshotAndPeripherals() {
         let snap = buildGlanceSnapshot()
         snap.writeToSharedContainer()
-        VTOPNotificationScheduler.reschedule(from: snap, timetable: timetable, courses: courses)
+        VTOPNotificationScheduler.reschedule(
+            from: snap,
+            timetable: timetable,
+            courses: courses,
+            exams: exams,
+            attendance: attendance
+        )
         let next = VTOPScheduleEngine.nextUpcomingSlot(timetable: timetable, courses: courses)
         Task { @MainActor in
             VTOPLiveActivityManager.updateOrStart(upcoming: next)
         }
     }
 
+    /// Re-applies local reminder preferences immediately after the user changes them.
+    func refreshNotificationSchedule() {
+        publishGlanceSnapshotAndPeripherals()
+    }
+
     private func buildGlanceSnapshot() -> VTOPGlanceSnapshot {
         let next = VTOPScheduleEngine.nextUpcomingSlot(timetable: timetable, courses: courses)
         let lines = VTOPScheduleEngine.todaySlotSummaries(timetable: timetable, courses: courses)
+        let nextExam = VTOPCockpitMetrics.nextExam(from: exams)
+        let attendancePercent = studentProfile?.overallAttendance
+        let riskLabel = VTOPCockpitMetrics.attendanceRiskLabel(for: attendancePercent)
         return VTOPGlanceSnapshot(
             updatedAt: Date(),
             semesterName: selectedSemester?.name,
-            attendancePercent: studentProfile?.overallAttendance,
+            attendancePercent: attendancePercent,
             nextClassTitle: next?.course.title,
             nextClassVenue: next?.course.venue,
             nextClassStart: next?.startDate,
             nextClassEnd: next?.endDate,
+            attendanceRiskLabel: riskLabel,
+            nextExamTitle: nextExam?.0.courseTitle ?? nextExam?.0.title,
+            nextExamDate: nextExam?.1,
+            nextExamVenue: nextExam?.0.venue,
             todaySlotLines: lines
         )
     }
@@ -3303,7 +3358,7 @@ class DataManager: ObservableObject {
             completion?()
             return
         }
-        DispatchQueue.main.async { self.loadingMessage = "Loading semesters…" }
+        DispatchQueue.main.async { self.syncState.loadingMessage = "Loading semesters…" }
         fetchSemesters(chainIntoSelectSemester: false, completion: completion)
     }
 
@@ -3313,7 +3368,7 @@ class DataManager: ObservableObject {
             completion?()
             return
         }
-        DispatchQueue.main.async { self.loadingMessage = "Refreshing…" }
+        DispatchQueue.main.async { self.syncState.loadingMessage = "Refreshing…" }
         fetchStudentProfile(stopAfterTimetable: true, completion: completion)
     }
 
@@ -3359,6 +3414,77 @@ class DataManager: ObservableObject {
         fetchReceipts(continueFullSyncChain: false, completion: completion)
     }
 
+    // Async adapters keep SwiftUI refresh handlers concise while the WebView bridge remains callback-based.
+    private func awaitCompletion(_ operation: (@escaping () -> Void) -> Void) async {
+        await withCheckedContinuation { continuation in
+            operation { continuation.resume() }
+        }
+    }
+
+    func refreshHomeSummary() async {
+        await awaitCompletion { completion in refreshHomeSummary(completion: completion) }
+    }
+
+    func refreshCoursesWithAttendance() async {
+        await awaitCompletion { completion in refreshCoursesWithAttendance(completion: completion) }
+    }
+
+    func refreshMarksForSelectedSemester() async {
+        await awaitCompletion { completion in refreshMarksForSelectedSemester(completion: completion) }
+    }
+
+    func refreshStaffInformation() async {
+        await awaitCompletion { completion in refreshStaffInformation(completion: completion) }
+    }
+
+    func refreshSpotlightsOnly() async {
+        await awaitCompletion { completion in refreshSpotlightsOnly(completion: completion) }
+    }
+
+    func refreshReceiptsOnly() async {
+        await awaitCompletion { completion in refreshReceiptsOnly(completion: completion) }
+    }
+
+    func refreshTimetableAndCourses(for semester: Semester) async {
+        await awaitCompletion { completion in
+            refreshTimetableAndCoursesForSemester(semester, completion: completion)
+        }
+    }
+
+    func refreshAttendance(for semesterID: String) async {
+        await awaitCompletion { completion in
+            refreshAttendance(semesterSubId: semesterID, continueAfterMarks: false, completion: completion)
+        }
+    }
+
+    func loadAttendanceSemesterPicklist() async {
+        await awaitCompletion { completion in loadAttendanceSemesterPicklist(completion: completion) }
+    }
+
+    func loadMarksSemesterPicklist() async {
+        await awaitCompletion { completion in loadMarksSemesterPicklist(completion: completion) }
+    }
+
+    func refreshMarksReport(for semesterID: String) async {
+        await awaitCompletion { completion in
+            refreshMarksReport(semesterSubId: semesterID, completion: completion)
+        }
+    }
+
+    func refreshScheduledEvents() async {
+        await awaitCompletion { completion in refreshScheduledEvents(completion: completion) }
+    }
+
+    func loadExamScheduleSemesterPicklist() async {
+        await awaitCompletion { completion in loadExamScheduleSemesterPicklist(completion: completion) }
+    }
+
+    func refreshExamSchedule(for semesterID: String) async {
+        await awaitCompletion { completion in
+            refreshExamSchedule(semesterSubId: semesterID, completion: completion)
+        }
+    }
+
     // MARK: - Sync All Data
 
     /// Call when the user taps toolbar or profile full sync (shows quota confirmation or blocked alert).
@@ -3371,19 +3497,19 @@ class DataManager: ObservableObject {
             let wait = max(0, nextEligible.timeIntervalSince(Date()))
             let human = Self.formattedCooldownRemaining(wait)
             logger.info("Full sync quota exhausted; next in \(human)", context: "DataManager")
-            fullSyncQuotaBlockedMessage = "You’ve used all \(Self.fullSyncQuotaMaxPerWindow) full syncs allowed in the last hour. The next full sync is available in \(human). You can still pull to refresh on a page to update only that section."
+            syncState.fullSyncQuotaBlockedMessage = "You’ve used all \(Self.fullSyncQuotaMaxPerWindow) full syncs allowed in the last hour. The next full sync is available in \(human). You can still pull to refresh on a page to update only that section."
             return
         }
         let remaining = Self.fullSyncQuotaMaxPerWindow - pruned.count
-        fullSyncConfirmSlotsRemaining = remaining
+        syncState.fullSyncConfirmSlotsRemaining = remaining
     }
 
     func cancelUserFullSyncConfirmation() {
-        fullSyncConfirmSlotsRemaining = nil
+        syncState.fullSyncConfirmSlotsRemaining = nil
     }
 
     func confirmUserFullSyncAndExecute() {
-        fullSyncConfirmSlotsRemaining = nil
+        syncState.fullSyncConfirmSlotsRemaining = nil
         syncAll()
     }
 
@@ -3399,8 +3525,8 @@ class DataManager: ObservableObject {
         guard let _ = webView else {
             logger.warning("WebView not available for sync - user needs to login to fetch fresh data", context: "DataManager")
             DispatchQueue.main.async {
-                self.lastDataFetchFailureReason = "Sign in required to refresh from VTOP."
-                self.errorMessage = "Please login to sync latest data"
+                self.syncState.lastDataFetchFailureReason = "Sign in required to refresh from VTOP."
+                self.syncState.errorMessage = "Please login to sync latest data"
             }
             return
         }
@@ -3412,13 +3538,13 @@ class DataManager: ObservableObject {
             let human = Self.formattedCooldownRemaining(wait)
             logger.info("Full sync blocked at perform: quota; next in \(human)", context: "DataManager")
             DispatchQueue.main.async {
-                self.fullSyncQuotaBlockedMessage = "You’ve used all \(Self.fullSyncQuotaMaxPerWindow) full syncs allowed in the last hour. The next full sync is available in \(human). You can still pull to refresh on a page to update only that section."
+                self.syncState.fullSyncQuotaBlockedMessage = "You’ve used all \(Self.fullSyncQuotaMaxPerWindow) full syncs allowed in the last hour. The next full sync is available in \(human). You can still pull to refresh on a page to update only that section."
             }
             return
         }
-        lastDataFetchFailureReason = nil
-        isLoading = true
-        loadingMessage = "Syncing…"
+        syncState.lastDataFetchFailureReason = nil
+        syncState.isLoading = true
+        syncState.loadingMessage = "Syncing…"
         scheduleFullSyncStallWatchdogIfNeeded()
         extractSessionData(attempt: 1, incrementManualFullSyncQuotaOnCompletion: true)
     }
@@ -3426,16 +3552,29 @@ class DataManager: ObservableObject {
     // MARK: - Load Cached Data
     func loadCachedData() {
         logger.info("📂 Restoring cached VTOP snapshot from UserDefaults...", context: "DataManager")
-        VTOPDataCache.restoreInto(self)
+        let generation = UUID()
+        cacheRestoreGeneration = generation
+        VTOPDataCache.restoreInto(self) { [weak self] in
+            guard let self, self.cacheRestoreGeneration == generation else { return false }
+            let swiftData = VTOPSwiftDataStore.shared.semesterCaches()
+            self.restoreSemesterScopedCache(
+                coursesBySemesterId: swiftData.courses,
+                timetableBySemesterId: swiftData.timetable,
+                marksBySemesterId: swiftData.marks,
+                cumulativeMarksBySemesterId: swiftData.cumulativeMarks
+            )
+            return true
+        }
         logger.info("💡 Sign in and sync to refresh after the snapshot loads.", context: "DataManager")
     }
 
     /// Drops persisted VTOP snapshots and in-memory cached data. Web session / login state is not cleared.
     func clearCachedVTOPData() {
         VTOPDataCache.clearAll()
+        VTOPSwiftDataStore.shared.deleteAll()
         Self.clearFullSyncQuotaStorage()
         DispatchQueue.main.async {
-            self.lastSuccessfulSyncAt = nil
+            self.syncState.lastSuccessfulSyncAt = nil
             self.studentProfile = nil
             self.courses = []
             self.timetable = []
@@ -3462,8 +3601,8 @@ class DataManager: ObservableObject {
             self.hodPortraitData = nil
             self.coursesBySemesterId = [:]
             self.timetableBySemesterId = [:]
-            self.errorMessage = nil
-            self.loadingMessage = ""
+            self.syncState.errorMessage = nil
+            self.syncState.loadingMessage = ""
         }
         logger.info("🗑️ Cleared VTOP cache (UserDefaults + in-memory snapshot)", context: "DataManager")
     }
@@ -3499,6 +3638,12 @@ class DataManager: ObservableObject {
             marksReportSemesterOptions = []
             marksReportRows = []
             marksReportSemesterId = nil
+            restoreSemesterScopedCache(
+                coursesBySemesterId: coursesBySemesterId,
+                timetableBySemesterId: timetableBySemesterId,
+                marksBySemesterId: [:],
+                cumulativeMarksBySemesterId: [:]
+            )
         case .exams:
             exams = []
             examScheduleSemesterOptions = []

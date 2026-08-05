@@ -2,10 +2,11 @@ import SwiftUI
 
 struct CoursesDetailView: View {
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
 
     var body: some View {
         ScrollView {
-            if dataManager.isLoading && dataManager.courses.isEmpty {
+            if syncState.isLoading && dataManager.courses.isEmpty {
                 // Skeleton loading
                 LazyVStack(spacing: 16) {
                     ForEach(0..<3, id: \.self) { _ in
@@ -41,9 +42,7 @@ struct CoursesDetailView: View {
         .navigationTitle("Courses")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                dataManager.refreshCoursesWithAttendance { cont.resume() }
-            }
+            await dataManager.refreshCoursesWithAttendance()
         }
     }
 }
@@ -58,20 +57,20 @@ struct CourseCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(course.title)
-                        .font(.system(size: 17, weight: .semibold))
-                        .lineLimit(2)
+                        .vtopFont(size: 17, weight: .semibold)
+.lineLimit(2)
 
                     Text(course.code)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 14, weight: .medium)
+.foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
                 // Type badge
                 Text(course.type.rawValue.uppercased())
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.white)
+                    .vtopFont(size: 11, weight: .bold)
+.foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(
@@ -108,24 +107,24 @@ struct CourseCard: View {
                 HStack(spacing: 20) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Attendance")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                         Text("\(attendance.percentage)%")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(attendanceColor(attendance.percentage))
+                            .vtopFont(size: 24, weight: .bold)
+.foregroundStyle(attendanceColor(attendance.percentage))
                     }
 
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 4) {
                         Text("Classes")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                         Text("\(attendance.attended)/\(attendance.total)")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
+                            .vtopFont(size: 16, weight: .semibold)
+}
                 }
                 .padding(.top, 4)
             }
@@ -163,8 +162,8 @@ struct DetailItem: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14))
-                .foregroundColor(color)
+                .vtopFont(size: 14)
+.foregroundStyle(color)
                 .frame(width: 28, height: 28)
                 .background(
                     Circle()
@@ -173,12 +172,12 @@ struct DetailItem: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(.secondary)
 
                 Text(value)
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
+                    .vtopFont(size: 13, weight: .semibold)
+.lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -186,8 +185,9 @@ struct DetailItem: View {
 }
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         CoursesDetailView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

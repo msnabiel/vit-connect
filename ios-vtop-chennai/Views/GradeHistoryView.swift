@@ -57,12 +57,12 @@ struct GradeHistoryView: View {
             searchFieldChrome
             List {
                 if let profile = dataManager.studentProfile {
-                    Section(header: Text("CGPA summary")) {
+                    Section("CGPA summary") {
                         HStack {
                             VStack(alignment: .leading) {
                                 Text("CGPA")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Text(String(format: "%.2f", profile.cgpa))
                                     .font(.title2.bold())
                             }
@@ -70,7 +70,7 @@ struct GradeHistoryView: View {
                             VStack(alignment: .trailing) {
                                 Text("Credits earned")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Text(String(format: "%.0f", profile.totalCredits))
                                     .font(.title3.bold())
                             }
@@ -82,13 +82,13 @@ struct GradeHistoryView: View {
                 }
 
                 if !dataManager.gradeHistoryRows.isEmpty {
-                    Section(header: Text("Record overview")) {
+                    Section("Record overview") {
                         LabeledContent("Courses on record", value: "\(totalCourses)")
                         if !gradeLetterCounts.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Grades (count per letter)")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 compactGradeCountTable
                             }
                             .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 8, trailing: 16))
@@ -100,11 +100,11 @@ struct GradeHistoryView: View {
                     Section {
                         Text(emptyPlaceholder)
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 } else {
                     ForEach(grouped) { group in
-                        Section(header: Text(group.title)) {
+                        Section {
                             ForEach(group.rows) { row in
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack(alignment: .firstTextBaseline) {
@@ -113,26 +113,28 @@ struct GradeHistoryView: View {
                                         Spacer()
                                         Text(row.grade)
                                             .font(.headline)
-                                            .foregroundColor(.accentColor)
+                                            .foregroundStyle(Color.accentColor)
                                     }
                                     if let title = row.courseTitle, !title.isEmpty {
                                         Text(title)
                                             .font(.subheadline)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                     }
                                     if let c = row.credits {
                                         Text(String(format: "Credits: %.1f", c))
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                     }
                                     if let em = row.examMonth, !em.isEmpty {
                                         Text(em)
                                             .font(.caption2)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                     }
                                 }
                                 .padding(.vertical, 4)
                             }
+                        } header: {
+                            Text(group.title)
                         }
                     }
                 }
@@ -185,7 +187,7 @@ struct GradeHistoryView: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text(item.grade)
                             .font(.caption.weight(.semibold))
-                            .foregroundColor(gradeLetterColor(item.grade))
+                            .foregroundStyle(gradeLetterColor(item.grade))
                             .frame(width: 36, alignment: .leading)
                         Spacer(minLength: 8)
                         Text("\(item.count)")
@@ -231,5 +233,6 @@ private extension Sequence where Element: Hashable {
     NavigationStack {
         GradeHistoryView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

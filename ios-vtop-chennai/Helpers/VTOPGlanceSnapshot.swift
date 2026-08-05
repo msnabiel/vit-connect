@@ -9,6 +9,10 @@ struct VTOPGlanceSnapshot: Codable, Sendable {
     var nextClassVenue: String?
     var nextClassStart: Date?
     var nextClassEnd: Date?
+    var attendanceRiskLabel: String?
+    var nextExamTitle: String?
+    var nextExamDate: Date?
+    var nextExamVenue: String?
     /// Short lines for “today” (e.g. "09:00 · Course · Venue")
     var todaySlotLines: [String]
 
@@ -20,6 +24,14 @@ struct VTOPGlanceSnapshot: Codable, Sendable {
             return group.appendingPathComponent(snapshotFileName)
         }
         return VTOPDiskCache.storageRoot.appendingPathComponent(snapshotFileName)
+    }
+
+    static func loadShared() -> Self? {
+        guard let url = sharedSnapshotURL(),
+              let data = try? Data(contentsOf: url) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode(Self.self, from: data)
     }
 
     func writeToSharedContainer() {

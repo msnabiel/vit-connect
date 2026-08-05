@@ -1,0 +1,48 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/AcademicSearchView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Search",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 77
+        }
+      },
+      {
+        "comment": "",
+        "key": "Courses, marks, exams…",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "Find courses, marks, exams, and announcements.",
+        "location": {
+          "startingColumn": 116,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search VIT Connect",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 82
+        }
+      }
+    ]
+  },
+  "version": 1
+}

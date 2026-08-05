@@ -3,11 +3,24 @@ import Foundation
 // MARK: - Profile (accordion-style sections from StudentProfileAllView)
 
 struct ProfileKeyValueRow: Codable, Hashable, Identifiable {
+    let id: UUID
     let key: String
     let value: String
 
-    /// Not guaranteed unique (VTOP repeats labels/values). Use section-scoped index in `ForEach`, not this alone.
-    var id: String { "\(key)|\(value)" }
+    init(id: UUID = UUID(), key: String, value: String) {
+        self.id = id
+        self.key = key
+        self.value = value
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, key, value }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        key = try container.decode(String.self, forKey: .key)
+        value = try container.decode(String.self, forKey: .value)
+    }
 }
 
 struct ProfileAccordionSectionData: Codable, Hashable, Identifiable {

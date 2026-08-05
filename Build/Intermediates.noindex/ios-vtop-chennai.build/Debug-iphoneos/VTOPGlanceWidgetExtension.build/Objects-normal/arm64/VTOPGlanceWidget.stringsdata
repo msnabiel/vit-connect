@@ -1,0 +1,72 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "VTOP",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open the app to sync data",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 121
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sync in the app for schedule",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 85
+        }
+      },
+      {
+        "comment": "",
+        "key": "Today",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 111
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance %lld%%",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 91
+        }
+      },
+      {
+        "comment": "",
+        "key": "· %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "VTOP Glance",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next class and highlights from your last sync.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 141
+        }
+      }
+    ]
+  },
+  "version": 1
+}

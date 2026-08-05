@@ -156,6 +156,7 @@ class VTOPLogger {
 
     private var logs: [LogEntry] = []
     private let maxLogs = 1000
+    private let lock = NSLock()
 
     struct LogEntry: Identifiable {
         let id = UUID()
@@ -166,9 +167,13 @@ class VTOPLogger {
         let errorCode: Int?
 
         var formattedTimestamp: String {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm:ss.SSS"
-            return formatter.string(from: timestamp)
+            timestamp.formatted(
+                .dateTime
+                    .hour(.twoDigits(amPM: .omitted))
+                    .minute(.twoDigits)
+                    .second(.twoDigits)
+                    .secondFraction(.fractional(3))
+            )
         }
 
         var emoji: String {
@@ -194,12 +199,12 @@ class VTOPLogger {
 
     func log(_ message: String, level: LogLevel = .info, context: String = "", errorCode: Int? = nil) {
         let entry = LogEntry(timestamp: Date(), level: level, message: message, context: context, errorCode: errorCode)
+        lock.lock()
         logs.append(entry)
-
-        // Keep only last maxLogs entries
         if logs.count > maxLogs {
             logs.removeFirst(logs.count - maxLogs)
         }
+        lock.unlock()
 
         // Print to console
         let prefix = entry.emoji
@@ -229,10 +234,14 @@ class VTOPLogger {
     }
 
     func getAllLogs() -> [LogEntry] {
+        lock.lock()
+        defer { lock.unlock() }
         return logs
     }
 
     func clearLogs() {
+        lock.lock()
         logs.removeAll()
+        lock.unlock()
     }
 }

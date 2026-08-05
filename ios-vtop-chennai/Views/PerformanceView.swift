@@ -6,7 +6,7 @@ struct PerformanceView: View {
     @State private var selectedCourse: Course?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     if dataManager.courses.isEmpty {
@@ -40,14 +40,13 @@ struct PerformanceView: View {
                                 // Course header
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(course.title)
-                                        .font(.system(size: 20, weight: .bold))
-
+                                        .vtopFont(size: 20, weight: .bold)
                                     HStack(spacing: 16) {
                                         Label(course.type.rawValue.capitalized, systemImage: "book.fill")
                                         Label(course.faculty, systemImage: "person.fill")
                                     }
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 14, weight: .medium)
+.foregroundStyle(.secondary)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 20)
@@ -82,12 +81,12 @@ struct PerformanceView: View {
                         } else {
                             VStack(spacing: 16) {
                                 Image(systemName: "hand.tap.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 48)
+.foregroundStyle(.secondary)
 
                                 Text("Select a course")
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 17, weight: .medium)
+.foregroundStyle(.secondary)
                             }
                             .padding(.top, 100)
                         }
@@ -96,9 +95,7 @@ struct PerformanceView: View {
                 .padding(.bottom, 20)
             }
             .refreshable {
-                await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                    dataManager.refreshMarksForSelectedSemester { cont.resume() }
-                }
+                await dataManager.refreshMarksForSelectedSemester()
             }
             .navigationTitle("Performance")
             .navigationBarTitleDisplayMode(.inline)
@@ -130,12 +127,11 @@ struct CourseButton: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Text(course.code)
-                    .font(.system(size: 13, weight: .semibold))
-
+                    .vtopFont(size: 13, weight: .semibold)
                 if let grade = grade {
                     Text(grade)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(isSelected ? .white : gradeColor(grade))
+                        .vtopFont(size: 16, weight: .bold)
+.foregroundStyle(isSelected ? .white : gradeColor(grade))
                 }
             }
             .padding(.vertical, 12)
@@ -144,7 +140,7 @@ struct CourseButton: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(isSelected ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
             )
-            .foregroundColor(isSelected ? .white : .primary)
+            .foregroundStyle(isSelected ? .white : .primary)
         }
     }
 
@@ -166,12 +162,12 @@ struct CompactMarkCard: View {
             // Title and status
             VStack(alignment: .leading, spacing: 4) {
                 Text(mark.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
+                    .vtopFont(size: 14, weight: .semibold)
+.lineLimit(1)
 
                 Text(mark.status)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(mark.status.lowercased() == "present" ? .green : .red)
+                    .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(mark.status.lowercased() == "present" ? .green : .red)
             }
 
             Divider()
@@ -180,18 +176,18 @@ struct CompactMarkCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Score")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 10, weight: .medium)
+.foregroundStyle(.secondary)
 
                     HStack(spacing: 2) {
                         Text("\(Int(mark.score))")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.accentColor)
+                            .vtopFont(size: 18, weight: .bold)
+.foregroundStyle(Color.accentColor)
 
                         if let maxScore = mark.maxScore {
                             Text("/\(Int(maxScore))")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -201,12 +197,12 @@ struct CompactMarkCard: View {
                 if let percentage = mark.scorePercentage {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Percent")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .vtopFont(size: 10, weight: .medium)
+.foregroundStyle(.secondary)
 
                         Text("\(Int(percentage))%")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(percentageColor(percentage))
+                            .vtopFont(size: 14, weight: .bold)
+.foregroundStyle(percentageColor(percentage))
                     }
                 }
             }
@@ -214,12 +210,11 @@ struct CompactMarkCard: View {
             // Weightage
             HStack(spacing: 4) {
                 Text("\(mark.weightage, specifier: "%.1f")")
-                    .font(.system(size: 12, weight: .semibold))
-
+                    .vtopFont(size: 12, weight: .semibold)
                 if let maxWeightage = mark.maxWeightage {
                     Text("/ \(maxWeightage, specifier: "%.1f") wt")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(.secondary)
                 }
             }
         }
@@ -246,13 +241,13 @@ struct CumulativeGradeCard: View {
         HStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Final Grade")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                 if let grade = cumulative.grade {
                     Text(grade)
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(gradeColor(grade))
+                        .vtopFont(size: 48, weight: .bold)
+.foregroundStyle(gradeColor(grade))
                 }
             }
 
@@ -261,12 +256,12 @@ struct CumulativeGradeCard: View {
             if let percentage = cumulative.totalPercentage {
                 VStack(alignment: .trailing, spacing: 8) {
                     Text("Total Score")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                     Text("\(Int(percentage))%")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.accentColor)
+                        .vtopFont(size: 24, weight: .bold)
+.foregroundStyle(Color.accentColor)
                 }
             }
         }
@@ -292,9 +287,10 @@ struct CumulativeGradeCard: View {
 }
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         PerformanceView()
             .environmentObject(AuthenticationViewModel())
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

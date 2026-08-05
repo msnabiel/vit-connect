@@ -1,0 +1,144 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/LoginView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Login",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 31
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sign in using your VTOP credentials",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 35
+        }
+      },
+      {
+        "comment": "",
+        "key": "Note: Username may not be your registration number",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Username",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "Password",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "Password",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 112
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remember me",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "Use %@",
+        "location": {
+          "startingColumn": 6,
+          "startingLine": 175
+        }
+      },
+      {
+        "comment": "",
+        "key": "LOGIN SUCCESSFUL!",
+        "location": {
+          "startingColumn": 63,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "SIGNING IN...",
+        "location": {
+          "startingColumn": 108,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "SIGN IN",
+        "location": {
+          "startingColumn": 126,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "Currently only supports VIT Chennai.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 267
+        }
+      },
+      {
+        "comment": "",
+        "key": "·",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "Privacy policy",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 255
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terms and conditions",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 260
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 304
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 314
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -69,10 +69,12 @@ struct EventHubView: View {
             } else {
                 List {
                     ForEach(grouped, id: \.key) { group in
-                        Section(header: sectionHeader(for: group.rows.first)) {
+                        Section {
                             ForEach(group.rows) { row in
                                 eventRow(row)
                             }
+                        } header: {
+                            sectionHeader(for: group.rows.first)
                         }
                     }
                 }
@@ -82,9 +84,7 @@ struct EventHubView: View {
         .navigationTitle("Event hub")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable {
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                dataManager.refreshScheduledEvents { cont.resume() }
-            }
+            await dataManager.refreshScheduledEvents()
         }
         .onAppear {
             if dataManager.scheduledEventRows.isEmpty {
@@ -143,5 +143,6 @@ struct EventHubView: View {
     NavigationStack {
         EventHubView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

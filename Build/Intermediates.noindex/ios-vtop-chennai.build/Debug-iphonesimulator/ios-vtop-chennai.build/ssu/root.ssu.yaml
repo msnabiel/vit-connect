@@ -1,0 +1,55 @@
+apiVersion: ssu/v1
+nlu:
+  shortcuts:
+    bundleIdentifier: com.msnabiel.vit-connect-app
+    intents:
+    - metadata:
+        name: VTOPNextClassIntent_0
+        title: What's My Next Class?
+      corpuses:
+        training:
+        - locale: en
+          utterances:
+          - '{${+prefix} }What''s my next class in ${+applicationName}'
+    - metadata:
+        name: VTOPAttendanceIntent_1
+        title: Show My Attendance
+      corpuses:
+        training:
+        - locale: en
+          utterances:
+          - '{${+prefix} }Show my attendance in ${+applicationName}'
+    - metadata:
+        name: VTOPRefreshIntent_2
+        title: Refresh VTOP Data
+      corpuses:
+        training:
+        - locale: en
+          utterances:
+          - '{${+prefix} }Refresh ${+applicationName}'
+    - metadata:
+        name: +negative
+      corpuses:
+        training:
+        - locale: en
+          utterances:
+          - '{${+prefix} }${+standardAppShortcutNegatives}'
+variables:
+- name: +applicationName
+  type: ssu/expansion
+  definitions:
+  - locale: en
+    synomyms:
+    - VIT Connect
+- name: +prefix
+  type: ssu/expansion
+  definitions:
+  - locale: en
+    synomyms:
+      $ref: ssu://Resources/prefix/en.yaml
+- name: +standardAppShortcutNegatives
+  type: ssu/expansion
+  definitions:
+  - locale: en
+    synomyms:
+      $ref: ssu://Resources/standardAppShortcutNegatives/en.yaml

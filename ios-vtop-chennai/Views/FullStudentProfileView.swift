@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct FullStudentProfileView: View {
     @EnvironmentObject var dataManager: DataManager
@@ -7,71 +8,97 @@ struct FullStudentProfileView: View {
         List {
             if let profile = dataManager.studentProfile {
                 Section {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.accentColor.gradient)
+                            Text(profile.name.prefix(1).uppercased())
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
+                        .frame(width: 54, height: 54)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(profile.name)
+                                .font(.title3.weight(.semibold))
+                            Text([profile.programBranch, profile.semester].compactMap { $0 }.joined(separator: " · "))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 6)
+                }
+
+                Section {
                     if let reg = profile.registrationNumber, !reg.isEmpty {
                         LabeledContent {
                             Text(reg)
-                                .foregroundColor(Color.accentColor)
+                                .foregroundStyle(Color.accentColor)
                                 .textSelection(.enabled)
+                            CopyValueButton(value: reg, label: "Register number")
                         } label: {
                             Text("Register No.")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                     if let mail = profile.vitEmail, !mail.isEmpty {
                         LabeledContent {
                             Text(mail)
-                                .foregroundColor(Color(uiColor: .systemBlue))
+                                .foregroundStyle(Color(uiColor: .systemBlue))
                                 .textSelection(.enabled)
+                            CopyValueButton(value: mail, label: "VIT email")
                         } label: {
                             Text("VIT email")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                     if let pb = profile.programBranch, !pb.isEmpty {
                         LabeledContent {
                             Text(pb)
                                 .font(.subheadline)
-                                .foregroundColor(Color.purple.opacity(0.92))
+                                .foregroundStyle(Color.purple.opacity(0.92))
                         } label: {
                             Text("Program & branch")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                     if let school = profile.schoolName, !school.isEmpty {
                         LabeledContent {
                             Text(school)
                                 .font(.subheadline)
-                                .foregroundColor(Color.teal.opacity(0.95))
+                                .foregroundStyle(Color.teal.opacity(0.95))
                         } label: {
                             Text("School")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                     if let cr = profile.creditsRegistered, cr > 0 {
                         LabeledContent {
                             Text(String(format: "%.0f", cr))
-                                .foregroundColor(Color.orange.opacity(0.95))
+                                .foregroundStyle(Color.orange.opacity(0.95))
                         } label: {
                             Text("Credits registered")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                     if let required = profile.totalCreditsRequired, required > 0 {
                         LabeledContent {
                             Text(String(format: "%.0f", required))
-                                .foregroundColor(Color.blue.opacity(0.92))
+                                .foregroundStyle(Color.blue.opacity(0.92))
                         } label: {
                             Text("Total credits required")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                     if let nonGraded = profile.nonGradedCoreRequirement, nonGraded >= 0 {
                         LabeledContent {
                             Text(String(format: "%.1f", nonGraded))
-                                .foregroundColor(Color.red.opacity(0.88))
+                                .foregroundStyle(Color.red.opacity(0.88))
                         } label: {
                             Text("Non-graded core requirement")
-                                .foregroundColor(FullProfileStyle.summaryLabelColor)
+                                .foregroundStyle(FullProfileStyle.summaryLabelColor)
                         }
                     }
                 } header: {
@@ -86,13 +113,13 @@ struct FullStudentProfileView: View {
                     Section {
                         Text("Open Sync from Profile after login to load personal, education, and family details from VTOP.")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
             } else {
                 Section {
                     Text("No profile loaded yet.")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -128,17 +155,16 @@ private struct ProfileAccordionSectionBlock: View {
 
     var body: some View {
         Section {
-            // Index-based ids: VTOP often repeats the same key|value (e.g. CITY, STATE) in one section.
-            ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
+            ForEach(section.rows) { row in
                 HStack(alignment: .top, spacing: 12) {
                     Text(row.key)
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(accent)
+                        .foregroundStyle(accent)
                         .frame(minWidth: 108, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(row.value.isEmpty ? "—" : row.value)
                         .font(.body)
-                        .foregroundColor(FullProfileStyle.valueColor)
+                        .foregroundStyle(FullProfileStyle.valueColor)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -162,8 +188,27 @@ private struct FullProfileSectionHeader: View {
     var body: some View {
         Text(title)
             .font(.footnote.weight(.semibold))
-            .foregroundColor(tint ?? Color.accentColor)
+            .foregroundStyle(tint ?? Color.accentColor)
             .textCase(nil)
+    }
+}
+
+private struct CopyValueButton: View {
+    let value: String
+    let label: String
+    @State private var copied = false
+
+    var body: some View {
+        Button {
+            UIPasteboard.general.string = value
+            copied = true
+        } label: {
+            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                .foregroundStyle(copied ? .green : .secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(copied ? "Copied (label)" : "Copy (label)")
+        .sensoryFeedback(.success, trigger: copied)
     }
 }
 
@@ -171,5 +216,6 @@ private struct FullProfileSectionHeader: View {
     NavigationStack {
         FullStudentProfileView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

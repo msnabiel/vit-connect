@@ -472,7 +472,8 @@ struct HomeTabView: View {
                         .padding(.horizontal, 16)
 
                         // Career banner
-                        Link(destination: URL(string: "https://apps.apple.com/us/app/openrole-ai-job-search/id6775263884")!) {
+                        if let openRoleURL = URL(string: "https://apps.apple.com/us/app/openrole-ai-job-search/id6775263884") {
+                            Link(destination: openRoleURL) {
                             HStack(spacing: 10) {
                                 Image(systemName: "briefcase.fill")
                                     .font(.system(size: 14))
@@ -492,9 +493,14 @@ struct HomeTabView: View {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .strokeBorder(Color.blue.opacity(0.15), lineWidth: 1)
                             }
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.horizontal, 16)
+                        } else {
+                            Text("DEBUG: OpenRole URL invalid")
+                                .foregroundStyle(.red)
+                                .padding()
                         }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 16)
 
                         if syncState.isLoading && dataManager.studentProfile == nil {
                             HomeSkeletonView()

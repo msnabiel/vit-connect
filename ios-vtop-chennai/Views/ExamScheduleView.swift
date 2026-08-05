@@ -7,6 +7,8 @@ struct ExamScheduleView: View {
     @State private var pickerPrimed = false
     @State private var searchText: String = ""
     @State private var selectedCategoryTitle: String = ""
+    @State private var calendarMessage: String?
+    @State private var isExportingCalendar = false
 
     private var choices: [Semester] { dataManager.examScheduleSemesterOptions }
 
@@ -46,42 +48,17 @@ struct ExamScheduleView: View {
                 .ignoresSafeArea()
             VStack(spacing: 0) {
             if !choices.isEmpty {
-                Menu {
-                    ForEach(choices) { sem in
-                        Button(sem.name) {
-                            semesterId = sem.id
-                            if pickerPrimed {
-                                dataManager.refreshExamSchedule(semesterSubId: sem.id, completion: nil)
-                            }
-                        }
+                SemesterMenuView(
+                    choices: choices,
+                    selectedName: semesterMenuTitle,
+                    bottomPadding: 4,
+                    onSelect: { semester in
+                    semesterId = semester.id
+                    if pickerPrimed {
+                        dataManager.refreshExamSchedule(semesterSubId: semester.id, completion: nil)
                     }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("Semester — \(semesterMenuTitle)")
-                            .font(.body.weight(.medium))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
-                    )
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+                )
             }
 
             if !choices.isEmpty {
@@ -162,20 +139,39 @@ struct ExamScheduleView: View {
         }
         .navigationTitle("Exam Schedule")
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable {
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                if choices.isEmpty {
-                    dataManager.loadExamScheduleSemesterPicklist {
-                        cont.resume()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isExportingCalendar = true
+                    Task {
+                        do {
+                            let count = try await VTOPCalendarExportService.export(exams: dataManager.exams)
+                            calendarMessage = "Added \(count) exam\(count == 1 ? "" : "s") to Calendar."
+                        } catch {
+                            calendarMessage = error.localizedDescription
+                        }
+                        isExportingCalendar = false
                     }
-                } else if semesterId.isEmpty {
-                    cont.resume()
-                } else {
-                    dataManager.refreshExamSchedule(semesterSubId: semesterId) {
-                        cont.resume()
-                    }
+                } label: {
+                    Label("Add exams to Calendar", systemImage: "calendar.badge.plus")
                 }
+                .disabled(dataManager.exams.isEmpty || isExportingCalendar)
             }
+        }
+        .alert("Calendar", isPresented: Binding(
+            get: { calendarMessage != nil },
+            set: { if !$0 { calendarMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { calendarMessage = nil }
+        } message: {
+            Text(calendarMessage ?? "")
+        }
+        .refreshable {
+            if choices.isEmpty {
+                await dataManager.loadExamScheduleSemesterPicklist()
+            } else if !semesterId.isEmpty {
+                await dataManager.refreshExamSchedule(for: semesterId)
+                }
         }
         .onAppear {
             guard !didLoadPicklist else { return }
@@ -417,5 +413,6 @@ private struct ExamScheduleFieldRows: View {
     NavigationStack {
         ExamScheduleView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

@@ -1,0 +1,24 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/SemesterMenuView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Semester",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "Semester — %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 34
+        }
+      }
+    ]
+  },
+  "version": 1
+}

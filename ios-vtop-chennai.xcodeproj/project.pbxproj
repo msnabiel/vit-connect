@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1C000010000000000000001 /* VTOPClassActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C000000000000000000001 /* VTOPClassActivityAttributes.swift */; };
+		A1C000020000000000000001 /* VTOPClassActivityAttributes.swift in Widget Sources */ = {isa = PBXBuildFile; fileRef = A1C000000000000000000001 /* VTOPClassActivityAttributes.swift */; };
 		E2AB01022F9278500060E2AB /* VTOPGlanceWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E2AB01002F9278500060E2AB /* VTOPGlanceWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -49,6 +51,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1C000000000000000000001 /* VTOPClassActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/VTOPClassActivityAttributes.swift; sourceTree = "<group>"; };
 		232936FC2F9278500060E2AB /* VIT Connect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "VIT Connect.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		232937112F9278530060E2AB /* ios-vtop-chennaiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2329371B2F9278530060E2AB /* ios-vtop-chennaiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "ios-vtop-chennaiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -126,6 +129,7 @@
 		232936F32F9278500060E2AB = {
 			isa = PBXGroup;
 			children = (
+				A1C000000000000000000001 /* VTOPClassActivityAttributes.swift */,
 				232936FE2F9278500060E2AB /* ios-vtop-chennai */,
 				E2AB01012F9278500060E2AB /* VTOPGlanceWidgetExtension */,
 				232937142F9278530060E2AB /* ios-vtop-chennaiTests */,
@@ -324,6 +328,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C000010000000000000001 /* VTOPClassActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +350,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C000020000000000000001 /* VTOPClassActivityAttributes.swift in Widget Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -495,15 +501,19 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ios-vtop-chennai/ios-vtop-chennai.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"ios-vtop-chennai/Preview Content\"";
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "VIT Connect";
 				INFOPLIST_KEY_CFBundleName = "VIT Connect";
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        vitconnect\n    );\n}";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSBonjourServices = "_vit-game._tcp";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Add your VTOP exams to Calendar.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlocks saved login with Face ID.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "VIT Connect uses nearby Wi-Fi and Bluetooth to let friends join local games.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -514,7 +524,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect-app";
 				PRODUCT_NAME = "VIT Connect";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -534,15 +544,19 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ios-vtop-chennai/ios-vtop-chennai.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"ios-vtop-chennai/Preview Content\"";
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "VIT Connect";
 				INFOPLIST_KEY_CFBundleName = "VIT Connect";
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleTypeRole = Editor;\n    CFBundleURLSchemes =     (\n        vitconnect\n    );\n}";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSBonjourServices = "_vit-game._tcp";
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Add your VTOP exams to Calendar.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlocks saved login with Face ID.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "VIT Connect uses nearby Wi-Fi and Bluetooth to let friends join local games.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -553,7 +567,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect-app";
 				PRODUCT_NAME = "VIT Connect";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -643,7 +657,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = VTOPGlanceWidgetExtension/VTOPGlanceWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VTOPGlanceWidgetExtension/Info.plist;
@@ -653,7 +667,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect-app.VTOPGlanceWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -668,7 +682,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = VTOPGlanceWidgetExtension/VTOPGlanceWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = GQN6KQ286W;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = VTOPGlanceWidgetExtension/Info.plist;
@@ -678,7 +692,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.msnabiel.vit-connect-app.VTOPGlanceWidget";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

@@ -1,0 +1,272 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/FriendsTimetableViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Import timetable",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name this timetable",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 54
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose timetable JSON",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 18
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import a `.json` timetable shared by your friend.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 21
+        }
+      },
+      {
+        "comment": "",
+        "key": "Friend name or label",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "You can edit this name later.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "Friends timetable",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 124
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rename timetable",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 125
+        }
+      },
+      {
+        "comment": "",
+        "key": "No imported timetables yet.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rename",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 99
+        }
+      },
+      {
+        "comment": "",
+        "key": "Friend timetable actions",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 106
+        }
+      },
+      {
+        "comment": "",
+        "key": "Rename",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 129
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Compare timetables",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 318
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select friends",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 241
+        }
+      },
+      {
+        "comment": "",
+        "key": "Common with all selected (%lld)",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 273
+        }
+      },
+      {
+        "comment": "",
+        "key": "Common with at least one (%lld)",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 284
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only you (%lld)",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 295
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only selected friends (%lld)",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 306
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import a friend's timetable first.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 237
+        }
+      },
+      {
+        "comment": "",
+        "key": "No common classes.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 275
+        }
+      },
+      {
+        "comment": "",
+        "key": "No overlap with selected friends.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 286
+        }
+      },
+      {
+        "comment": "",
+        "key": "No exclusive classes.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 297
+        }
+      },
+      {
+        "comment": "",
+        "key": "No exclusive classes.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 308
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 369
+        }
+      },
+      {
+        "comment": "",
+        "key": "No class on this day",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 458
+        }
+      }
+    ]
+  },
+  "version": 1
+}

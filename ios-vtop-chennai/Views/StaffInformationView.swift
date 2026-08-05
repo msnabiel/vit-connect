@@ -3,6 +3,7 @@ import UIKit
 
 struct StaffInformationView: View {
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
     @State private var selectedTab: StaffType = .proctor
 
     var body: some View {
@@ -30,7 +31,7 @@ struct StaffInformationView: View {
 
                             let staffEntries = dataManager.staff.filter { $0.type == selectedTab }
 
-                            if dataManager.isLoading && staffEntries.isEmpty {
+                            if syncState.isLoading && staffEntries.isEmpty {
                                 LazyVStack(spacing: 10) {
                                     ForEach(0..<4, id: \.self) { _ in
                                         SkeletonListRow()
@@ -56,9 +57,7 @@ struct StaffInformationView: View {
                         }
                     }
                     .refreshable {
-                        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                            dataManager.refreshStaffInformation { cont.resume() }
-                        }
+                        await dataManager.refreshStaffInformation()
                     }
                 }
             }
@@ -69,31 +68,48 @@ struct StaffInformationView: View {
 
     @ViewBuilder
     private var leadershipPortrait: some View {
-        if selectedTab == .dean, let data = dataManager.deanPortraitData, let ui = UIImage(data: data) {
-            portraitView(image: ui, label: "Dean")
-        } else if selectedTab == .hod, let data = dataManager.hodPortraitData, let ui = UIImage(data: data) {
-            portraitView(image: ui, label: "HoD")
+        if selectedTab == .dean, let data = dataManager.deanPortraitData {
+            CachedPortraitView(data: data, label: "Dean")
+        } else if selectedTab == .hod, let data = dataManager.hodPortraitData {
+            CachedPortraitView(data: data, label: "HoD")
         }
     }
+}
 
-    private func portraitView(image: UIImage, label: String) -> some View {
+private struct CachedPortraitView: View {
+    let data: Data
+    let label: String
+    @State private var image: UIImage?
+
+    var body: some View {
         VStack(spacing: 8) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 140, height: 168)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 2)
-                )
-                .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 140, height: 168)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(Color.accentColor.opacity(0.35), lineWidth: 2)
+                    )
+                    .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
+                    .accessibilityLabel(label)
+            } else {
+                ProgressView()
+                    .frame(width: 140, height: 168)
+            }
             Text(label)
                 .font(.caption.weight(.semibold))
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
+        .task(id: data) {
+            if image == nil {
+                image = UIImage(data: data)
+            }
+        }
     }
 }
 
@@ -103,8 +119,8 @@ struct StaffInfoRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: iconForKey(staff.key))
-                .font(.system(size: 16))
-                .foregroundColor(.accentColor)
+                .vtopFont(size: 16)
+.foregroundStyle(Color.accentColor)
                 .frame(width: 36, height: 36)
                 .background(
                     Circle()
@@ -113,12 +129,12 @@ struct StaffInfoRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(staff.key)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(.secondary)
 
                 Text(staff.value)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .vtopFont(size: 15, weight: .semibold)
+.foregroundStyle(.primary)
                     .lineLimit(4)
             }
 
@@ -128,8 +144,8 @@ struct StaffInfoRow: View {
                 if let url = URL(string: "mailto:\(staff.value)") {
                     Link(destination: url) {
                         Image(systemName: "envelope.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.accentColor)
+                            .vtopFont(size: 14)
+.foregroundStyle(Color.accentColor)
                             .frame(width: 32, height: 32)
                             .background(
                                 Circle()
@@ -141,8 +157,8 @@ struct StaffInfoRow: View {
                 if let url = URL(string: "tel:\(staff.value.filter { $0.isNumber })") {
                     Link(destination: url) {
                         Image(systemName: "phone.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.accentColor)
+                            .vtopFont(size: 14)
+.foregroundStyle(Color.accentColor)
                             .frame(width: 32, height: 32)
                             .background(
                                 Circle()
@@ -184,5 +200,6 @@ struct StaffInfoRow: View {
     NavigationStack {
         StaffInformationView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

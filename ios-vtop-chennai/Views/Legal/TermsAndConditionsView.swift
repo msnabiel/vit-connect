@@ -5,7 +5,7 @@ struct TermsAndConditionsView: View {
         ScrollView {
             Text(legalBody)
                 .font(.body)
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
         }

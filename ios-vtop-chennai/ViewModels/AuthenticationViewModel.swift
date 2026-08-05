@@ -7,6 +7,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
     // MARK: - Private Properties (declared first for didSet to work)
     private let logger = VTOPLogger.shared
     private var webView: WKWebView?
+    private var scriptMessageHandler: WeakScriptMessageHandler?
     private let keychainHelper = KeychainHelper.shared
     private var currentPageType: PageType = .landing
     private let baseURL = "https://vtopcc.vit.ac.in/vtop"
@@ -19,14 +20,28 @@ class AuthenticationViewModel: NSObject, ObservableObject {
             }
         }
     }
-    private let debugLogPath = "/Users/msnabiel/Desktop/ios-vtop-chennai/.cursor/debug-a1b485.log"
     private var debugInstanceId: String { String(ObjectIdentifier(self).hashValue) }
+
+    private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+        weak var delegate: WKScriptMessageHandler?
+
+        init(delegate: WKScriptMessageHandler) {
+            self.delegate = delegate
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            delegate?.userContentController(userContentController, didReceive: message)
+        }
+    }
 
     /// True while `autoLoginAndSync` is driving a silent re-login (session cookie renewal).
     var isAttemptingSessionRecovery = false
 
     // #region agent log
     private func emitDebugLog(hypothesisId: String, location: String, message: String, data: [String: Any]) {
+        #if !DEBUG
+        return
+        #else
         let payload: [String: Any] = [
             "sessionId": "a1b485",
             "runId": "pre-fix",
@@ -42,15 +57,18 @@ class AuthenticationViewModel: NSObject, ObservableObject {
               let line = String(data: raw, encoding: .utf8) else { return }
 
         let output = line + "\n"
-        if let fileHandle = FileHandle(forWritingAtPath: debugLogPath) {
+        let logURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("vtop-debug.log")
+        if let fileHandle = FileHandle(forWritingAtPath: logURL.path) {
             defer { try? fileHandle.close() }
             do {
                 try fileHandle.seekToEnd()
                 try fileHandle.write(contentsOf: Data(output.utf8))
             } catch { }
         } else {
-            try? output.write(toFile: debugLogPath, atomically: true, encoding: .utf8)
+            try? output.write(to: logURL, atomically: true, encoding: .utf8)
         }
+        #endif
     }
     // #endregion
 
@@ -92,8 +110,9 @@ class AuthenticationViewModel: NSObject, ObservableObject {
 
     // MARK: - Constants
     private let userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
-    /// If sign-in never reaches captcha or home within this window, stop spinning and surface guidance.
-    private static let signInStallTimeout: TimeInterval = 60
+    /// Allow slow WebKit/reCAPTCHA flows to finish before surfacing a stalled sign-in.
+    /// The watchdog is only active while the app is outside the captcha UI.
+    private static let signInStallTimeout: TimeInterval = 7 * 60
     private var signInStallWatchdogItem: DispatchWorkItem?
 
     private func syncSignInStallWatchdog() {
@@ -108,7 +127,7 @@ class AuthenticationViewModel: NSObject, ObservableObject {
             self.isLoading = false
             self.isAttemptingSessionRecovery = false
             self.errorMessage = msg
-            self.dataManager?.lastDataFetchFailureReason = msg
+            self.dataManager?.syncState.lastDataFetchFailureReason = msg
         }
         signInStallWatchdogItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.signInStallTimeout, execute: work)
@@ -170,8 +189,10 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         let config = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
 
-        // Add message handler for JavaScript bridge
-        userContentController.add(self, name: "iOSApp")
+        // Use a weak proxy so WebKit does not retain this view model indefinitely.
+        let handler = WeakScriptMessageHandler(delegate: self)
+        scriptMessageHandler = handler
+        userContentController.add(handler, name: "iOSApp")
 
         config.userContentController = userContentController
 
@@ -419,10 +440,14 @@ class AuthenticationViewModel: NSObject, ObservableObject {
 
             DispatchQueue.main.async {
                 if captchaTypeString == "GRECAPTCHA" {
-                    self.logger.info("⚠️ Google reCAPTCHA detected - attempting automatic execution", context: "Captcha")
+                    self.logger.info("⚠️ Google reCAPTCHA detected - opening interactive verification", context: "Captcha")
                     self.captchaType = .googleReCaptcha
-                    // Don't show WebView - execute reCAPTCHA automatically
-                    self.executeCaptcha()
+                    // reCAPTCHA may require a user gesture in WebKit. Keep the challenge visible
+                    // and begin polling for its token after the sheet has mounted.
+                    self.showReCaptchaWebView = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                        self.executeCaptcha()
+                    }
                 } else {
                     self.logger.info("✅ Using default image captcha - No webpage needed", context: "Captcha")
                     self.captchaType = .defaultCaptcha
@@ -513,18 +538,51 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         logger.info("🔐 Executing Google reCaptcha...", context: "Captcha")
 
         let script = """
-        function callBuiltValidation(token) {
-            window.webkit.messageHandlers.iOSApp.postMessage({
-                action: 'captchaToken',
-                token: token
-            });
-        }
         (function() {
-            var executeInterval = setInterval(function() {
+            function report(action, value) {
+                try { window.webkit.messageHandlers.iOSApp.postMessage({ action: action, token: value || '' }); } catch (e) { }
+            }
+            var poll = setInterval(function() {
+                var response = document.querySelector('#gResponse') || document.querySelector('textarea[name="g-recaptcha-response"]');
+                if (response && response.value && response.value.length > 20) {
+                    clearInterval(poll);
+                    report('captchaToken', response.value);
+                }
+            }, 500);
+            setTimeout(function() {
+                clearInterval(poll);
+                report('captchaWaiting', 'No reCAPTCHA token received. Tap the verification checkbox and try again.');
+            }, 180000);
+
+            window.callBuiltValidation = function(token) {
+                report('captchaToken', token);
+            };
+
+            function run() {
                 try {
-                    grecaptcha.execute();
+                    if (typeof grecaptcha === 'undefined') {
+                        report('captchaWaiting', 'reCAPTCHA is still loading.');
+                        return;
+                    }
+                    if (grecaptcha.ready) {
+                        grecaptcha.ready(function() { try { grecaptcha.execute(); } catch (e) { report('captchaWaiting', e.message); } });
+                    } else {
+                        grecaptcha.execute();
+                    }
+                } catch (e) {
+                    report('captchaWaiting', e.message);
+                }
+            }
+            var attempts = 0;
+            var executeInterval = setInterval(function() {
+                attempts += 1;
+                if (typeof grecaptcha !== 'undefined') {
                     clearInterval(executeInterval);
-                } catch (err) { }
+                    run();
+                } else if (attempts >= 60) {
+                    clearInterval(executeInterval);
+                    report('captchaWaiting', 'reCAPTCHA did not finish loading.');
+                }
             }, 500);
         })();
         """
@@ -806,16 +864,29 @@ class AuthenticationViewModel: NSObject, ObservableObject {
         showReCaptchaWebView = false
         isAttemptingSessionRecovery = false
         errorMessage = nil
+        tearDownWebView()
         if AppCacheSettings.clearCacheOnSignOutEnabled() {
             dataManager?.clearCachedVTOPData()
         }
-        dataManager?.lastDataFetchFailureReason = nil
+        dataManager?.syncState.lastDataFetchFailureReason = nil
 
         // Clear webview cookies
         let dataStore = WKWebsiteDataStore.default()
         dataStore.fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
             dataStore.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), for: records) { }
         }
+    }
+
+    private func tearDownWebView() {
+        webView?.stopLoading()
+        webView?.navigationDelegate = nil
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "iOSApp")
+        webView = nil
+        scriptMessageHandler = nil
+    }
+
+    deinit {
+        tearDownWebView()
     }
 
     // MARK: - Get WebView (for reCaptcha display)
@@ -922,8 +993,14 @@ extension AuthenticationViewModel: WKScriptMessageHandler {
 
         switch action {
         case "captchaToken":
-            if let token = dict["token"] as? String {
+            if let token = dict["token"] as? String, !token.isEmpty {
+                logger.success("reCAPTCHA token received", context: "Captcha")
+                showReCaptchaWebView = false
                 submitLogin(captchaText: token)
+            }
+        case "captchaWaiting":
+            if let message = dict["token"] as? String {
+                logger.warning(message, context: "Captcha")
             }
         default:
             break

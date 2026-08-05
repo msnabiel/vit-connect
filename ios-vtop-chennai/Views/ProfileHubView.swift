@@ -73,11 +73,18 @@ struct ProfileHubView: View {
                         Label("Compare timetables", systemImage: "rectangle.2.swap")
                     }
                 }
-                Section("Career") {
-                    Link(destination: URL(string: "https://apps.apple.com/us/app/openrole-ai-job-search/id6775263884")!) {
-                        Label("OpenRole - AI Job Search", systemImage: "briefcase.fill")
+                if let openRoleURL = URL(string: "https://apps.apple.com/us/app/openrole-ai-job-search/id6775263884") {
+                    Section("Career") {
+                        Link(destination: openRoleURL) {
+                            Label("OpenRole - AI Job Search", systemImage: "briefcase.fill")
+                        }
+                        .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(.secondary)
+                } else {
+                    Section("Career") {
+                        Text("DEBUG: Invalid URL")
+                            .foregroundStyle(.red)
+                    }
                 }
             case .learning:
                 Section("Learning tools") {

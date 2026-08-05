@@ -1,0 +1,160 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/ExamScheduleView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Exam Schedule",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "Calendar",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 161
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exam category",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 90
+        }
+      },
+      {
+        "comment": "",
+        "key": "Course, venue, slot…",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add exams to Calendar",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 156
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 165
+        }
+      },
+      {
+        "comment": "",
+        "key": "Please verify exam details on VTOP before the exam.",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 278
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exam date",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 329
+        }
+      },
+      {
+        "comment": "",
+        "key": "Slot",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "Session",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 345
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reporting time",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 353
+        }
+      },
+      {
+        "comment": "",
+        "key": "Exam time",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 361
+        }
+      },
+      {
+        "comment": "",
+        "key": "Venue",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 369
+        }
+      },
+      {
+        "comment": "",
+        "key": "Seat location",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 377
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 382
+        }
+      },
+      {
+        "comment": "",
+        "key": "Seat number",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 385
+        }
+      },
+      {
+        "comment": "",
+        "key": "Course type",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 393
+        }
+      },
+      {
+        "comment": "",
+        "key": "Faculty",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 399
+        }
+      },
+      {
+        "comment": "",
+        "key": "Course type",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 406
+        }
+      }
+    ]
+  },
+  "version": 1
+}

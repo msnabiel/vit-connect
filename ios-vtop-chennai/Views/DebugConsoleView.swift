@@ -13,7 +13,7 @@ struct DebugConsoleView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Filter Bar
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -58,7 +58,7 @@ struct DebugConsoleView: View {
                         }
                     }
                     .listStyle(.plain)
-                    .onChange(of: logs.count) { _ in
+                    .onChange(of: logs.count) {
                         if autoScroll, let lastLog = filteredLogs.last {
                             withAnimation {
                                 proxy.scrollTo(lastLog.id, anchor: .bottom)
@@ -71,7 +71,7 @@ struct DebugConsoleView: View {
                 HStack {
                     Text("\(filteredLogs.count) logs")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     Spacer()
 
@@ -103,15 +103,17 @@ struct DebugConsoleView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityLabel("Debug console actions")
                 }
             }
         }
         .onAppear {
             refreshLogs()
-
-            // Auto-refresh every 2 seconds
-            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+        }
+        .task {
+            while !Task.isCancelled {
                 refreshLogs()
+                try? await Task.sleep(for: .seconds(2))
             }
         }
     }
@@ -160,30 +162,29 @@ struct LogEntryRow: View {
             // Header
             HStack {
                 Text(log.formattedTimestamp)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 11, weight: .medium, design: .monospaced)
+.foregroundStyle(.secondary)
 
                 Text(log.emoji)
-                    .font(.system(size: 12))
-
+                    .vtopFont(size: 12)
                 Text(log.level.rawValue)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(levelColor)
+                    .vtopFont(size: 11, weight: .bold)
+.foregroundStyle(levelColor)
 
                 if !log.context.isEmpty {
                     Text("[\(log.context)]")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(.secondary)
                 }
 
                 if let code = log.errorCode {
                     Text("[Code: \(code)]")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.red)
+                        .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(.red)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .background(Color.red.opacity(0.1))
-                        .cornerRadius(4)
+                        .clipShape(.rect(cornerRadius: 4))
                 }
 
                 Spacer()
@@ -191,8 +192,8 @@ struct LogEntryRow: View {
 
             // Message
             Text(log.message)
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(.primary)
+                .vtopFont(size: 13, design: .monospaced)
+.foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 4)
@@ -208,8 +209,8 @@ struct FilterChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .white : .primary)
+                .vtopFont(size: 14, weight: isSelected ? .semibold : .regular)
+.foregroundStyle(isSelected ? .white : .primary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(

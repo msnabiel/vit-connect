@@ -1,16 +1,6 @@
 import Foundation
 import ActivityKit
 
-struct VTOPClassActivityAttributes: ActivityAttributes {
-    struct ContentState: Codable, Hashable {
-        var startsInMinutes: Int
-        var venue: String
-        var courseTitle: String
-    }
-
-    var slotStart: Date
-}
-
 enum VTOPLiveActivityManager {
     private static var currentActivity: Activity<VTOPClassActivityAttributes>?
 
@@ -38,15 +28,15 @@ enum VTOPLiveActivityManager {
             venue: u.course.venue,
             courseTitle: u.course.title
         )
+        let content = ActivityContent(state: state, staleDate: u.endDate)
 
         if let activity = currentActivity {
-            Task { await activity.update(using: state) }
+            Task { await activity.update(content) }
             return
         }
 
         endIfNeeded()
         let attr = VTOPClassActivityAttributes(slotStart: u.startDate)
-        let content = ActivityContent(state: state, staleDate: u.endDate)
         do {
             currentActivity = try Activity.request(attributes: attr, content: content, pushType: nil)
         } catch {

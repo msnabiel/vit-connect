@@ -37,7 +37,8 @@ struct TimetableView: View {
                 Button {
                     shareTimetable()
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
+                        Image(systemName: "square.and.arrow.up")
+                            .accessibilityLabel("Share timetable")
                 }
                 .accessibilityLabel("Share timetable")
                 .disabled(dataManager.timetable.isEmpty)
@@ -76,35 +77,16 @@ struct TimetableView: View {
     @ViewBuilder
     private var semesterPicker: some View {
         if !dataManager.semesters.isEmpty {
-            Menu {
-                ForEach(dataManager.semesters) { sem in
-                    Button(sem.name) {
-                        dataManager.refreshTimetableAndCoursesForSemester(sem, completion: nil)
-                    }
+            SemesterMenuView(
+                choices: dataManager.semesters,
+                selectedName: semesterMenuTitle,
+                tint: Color(uiColor: .systemBlue),
+                bottomPadding: 8,
+                onSelect: { semester in
+                dataManager.refreshTimetableAndCoursesForSemester(semester, completion: nil)
                 }
-            } label: {
-                HStack(spacing: 8) {
-                    Text("Semester — \(semesterMenuTitle)")
-                        .font(.body.weight(.medium))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(Color(uiColor: .systemBlue))
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(uiColor: .secondarySystemBackground))
-                )
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            )
+            .padding(.top, 4)
         }
     }
 
@@ -117,8 +99,8 @@ struct TimetableView: View {
                     } label: {
                         VStack(spacing: 4) {
                             Text(weekdays[dayIndex])
-                                .font(.system(size: 14, weight: selectedDay == dayIndex ? .bold : .medium))
-                                .foregroundColor(selectedDay == dayIndex ? .white : .primary)
+                                .vtopFont(size: 14, weight: selectedDay == dayIndex ? .bold : .medium)
+.foregroundStyle(selectedDay == dayIndex ? .white : .primary)
 
                             if isToday(dayIndex: dayIndex) {
                                 Circle()
@@ -172,16 +154,10 @@ struct TimetableView: View {
                     .padding()
                 }
                 .refreshable {
-                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                        if let sem = dataManager.selectedSemester {
-                            dataManager.refreshTimetableAndCoursesForSemester(sem) {
-                                cont.resume()
-                            }
-                        } else {
-                            dataManager.refreshSemesterPicklist {
-                                cont.resume()
-                            }
-                        }
+                    if let sem = dataManager.selectedSemester {
+                        await dataManager.refreshTimetableAndCourses(for: sem)
+                    } else {
+                        await dataManager.refreshSemesterPicklist()
                     }
                 }
             }
@@ -264,12 +240,12 @@ struct TimetableSlotCard: View {
                 // Time column
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatTime(slot.startTime))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .vtopFont(size: 13, weight: .semibold)
+.foregroundStyle(.primary)
 
                     Text(formatTime(slot.endTime))
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 13)
+.foregroundStyle(.secondary)
                 }
                 .frame(width: 70, alignment: .leading)
 
@@ -277,21 +253,21 @@ struct TimetableSlotCard: View {
                 Rectangle()
                     .fill(courseColor(for: course.type))
                     .frame(width: 4)
-                    .cornerRadius(2)
+                    .clipShape(.rect(cornerRadius: 2))
 
                 // Course details
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(course.title)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.primary)
+                            .vtopFont(size: 16, weight: .semibold)
+.foregroundStyle(.primary)
                             .lineLimit(2)
 
                         Spacer()
 
                         Text(slotCode)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white)
+                            .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(.white)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(
@@ -302,15 +278,15 @@ struct TimetableSlotCard: View {
 
                     HStack(spacing: 12) {
                         Label(course.venue, systemImage: "mappin.circle.fill")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
+                            .vtopFont(size: 13)
+.foregroundStyle(.secondary)
                             .lineLimit(1)
 
                         Spacer()
 
                         Text(course.type.rawValue)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(courseColor(for: course.type))
+                            .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(courseColor(for: course.type))
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
                             .background(
@@ -320,8 +296,8 @@ struct TimetableSlotCard: View {
                     }
 
                     Text(course.faculty)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 12)
+.foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }
@@ -362,5 +338,6 @@ struct TimetableSlotCard: View {
         TimetableView()
             .environmentObject(AuthenticationViewModel())
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

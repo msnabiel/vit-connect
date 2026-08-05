@@ -1,0 +1,136 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/AcademicDashboardComponents.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Attendance overview",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 31
+        }
+      },
+      {
+        "comment": "",
+        "key": "Target %lld%%",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 35
+        }
+      },
+      {
+        "comment": "",
+        "key": "•••%",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "••• / ••• classes",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld / %lld classes",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 45
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance filter",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance course filter",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 93
+        }
+      },
+      {
+        "comment": "",
+        "key": "Assessment data will appear here after a marks sync.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Performance overview",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Average assessment scores by course",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 159
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "average assessment score",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Course",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "Score",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 146
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 154
+        }
+      }
+    ]
+  },
+  "version": 1
+}

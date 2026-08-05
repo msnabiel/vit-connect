@@ -1,0 +1,96 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Services/VTOPAppIntents.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "What's My Next Class?",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 15
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows the next scheduled class from the last VTOP sync.",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 16
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show My Attendance",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 29
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shows your latest attendance percentage and opens Attendance.",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 30
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance is not available until the app syncs.",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh VTOP Data",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opens VIT Connect so the latest VTOP data can be refreshed.",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opening VIT Connect to refresh your data.",
+        "location": {
+          "startingColumn": 97,
+          "startingLine": 52
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next class",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 61
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 67
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh VTOP",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 73
+        }
+      }
+    ]
+  },
+  "version": 1
+}

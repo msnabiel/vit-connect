@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReceiptsView: View {
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
 
     var totalAmount: Double {
         dataManager.receipts.reduce(0) { $0 + $1.amount }
@@ -17,7 +18,7 @@ struct ReceiptsView: View {
 
     var body: some View {
         ScrollView {
-            if dataManager.isLoading && dataManager.receipts.isEmpty {
+            if syncState.isLoading && dataManager.receipts.isEmpty {
                 // Skeleton loading
                 VStack(spacing: 20) {
                     SkeletonCard()
@@ -44,24 +45,24 @@ struct ReceiptsView: View {
                     HStack(spacing: 20) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Total Paid")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                             Text("₹\(formatAmount(totalAmount))")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.primary)
+                                .vtopFont(size: 32, weight: .bold)
+.foregroundStyle(.primary)
                         }
 
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 6) {
                             Text("Receipts")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.secondary)
+                                .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                             Text("\(dataManager.receipts.count)")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.accentColor)
+                                .vtopFont(size: 24, weight: .bold)
+.foregroundStyle(Color.accentColor)
                         }
                     }
                     .padding(20)
@@ -94,9 +95,7 @@ struct ReceiptsView: View {
             }
         }
         .refreshable {
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                dataManager.refreshReceiptsOnly { cont.resume() }
-            }
+            await dataManager.refreshReceiptsOnly()
         }
         .navigationTitle("Payment receipts")
         .navigationBarTitleDisplayMode(.inline)
@@ -117,8 +116,8 @@ struct MonthHeader: View {
     var body: some View {
         HStack {
             Text(month)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.primary)
+                .vtopFont(size: 15, weight: .semibold)
+.foregroundStyle(.primary)
 
             Spacer()
         }
@@ -134,8 +133,8 @@ struct ReceiptRow: View {
         HStack(spacing: 16) {
             // Icon
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 24))
-                .foregroundColor(.green)
+                .vtopFont(size: 24)
+.foregroundStyle(.green)
                 .frame(width: 40, height: 40)
                 .background(
                     Circle()
@@ -145,17 +144,17 @@ struct ReceiptRow: View {
             // Receipt details
             VStack(alignment: .leading, spacing: 4) {
                 Text("Receipt #\(receipt.number)")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .vtopFont(size: 15, weight: .semibold)
+.foregroundStyle(.primary)
 
                 Text(receipt.formattedDate)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                 if let campus = receipt.campusCode {
                     Text(campus)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(.secondary)
                 }
             }
 
@@ -164,12 +163,12 @@ struct ReceiptRow: View {
             // Amount
             VStack(alignment: .trailing, spacing: 2) {
                 Text("₹\(formatAmount(receipt.amount))")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.primary)
+                    .vtopFont(size: 17, weight: .bold)
+.foregroundStyle(.primary)
 
                 Text("Paid")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.green)
+                    .vtopFont(size: 11, weight: .medium)
+.foregroundStyle(.green)
             }
         }
         .padding(14)
@@ -192,5 +191,6 @@ struct ReceiptRow: View {
     NavigationStack {
         ReceiptsView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

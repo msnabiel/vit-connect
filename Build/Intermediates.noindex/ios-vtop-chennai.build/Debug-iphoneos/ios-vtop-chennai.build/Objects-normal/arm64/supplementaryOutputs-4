@@ -1,0 +1,72 @@
+{
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Services/VTOPLiveActivityManager.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPLiveActivityManager.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPLiveActivityManager.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPLiveActivityManager.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPLiveActivityManager.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPLiveActivityManager.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Services/VTOPNotificationPreferences.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationPreferences.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationPreferences.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationPreferences.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationPreferences.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationPreferences.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Services/VTOPNotificationScheduler.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationScheduler.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationScheduler.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationScheduler.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationScheduler.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPNotificationScheduler.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Services/VTOPPersonalizationPreferences.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPPersonalizationPreferences.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPPersonalizationPreferences.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPPersonalizationPreferences.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPPersonalizationPreferences.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPPersonalizationPreferences.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/ViewModels/AuthenticationViewModel.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AuthenticationViewModel.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AuthenticationViewModel.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AuthenticationViewModel.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AuthenticationViewModel.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AuthenticationViewModel.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/ViewModels/DataManager.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManager.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManager.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManager.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManager.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManager.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/ViewModels/DataManagerSyncState.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManagerSyncState.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManagerSyncState.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManagerSyncState.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManagerSyncState.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/DataManagerSyncState.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/AnimatedGradientBackground.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AnimatedGradientBackground.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AnimatedGradientBackground.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AnimatedGradientBackground.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AnimatedGradientBackground.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/AnimatedGradientBackground.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/FloatingEmojisView.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/FloatingEmojisView.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/FloatingEmojisView.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/FloatingEmojisView.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/FloatingEmojisView.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/FloatingEmojisView.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/HomeCockpitViews.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/HomeCockpitViews.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/HomeCockpitViews.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/HomeCockpitViews.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/HomeCockpitViews.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/HomeCockpitViews.swiftdeps"
+  }
+}

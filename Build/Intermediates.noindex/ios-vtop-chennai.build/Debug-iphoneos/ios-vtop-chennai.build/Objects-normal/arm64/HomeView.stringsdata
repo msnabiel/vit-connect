@@ -1,0 +1,544 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/HomeView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Home",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 73
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "Marks",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Profile",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 89
+        }
+      },
+      {
+        "comment": "",
+        "key": "Verification",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 116
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 120
+        }
+      },
+      {
+        "comment": "",
+        "key": "VIT Chennai",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 784
+        }
+      },
+      {
+        "comment": "",
+        "key": "CGPA",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 529
+        }
+      },
+      {
+        "comment": "",
+        "key": "Credits",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 582
+        }
+      },
+      {
+        "comment": "",
+        "key": "No attendance data",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 681
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overall Attendance",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 628
+        }
+      },
+      {
+        "comment": "",
+        "key": "–",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 644
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 644
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld / %lld classes",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 656
+        }
+      },
+      {
+        "comment": "",
+        "key": "No classes today",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 723
+        }
+      },
+      {
+        "comment": "",
+        "key": "Today's Schedule",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 706
+        }
+      },
+      {
+        "comment": "",
+        "key": "View All",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 712
+        }
+      },
+      {
+        "comment": "",
+        "key": "No classes scheduled for today!",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 738
+        }
+      },
+      {
+        "comment": "",
+        "key": "+ %lld more classes",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 755
+        }
+      },
+      {
+        "comment": "",
+        "key": "Share app",
+        "location": {
+          "startingColumn": 41,
+          "startingLine": 792
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overall attendance",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 980
+        }
+      },
+      {
+        "comment": "",
+        "key": "•••%",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 991
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 991
+        }
+      },
+      {
+        "comment": "",
+        "key": "••• / ••• classes",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 995
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld classes",
+        "location": {
+          "startingColumn": 80,
+          "startingLine": 995
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Profile",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1452
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sign out?",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1455
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear cache?",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 1463
+        }
+      },
+      {
+        "comment": "",
+        "key": "Student Information",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 1195
+        }
+      },
+      {
+        "comment": "",
+        "key": "Academic Information",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1281
+        }
+      },
+      {
+        "comment": "",
+        "key": "Financial & Administrative",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Profile",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1333
+        }
+      },
+      {
+        "comment": "",
+        "key": "Friends",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1343
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sync & app",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1361
+        }
+      },
+      {
+        "comment": "",
+        "key": "Legal",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1420
+        }
+      },
+      {
+        "comment": "",
+        "key": "Upcoming updates",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1429
+        }
+      },
+      {
+        "comment": "",
+        "key": "CGPA",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1212
+        }
+      },
+      {
+        "comment": "",
+        "key": "Credits",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1229
+        }
+      },
+      {
+        "comment": "",
+        "key": "•••",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 1232
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 1232
+        }
+      },
+      {
+        "comment": "",
+        "key": "Share App",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 1246
+        }
+      },
+      {
+        "comment": "",
+        "key": "Total credits required",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1257
+        }
+      },
+      {
+        "comment": "",
+        "key": "Non-graded core requirement",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1269
+        }
+      },
+      {
+        "comment": "",
+        "key": "Full profile",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1335
+        }
+      },
+      {
+        "comment": "",
+        "key": "Study Materials",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1339
+        }
+      },
+      {
+        "comment": "",
+        "key": "Import timetable",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1345
+        }
+      },
+      {
+        "comment": "",
+        "key": "Friends timetable",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1348
+        }
+      },
+      {
+        "comment": "",
+        "key": "BETA",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1354
+        }
+      },
+      {
+        "comment": "",
+        "key": "Compare timetables",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1352
+        }
+      },
+      {
+        "comment": "",
+        "key": "Last successful sync: %@",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1366
+        }
+      },
+      {
+        "comment": "",
+        "key": "Data saved on device: %@",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 1375
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bugs & suggestions",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1389
+        }
+      },
+      {
+        "comment": "",
+        "key": "Syncing…",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 1401
+        }
+      },
+      {
+        "comment": "",
+        "key": "Full Sync Data",
+        "location": {
+          "startingColumn": 71,
+          "startingLine": 1401
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cache management",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1416
+        }
+      },
+      {
+        "comment": "",
+        "key": "Privacy policy",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1422
+        }
+      },
+      {
+        "comment": "",
+        "key": "Terms and conditions",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1425
+        }
+      },
+      {
+        "comment": "",
+        "key": "VIT Bhopal and VIT Vellore — support coming soon.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1430
+        }
+      },
+      {
+        "comment": "",
+        "key": "Moodle integration — coming soon.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1432
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sign Out",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1443
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1456
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sign Out",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1457
+        }
+      },
+      {
+        "comment": "",
+        "key": "You will need to sign in again. Cached data is cleared only if enabled in Cache management.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1461
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1464
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 1465
+        }
+      },
+      {
+        "comment": "",
+        "key": "Removes saved VTOP data from this device (grades, attendance, exam schedule, etc.). You stay signed in; use Full Sync Data to download again.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1469
+        }
+      }
+    ]
+  },
+  "version": 1
+}

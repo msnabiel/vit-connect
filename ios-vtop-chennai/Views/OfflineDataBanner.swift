@@ -3,18 +3,19 @@ import SwiftUI
 /// Surfaces sync failures and, when enabled, when the UI is backed by persisted cache.
 struct OfflineDataBanner: View {
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
     /// When `false`, hides the “Last sync / saved data” strip (e.g. on Home).
     var showSyncMetadata: Bool = true
 
     private var showsSyncLine: Bool {
         showSyncMetadata
-            && dataManager.lastDataFetchFailureReason == nil
-            && (dataManager.lastSuccessfulSyncAt != nil || dataManager.cachePersistedAt != nil)
+            && syncState.lastDataFetchFailureReason == nil
+            && (syncState.lastSuccessfulSyncAt != nil || syncState.cachePersistedAt != nil)
     }
 
     @ViewBuilder
     var body: some View {
-        if let reason = dataManager.lastDataFetchFailureReason,
+        if let reason = syncState.lastDataFetchFailureReason,
            !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -32,10 +33,10 @@ struct OfflineDataBanner: View {
             HStack(spacing: 8) {
                 Image(systemName: "icloud.and.arrow.down")
                     .font(.caption.weight(.semibold))
-                if let sync = dataManager.lastSuccessfulSyncAt {
+                if let sync = syncState.lastSuccessfulSyncAt {
                     Text("Last sync: \(sync.formatted(date: .abbreviated, time: .shortened))")
                         .font(.caption)
-                } else if let cached = dataManager.cachePersistedAt {
+                } else if let cached = syncState.cachePersistedAt {
                     Text("Using saved data from \(cached.formatted(date: .abbreviated, time: .shortened))")
                         .font(.caption)
                 }

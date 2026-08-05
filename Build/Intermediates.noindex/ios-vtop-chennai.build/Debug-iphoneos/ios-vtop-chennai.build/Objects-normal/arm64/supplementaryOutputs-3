@@ -1,0 +1,72 @@
+{
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/Receipt.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Receipt.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Receipt.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Receipt.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Receipt.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Receipt.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/Semester.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Semester.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Semester.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Semester.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Semester.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Semester.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/Spotlight.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Spotlight.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Spotlight.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Spotlight.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Spotlight.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Spotlight.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/Staff.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Staff.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Staff.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Staff.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Staff.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Staff.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/StudentProfile.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/StudentProfile.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/StudentProfile.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/StudentProfile.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/StudentProfile.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/StudentProfile.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/Timetable.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Timetable.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Timetable.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Timetable.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Timetable.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/Timetable.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/UserMarkPreferences.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/UserMarkPreferences.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/UserMarkPreferences.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/UserMarkPreferences.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/UserMarkPreferences.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/UserMarkPreferences.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/VTOPScheduledEventRow.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPScheduledEventRow.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPScheduledEventRow.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPScheduledEventRow.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPScheduledEventRow.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPScheduledEventRow.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Models/VTOPSupplementalModels.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPSupplementalModels.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPSupplementalModels.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPSupplementalModels.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPSupplementalModels.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPSupplementalModels.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Services/VTOPAppIntents.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPAppIntents.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPAppIntents.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPAppIntents.dia",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPAppIntents.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphoneos/ios-vtop-chennai.build/Objects-normal/arm64/VTOPAppIntents.swiftdeps"
+  }
+}

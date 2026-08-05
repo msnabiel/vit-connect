@@ -14,19 +14,19 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+                .vtopFont(size: 48)
+.foregroundStyle(.secondary)
 
             if let title = title {
                 Text(title)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .vtopFont(size: 20, weight: .semibold)
+.foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
             }
 
             Text(message)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.secondary)
+                .vtopFont(size: 15, weight: .medium)
+.foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)

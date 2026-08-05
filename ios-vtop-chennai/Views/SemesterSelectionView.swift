@@ -5,20 +5,19 @@ struct SemesterSelectionView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 12) {
                     Image(systemName: "calendar.badge.checkmark")
-                        .font(.system(size: 50))
-                        .foregroundColor(.accentColor)
+                        .vtopFont(size: 50)
+.foregroundStyle(Color.accentColor)
 
                     Text("Select Semester")
-                        .font(.system(size: 24, weight: .bold))
-
+                        .vtopFont(size: 24, weight: .bold)
                     Text("Choose a semester to view your academic data")
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 15)
+.foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -39,20 +38,20 @@ struct SemesterSelectionView: View {
                                     HStack {
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(semester.name)
-                                                .font(.system(size: 17, weight: .semibold))
-                                                .foregroundColor(.primary)
+                                                .vtopFont(size: 17, weight: .semibold)
+.foregroundStyle(.primary)
                                         }
 
                                         Spacer()
 
                                         if dataManager.selectedSemester?.id == semester.id {
                                             Image(systemName: "checkmark.circle.fill")
-                                                .font(.system(size: 24))
-                                                .foregroundColor(.accentColor)
+                                                .vtopFont(size: 24)
+.foregroundStyle(Color.accentColor)
                                         } else {
                                             Image(systemName: "circle")
-                                                .font(.system(size: 24))
-                                                .foregroundColor(.secondary.opacity(0.3))
+                                                .vtopFont(size: 24)
+.foregroundStyle(.secondary.opacity(0.3))
                                         }
                                     }
                                     .padding()
@@ -90,7 +89,7 @@ struct SemesterSelectionView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundColor(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                 }
             }
         }
@@ -100,4 +99,5 @@ struct SemesterSelectionView: View {
 #Preview {
     SemesterSelectionView()
         .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
 }

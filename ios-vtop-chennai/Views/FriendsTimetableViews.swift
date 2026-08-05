@@ -102,7 +102,8 @@ struct FriendsTimetableListView: View {
                                     }
                                 }
                             } label: {
-                                Image(systemName: "ellipsis.circle")
+                            Image(systemName: "ellipsis.circle")
+                                .accessibilityLabel("Friend timetable actions")
                                     .font(.title3)
                                     .foregroundStyle(.secondary)
                             }
@@ -427,8 +428,8 @@ struct TimetableBrowserView: View {
                         } label: {
                             VStack(spacing: 4) {
                                 Text(weekdays[dayIndex])
-                                    .font(.system(size: 14, weight: selectedDay == dayIndex ? .bold : .medium))
-                                    .foregroundColor(selectedDay == dayIndex ? .white : .primary)
+                                    .vtopFont(size: 14, weight: selectedDay == dayIndex ? .bold : .medium)
+.foregroundStyle(selectedDay == dayIndex ? .white : .primary)
                                 Circle()
                                     .fill(dayIndicatorFill(dayIndex: dayIndex))
                                     .frame(width: 6, height: 6)

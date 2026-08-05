@@ -2,6 +2,7 @@ import Foundation
 
 /// Persists VTOP snapshots to **disk** (Application Support) with optional migration from legacy `UserDefaults` blobs.
 enum VTOPDataCache {
+    private static let persistenceQueue = DispatchQueue(label: "com.vitconnect.cache-persistence", qos: .utility)
     private static let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.dateEncodingStrategy = .iso8601
@@ -129,8 +130,54 @@ enum VTOPDataCache {
         coursesBySemesterId: [String: [Course]],
         timetableBySemesterId: [String: [TimetableSlot]],
         marksBySemesterId: [String: [Mark]],
-        cumulativeMarksBySemesterId: [String: [CumulativeMark]]
+        cumulativeMarksBySemesterId: [String: [CumulativeMark]],
+        synchronously: Bool = false,
+        completion: (() -> Void)? = nil
     ) {
+        if !synchronously {
+            persistenceQueue.async {
+                persistSnapshot(
+                    studentProfile: studentProfile,
+                    gradeHistoryRows: gradeHistoryRows,
+                    courses: courses,
+                    timetable: timetable,
+                    attendance: attendance,
+                    marks: marks,
+                    cumulativeMarks: cumulativeMarks,
+                    exams: exams,
+                    staff: staff,
+                    semesters: semesters,
+                    selectedSemester: selectedSemester,
+                    attendanceSemesterOptions: attendanceSemesterOptions,
+                    marksReportSemesterOptions: marksReportSemesterOptions,
+                    marksReportRows: marksReportRows,
+                    marksReportSemesterId: marksReportSemesterId,
+                    examScheduleSemesterOptions: examScheduleSemesterOptions,
+                    examScheduleSemesterId: examScheduleSemesterId,
+                    spotlights: spotlights,
+                    receipts: receipts,
+                    scheduledEventRows: scheduledEventRows,
+                    portalCredentials: portalCredentials,
+                    rankEntries: rankEntries,
+                    deanPortraitData: deanPortraitData,
+                    hodPortraitData: hodPortraitData,
+                    coursesBySemesterId: coursesBySemesterId,
+                    timetableBySemesterId: timetableBySemesterId,
+                    marksBySemesterId: marksBySemesterId,
+                    cumulativeMarksBySemesterId: cumulativeMarksBySemesterId,
+                    synchronously: true,
+                    completion: completion
+                )
+            }
+            return
+        }
+
+        defer {
+            if let completion {
+                DispatchQueue.main.async(execute: completion)
+            }
+        }
+
         func bucketOn(_ b: AppCacheSettings.VTOPBucket) -> Bool {
             AppCacheSettings.VTOPBucket.isEnabled(b)
         }
@@ -231,7 +278,8 @@ enum VTOPDataCache {
         case .marksAndGrades:
             for f in [
                 FileName.gradeHistoryRows, FileName.marks, FileName.cumulativeMarks,
-                FileName.marksReportSemesterOptions, FileName.marksReportRows
+                FileName.marksReportSemesterOptions, FileName.marksReportRows,
+                FileName.marksBySemester, FileName.cumulativeMarksBySemester
             ] { VTOPDiskCache.removeFile(fileName: f) }
             for k in [
                 LegacyKey.gradeHistoryRows, LegacyKey.marks, LegacyKey.cumulativeMarks,
@@ -259,7 +307,7 @@ enum VTOPDataCache {
     }
 
     /// Loads cache off the main thread, then applies on `MainActor`.
-    static func restoreInto(_ dm: DataManager) {
+    static func restoreInto(_ dm: DataManager, shouldApply: @escaping @MainActor () -> Bool = { true }) {
         Task.detached(priority: .userInitiated) {
             func bucketOn(_ b: AppCacheSettings.VTOPBucket) -> Bool {
                 AppCacheSettings.VTOPBucket.isEnabled(b)
@@ -374,6 +422,7 @@ enum VTOPDataCache {
             let marksBucketOn = bucketOn(.marksAndGrades)
             let examsBucketOn = bucketOn(.exams)
             await MainActor.run {
+                guard shouldApply() else { return }
                 dm.studentProfile = profile
                 dm.gradeHistoryRows = gradeHistoryRows
                 dm.courses = courses
@@ -401,7 +450,7 @@ enum VTOPDataCache {
                 dm.deanPortraitData = deanPortraitData
                 dm.hodPortraitData = hodPortraitData
                 dm.restoreSemesterScopedCache(coursesBySemesterId: coursesBySemesterId, timetableBySemesterId: timetableBySemesterId, marksBySemesterId: marksBySemesterId, cumulativeMarksBySemesterId: cumulativeMarksBySemesterId)
-                dm.cachePersistedAt = meta.lastPersistedAt
+                dm.syncState.cachePersistedAt = meta.lastPersistedAt
             }
         }
     }

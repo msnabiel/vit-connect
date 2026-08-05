@@ -29,12 +29,12 @@ struct LoginView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Login")
-                                    .font(.system(size: 48, weight: .bold, design: .default))
-                                    .foregroundColor(.primary)
+                                    .vtopFont(size: 48, weight: .bold, design: .default)
+.foregroundStyle(.primary)
 
                                 Text("Sign in using your VTOP credentials")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 17, weight: .semibold)
+.foregroundStyle(.secondary)
                             }
 
                             Spacer()
@@ -51,14 +51,13 @@ struct LoginView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 12) {
                                 Image(systemName: "person.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 16)
+.foregroundStyle(.secondary)
                                     .frame(width: 24)
 
                                 TextField("Username", text: $viewModel.username)
-                                    .font(.system(size: 17))
-                                    .textInputAutocapitalization(.characters)
-                                    .disableAutocorrection(true)
+                                    .vtopFont(size: 17)                                    .textInputAutocapitalization(.characters)
+                                    .autocorrectionDisabled()
                                     .textContentType(.username)
                                     .focused($focusedField, equals: .username)
                                     .disabled(viewModel.isLoading)
@@ -83,8 +82,8 @@ struct LoginView: View {
 
                             // Username hint
                             Text("Note: Username may not be your registration number")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.orange)
+                                .vtopFont(size: 12, weight: .medium)
+.foregroundStyle(.orange)
                                 .padding(.leading, 4)
                         }
 
@@ -92,15 +91,14 @@ struct LoginView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 12) {
                                 Image(systemName: "lock.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.secondary)
+                                    .vtopFont(size: 16)
+.foregroundStyle(.secondary)
                                     .frame(width: 24)
 
                                 Group {
                                     if showPassword {
                                         TextField("Password", text: $viewModel.password)
-                                            .font(.system(size: 17))
-                                            .textInputAutocapitalization(.never)
+                                            .vtopFont(size: 17)                                            .textInputAutocapitalization(.never)
                                             .autocorrectionDisabled()
                                             .focused($focusedField, equals: .password)
                                             .disabled(viewModel.isLoading)
@@ -112,8 +110,7 @@ struct LoginView: View {
                                             }
                                     } else {
                                         SecureField("Password", text: $viewModel.password)
-                                            .font(.system(size: 17))
-                                            .textContentType(.password)
+                                            .vtopFont(size: 17)                                            .textContentType(.password)
                                             .focused($focusedField, equals: .password)
                                             .disabled(viewModel.isLoading)
                                             .submitLabel(.go)
@@ -131,8 +128,8 @@ struct LoginView: View {
                                     showPassword.toggle()
                                 }) {
                                     Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.secondary)
+                                        .vtopFont(size: 16)
+.foregroundStyle(.secondary)
                                 }
                                 .disabled(viewModel.isLoading)
                             }
@@ -156,12 +153,12 @@ struct LoginView: View {
                             Toggle(isOn: $rememberMe) {
                                 HStack(spacing: 8) {
                                     Image(systemName: rememberMe ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(rememberMe ? .accentColor : .secondary)
+                                        .vtopFont(size: 18)
+.foregroundStyle(rememberMe ? Color.accentColor : Color.secondary)
 
                                     Text("Remember me")
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(.primary)
+                                        .vtopFont(size: 15, weight: .medium)
+.foregroundStyle(.primary)
                                 }
                             }
                             .toggleStyle(.button)
@@ -174,11 +171,11 @@ struct LoginView: View {
                                 Button(action: authenticateWithBiometric) {
                                     HStack(spacing: 6) {
                                         Image(systemName: biometricType() == .faceID ? "faceid" : "touchid")
-                                            .font(.system(size: 16))
-                                        Text("Use \(biometricType() == .faceID ? "Face ID" : "Touch ID")")
-                                            .font(.system(size: 14, weight: .medium))
-                                    }
-                                    .foregroundColor(.accentColor)
+                                            .vtopFont(size: 16)
+Text("Use \(biometricType() == .faceID ? "Face ID" : "Touch ID")")
+                                            .vtopFont(size: 14, weight: .medium)
+}
+                                    .foregroundStyle(Color.accentColor)
                                 }
                                 .disabled(viewModel.isLoading)
                             }
@@ -189,12 +186,12 @@ struct LoginView: View {
                         if let errorMessage = viewModel.errorMessage {
                             HStack(spacing: 12) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.red)
+                                    .vtopFont(size: 14)
+.foregroundStyle(.red)
 
                                 Text(errorMessage)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.red)
+                                    .vtopFont(size: 14, weight: .medium)
+.foregroundStyle(.red)
                                     .multilineTextAlignment(.leading)
 
                                 Spacer()
@@ -220,8 +217,8 @@ struct LoginView: View {
                             HStack(spacing: 8) {
                                 if viewModel.loginSuccess {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(.white)
+                                        .vtopFont(size: 20)
+.foregroundStyle(.white)
                                 } else if viewModel.isLoading {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -229,8 +226,8 @@ struct LoginView: View {
                                 }
 
                                 Text(viewModel.loginSuccess ? "LOGIN SUCCESSFUL!" : (viewModel.isLoading ? "SIGNING IN..." : "SIGN IN"))
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
+                                    .vtopFont(size: 17, weight: .semibold)
+.foregroundStyle(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -264,12 +261,12 @@ struct LoginView: View {
                                 showTermsAndConditions = true
                             }
                         }
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.accentColor)
+                        .vtopFont(size: 15, weight: .medium)
+.foregroundStyle(Color.accentColor)
 
                         Text("Currently only supports VIT Chennai.")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundStyle(.secondary)
+                            .vtopFont(size: 12, weight: .regular)
+.foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 32)

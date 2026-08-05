@@ -3,20 +3,18 @@ import SwiftUI
 // MARK: - Jump to Home tab (main shell only)
 
 private struct SelectHomeTabKey: EnvironmentKey {
-    static let defaultValue: (() -> Void)? = nil
+    static let defaultValue: Binding<Int>? = nil
 }
 
 extension EnvironmentValues {
     /// When set (main `TabView`), leading brand icon switches to the Home tab.
-    var selectHomeTab: (() -> Void)? {
+    var selectHomeTab: Binding<Int>? {
         get { self[SelectHomeTabKey.self] }
         set { self[SelectHomeTabKey.self] = newValue }
     }
 }
 
 // MARK: - Leading icon → Home
-
-enum VTOPNavChrome {}
 
 private struct VTOPNavLeadingIconModifier: ViewModifier {
     @Environment(\.selectHomeTab) private var selectHomeTab
@@ -25,7 +23,7 @@ private struct VTOPNavLeadingIconModifier: ViewModifier {
         content.toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
-                    selectHomeTab?()
+                    selectHomeTab?.wrappedValue = 0
                 } label: {
                     Image("VITConnectIcon")
                         .resizable()
@@ -84,17 +82,17 @@ struct VTOPSmoothSyncArrow: View {
 
 struct MainSyncToolbarButton: View {
     @EnvironmentObject var authViewModel: AuthenticationViewModel
-    @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
 
     var body: some View {
         Button {
             authViewModel.triggerSync()
         } label: {
-            VTOPSmoothSyncArrow(isRunning: dataManager.isLoading, foreground: .primary)
+            VTOPSmoothSyncArrow(isRunning: syncState.isLoading, foreground: .primary)
         }
         .buttonStyle(.plain)
         .tint(.primary)
-        .disabled(dataManager.isLoading)
+        .disabled(syncState.isLoading)
         .accessibilityLabel("Sync data")
     }
 }

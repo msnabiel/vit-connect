@@ -1,0 +1,514 @@
+[
+  {
+    "typeName": "VTOPGlanceWidgetExtension.GlanceWidgetFocus",
+    "mangledTypeName": "25VTOPGlanceWidgetExtension06GlanceB5Focus33_2750B52F220D6F98BDEFBEF64E285176LLO",
+    "kind": "enum",
+    "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+    "line": 38,
+    "conformances": [
+      "Swift.Equatable",
+      "Swift.Hashable",
+      "Swift.RawRepresentable",
+      "AppIntents.AppEnum",
+      "Swift.CaseIterable",
+      "Swift.Identifiable",
+      "AppIntents.AppValue",
+      "AppIntents.StaticDisplayRepresentable",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents.TypeDisplayRepresentable",
+      "AppIntents._IntentValue",
+      "Swift.Sendable",
+      "AppIntents.CaseDisplayRepresentable",
+      "Swift.SendableMetatype",
+      "Foundation.CustomLocalizedStringResourceConvertible",
+      "Swift.BitwiseCopyable"
+    ],
+    "allConformances": [
+      {
+        "protocolName": "Swift.Equatable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.Hashable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.RawRepresentable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.AppEnum",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.CaseIterable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.Identifiable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.AppValue",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.StaticDisplayRepresentable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.PersistentlyIdentifiable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.TypeDisplayRepresentable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents._IntentValue",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.Sendable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.CaseDisplayRepresentable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.SendableMetatype",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Foundation.CustomLocalizedStringResourceConvertible",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.BitwiseCopyable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      }
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "RawValue",
+        "substitutedTypeName": "Swift.String",
+        "substitutedMangledTypeName": "SS"
+      },
+      {
+        "typeAliasName": "AllCases",
+        "substitutedTypeName": "Swift.Array<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+        "substitutedMangledTypeName": "Say25VTOPGlanceWidgetExtension06GlanceB5Focus33_2750B52F220D6F98BDEFBEF64E285176LLOG"
+      },
+      {
+        "typeAliasName": "ID",
+        "substitutedTypeName": "VTOPGlanceWidgetExtension.GlanceWidgetFocus",
+        "substitutedMangledTypeName": "25VTOPGlanceWidgetExtension06GlanceB5Focus33_2750B52F220D6F98BDEFBEF64E285176LLO"
+      },
+      {
+        "typeAliasName": "ValueType",
+        "substitutedTypeName": "VTOPGlanceWidgetExtension.GlanceWidgetFocus",
+        "substitutedMangledTypeName": "25VTOPGlanceWidgetExtension06GlanceB5Focus33_2750B52F220D6F98BDEFBEF64E285176LLO"
+      },
+      {
+        "typeAliasName": "UnwrappedType",
+        "substitutedTypeName": "VTOPGlanceWidgetExtension.GlanceWidgetFocus",
+        "substitutedMangledTypeName": "25VTOPGlanceWidgetExtension06GlanceB5Focus33_2750B52F220D6F98BDEFBEF64E285176LLO"
+      },
+      {
+        "typeAliasName": "Specification",
+        "substitutedTypeName": "some AppIntents.ResolverSpecification",
+        "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy25VTOPGlanceWidgetExtension06GlanceH5Focus33_2750B52F220D6F98BDEFBEF64E285176LLO_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ResolverSpecification"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "typeDisplayRepresentation",
+        "type": "AppIntents.TypeDisplayRepresentation",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 44,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.TypeDisplayRepresentation",
+          "arguments": [
+            {
+              "label": "name",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "VIT Connect widget"
+            },
+            {
+              "label": "numericFormat",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            }
+          ]
+        }
+      },
+      {
+        "label": "caseDisplayRepresentations",
+        "type": "Swift.Dictionary<VTOPGlanceWidgetExtension.GlanceWidgetFocus, AppIntents.DisplayRepresentation>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 45,
+        "valueKind": "Dictionary",
+        "value": [
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "overview"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "Overview"
+            }
+          },
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "timetable"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "Timetable"
+            }
+          },
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "attendance"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "Attendance"
+            }
+          },
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "exams"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "Exams"
+            }
+          }
+        ]
+      },
+      {
+        "label": "id",
+        "type": "VTOPGlanceWidgetExtension.GlanceWidgetFocus",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 52,
+        "valueKind": "Runtime"
+      },
+      {
+        "label": "allCases",
+        "type": "Swift.Array<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "valueKind": "Array",
+        "value": [
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "overview"
+            }
+          },
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "timetable"
+            }
+          },
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "attendance"
+            }
+          },
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "exams"
+            }
+          }
+        ]
+      },
+      {
+        "label": "rawValue",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "valueKind": "Runtime"
+      }
+    ],
+    "cases": [
+      {
+        "name": "overview",
+        "rawValue": "overview"
+      },
+      {
+        "name": "timetable",
+        "rawValue": "timetable"
+      },
+      {
+        "name": "attendance",
+        "rawValue": "attendance"
+      },
+      {
+        "name": "exams",
+        "rawValue": "exams"
+      }
+    ]
+  },
+  {
+    "typeName": "VTOPGlanceWidgetExtension.GlanceWidgetConfiguration",
+    "mangledTypeName": "25VTOPGlanceWidgetExtension06GlanceB13Configuration33_2750B52F220D6F98BDEFBEF64E285176LLV",
+    "kind": "struct",
+    "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+    "line": 55,
+    "conformances": [
+      "AppIntents.WidgetConfigurationIntent",
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.SendableMetatype"
+    ],
+    "allConformances": [
+      {
+        "protocolName": "AppIntents.WidgetConfigurationIntent",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.AppIntent",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents.PersistentlyIdentifiable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "AppIntents._SupportsAppDependencies",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.Sendable",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      },
+      {
+        "protocolName": "Swift.SendableMetatype",
+        "conformanceDefiningModule": "VTOPGlanceWidgetExtension"
+      }
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "NeverResult",
+        "substitutedTypeName": "Swift.Never",
+        "substitutedMangledTypeName": "s5NeverO"
+      },
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "Swift.Never",
+        "substitutedMangledTypeName": "s5NeverO"
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy25VTOPGlanceWidgetExtension06GlanceG13Configuration33_2750B52F220D6F98BDEFBEF64E285176LLV_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "_focus",
+        "type": "AppIntents.IntentParameter<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 60,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Show"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+              "valueKind": "Enum",
+              "value": {
+                "name": "overview"
+              }
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 56,
+        "valueKind": "RawLiteral",
+        "value": "VIT Connect widget"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 57,
+        "valueKind": "RawLiteral",
+        "value": "Choose which academic highlight appears in the widget."
+      },
+      {
+        "label": "focus",
+        "type": "VTOPGlanceWidgetExtension.GlanceWidgetFocus",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 60,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "Show"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+              "valueKind": "Enum",
+              "value": {
+                "name": "overview"
+              }
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "NilLiteral"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+              "valueKind": "Runtime"
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.IntentParameter",
+            "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+            "line": 59,
+            "arguments": [
+              {
+                "label": "title",
+                "type": "Foundation.LocalizedStringResource",
+                "valueKind": "RawLiteral",
+                "value": "Show"
+              },
+              {
+                "label": "default",
+                "type": "Swift.Optional<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+                "valueKind": "Enum",
+                "value": {
+                  "name": "overview"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "$focus",
+        "type": "AppIntents.IntentParameter<VTOPGlanceWidgetExtension.GlanceWidgetFocus>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/msnabiel/Desktop/vit-connect/VTOPGlanceWidgetExtension/VTOPGlanceWidget.swift",
+        "line": 60,
+        "valueKind": "Runtime"
+      }
+    ]
+  }
+]

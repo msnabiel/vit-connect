@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// When the user **re-taps** a tab that is already selected, runs that tab’s handler (e.g. bump `.id` to pop `NavigationView` to root).
+/// When the user **re-taps** a tab that is already selected, runs that tab’s handler (e.g. bump `.id` to pop `NavigationStack` to root).
 struct TabBarReselectBridge: UIViewRepresentable {
     /// Tab index → action (Home = 0, Profile = 3, etc.).
     let handlers: [Int: () -> Void]

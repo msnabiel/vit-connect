@@ -1,0 +1,80 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/AttendanceDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Overall attendance",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 33
+        }
+      },
+      {
+        "comment": "",
+        "key": "•••%",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "••• / ••• classes",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld classes",
+        "location": {
+          "startingColumn": 80,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 168
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 338
+        }
+      },
+      {
+        "comment": "",
+        "key": "Slot: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 329
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attended",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 352
+        }
+      }
+    ]
+  },
+  "version": 1
+}

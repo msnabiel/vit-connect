@@ -1,83 +1,66 @@
 import SwiftUI
+import UIKit
 
 struct PortalCredentialsView: View {
     @EnvironmentObject var dataManager: DataManager
     @State private var revealedCredentialIds: Set<Int> = []
+    @State private var copiedValue = ""
 
     var body: some View {
         List {
             Section {
-                Text("Values from VTOP. Default passwords are sensitive—change them if you still use defaults.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 6, trailing: 16))
+                Label {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Keep your portal access private")
+                            .font(.headline)
+                        Text("Values come from VTOP. Default passwords are sensitive—change them if you still use defaults.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.title2)
+                        .foregroundStyle(.orange)
+                }
+                .padding(.vertical, 4)
             }
 
             if dataManager.portalCredentials.isEmpty && dataManager.rankEntries.isEmpty {
                 Section {
                     Text("No credentials or rank data. Sync while logged in to refresh.")
                         .font(.body)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                 }
             }
 
             if !dataManager.portalCredentials.isEmpty {
                 ForEach(dataManager.portalCredentials) { cred in
-                    Section(cred.account) {
-                        LabeledContent("User name") {
-                            Text(cred.userName)
-                                .font(.body)
-                                .multilineTextAlignment(.trailing)
-                                .textSelection(.enabled)
-                        }
-
-                        LabeledContent("Default password") {
-                            HStack(spacing: 10) {
+                    Section {
+                        PortalCredentialCard(
+                            credential: cred,
+                            isRevealed: revealedCredentialIds.contains(cred.id),
+                            copiedValue: copiedValue,
+                            onToggleReveal: {
                                 if revealedCredentialIds.contains(cred.id) {
-                                    Text(cred.defaultPassword)
-                                        .font(.body)
-                                        .textSelection(.enabled)
+                                    revealedCredentialIds.remove(cred.id)
                                 } else {
-                                    Text(String(repeating: "•", count: min(12, max(4, cred.defaultPassword.count))))
-                                        .font(.body)
-                                        .foregroundColor(.secondary)
+                                    revealedCredentialIds.insert(cred.id)
                                 }
-                                Button(revealedCredentialIds.contains(cred.id) ? "Hide" : "Show") {
-                                    if revealedCredentialIds.contains(cred.id) {
-                                        revealedCredentialIds.remove(cred.id)
-                                    } else {
-                                        revealedCredentialIds.insert(cred.id)
-                                    }
-                                }
-                                .font(.subheadline.weight(.medium))
+                            },
+                            onCopy: { value in
+                                UIPasteboard.general.string = value
+                                copiedValue = value
                             }
-                        }
-
-                        if let url = cred.urlString, !url.isEmpty {
-                            LabeledContent("URL") {
-                                if url.lowercased().hasPrefix("http"), let u = URL(string: url) {
-                                    Link("Open link", destination: u)
-                                        .font(.body)
-                                } else {
-                                    Text(url)
-                                        .font(.body)
-                                        .textSelection(.enabled)
-                                }
-                            }
-                        }
-                        if let v = cred.venueDate, !v.isEmpty {
-                            LabeledContent("Venue & date", value: v)
-                        }
-                        if let s = cred.seatLocation, !s.isEmpty {
-                            LabeledContent("Seat", value: s)
-                        }
+                        )
+                    } header: {
+                        Label(cred.account, systemImage: "person.crop.circle.badge.key")
                     }
                 }
             }
 
             if !dataManager.rankEntries.isEmpty {
-                Section(header: Text("Rank").font(.headline)) {
+                Section {
                     ForEach(dataManager.rankEntries) { entry in
                         HStack {
                             Text(entry.name)
@@ -87,6 +70,9 @@ struct PortalCredentialsView: View {
                                 .font(.body.weight(.semibold))
                         }
                     }
+                } header: {
+                    Text("Rank")
+                        .font(.headline)
                 }
             }
         }
@@ -96,9 +82,105 @@ struct PortalCredentialsView: View {
     }
 }
 
+private struct PortalCredentialCard: View {
+    let credential: VTOPPortalCredential
+    let isRevealed: Bool
+    let copiedValue: String
+    let onToggleReveal: () -> Void
+    let onCopy: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            CredentialValueRow(
+                label: "Username",
+                value: credential.userName,
+                icon: "person.fill",
+                isSensitive: false,
+                copiedValue: copiedValue,
+                onCopy: onCopy
+            )
+            CredentialValueRow(
+                label: "Default password",
+                value: credential.defaultPassword,
+                icon: "key.fill",
+                isSensitive: true,
+                isRevealed: isRevealed,
+                copiedValue: copiedValue,
+                onToggleReveal: onToggleReveal,
+                onCopy: onCopy
+            )
+
+            if let url = credential.urlString, !url.isEmpty {
+                if url.lowercased().hasPrefix("http"), let destination = URL(string: url) {
+                    Link(destination: destination) {
+                        Label("Open portal", systemImage: "arrow.up.right.square")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                } else {
+                    CredentialValueRow(label: "Portal URL", value: url, icon: "link", isSensitive: false, copiedValue: copiedValue, onCopy: onCopy)
+                }
+            }
+
+            if let venue = credential.venueDate, !venue.isEmpty {
+                Label(venue, systemImage: "mappin.and.ellipse")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            if let seat = credential.seatLocation, !seat.isEmpty {
+                Label("Seat (seat)", systemImage: "chair.lounge.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct CredentialValueRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    var isSensitive = false
+    var isRevealed = false
+    let copiedValue: String
+    var onToggleReveal: (() -> Void)?
+    let onCopy: (String) -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(isSensitive && !isRevealed ? String(repeating: "•", count: min(12, max(4, value.count))) : value)
+                    .font(.body.weight(.medium))
+                    .textSelection(.enabled)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 4)
+            if isSensitive, let onToggleReveal {
+                Button(isRevealed ? "Hide" : "Show", action: onToggleReveal)
+                    .font(.caption.weight(.semibold))
+            }
+            Button {
+                onCopy(value)
+            } label: {
+                Image(systemName: copiedValue == value ? "checkmark" : "doc.on.doc")
+                    .foregroundStyle(copiedValue == value ? .green : .secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Copy (label)")
+        }
+    }
+}
+
 #Preview {
     NavigationStack {
         PortalCredentialsView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

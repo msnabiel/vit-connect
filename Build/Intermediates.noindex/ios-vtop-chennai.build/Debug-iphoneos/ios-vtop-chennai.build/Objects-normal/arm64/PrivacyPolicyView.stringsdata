@@ -1,0 +1,16 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Legal/PrivacyPolicyView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Privacy policy",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 12
+        }
+      }
+    ]
+  },
+  "version": 1
+}

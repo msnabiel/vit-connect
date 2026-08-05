@@ -11,7 +11,7 @@ struct NotesAndTodosHubView: View {
     @State private var tab: NotesHubTab = .notes
 
     var body: some View {
-        // No nested NavigationStack — Profile already uses NavigationView; nesting caused extra
+        // No nested NavigationStack — Profile already uses NavigationStack; nesting caused extra
         // safe-area inset and made the page look shifted down vs. Courses and other pushes.
         VStack(spacing: 0) {
             Picker("Section", selection: $tab) {

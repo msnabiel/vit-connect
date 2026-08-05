@@ -1,0 +1,16 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/AcademicSkeletonViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Loading academic dashboard",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 16
+        }
+      }
+    ]
+  },
+  "version": 1
+}

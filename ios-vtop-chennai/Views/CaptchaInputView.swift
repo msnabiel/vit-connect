@@ -14,19 +14,13 @@ struct CaptchaInputView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: "eye.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(Color.accentColor)
+                        .vtopFont(size: 32)
+.foregroundStyle(Color.accentColor)
                         .accessibilityHidden(true)
 
-                    (Text("Verify captcha")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.primary)
-                     + Text(" · ")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                     + Text("Enter the characters shown")
-                        .font(.system(size: 16, weight: .regular))
-                        .foregroundColor(.secondary))
+                    Text("Verify captcha · Enter the characters shown")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.82)
                     .fixedSize(horizontal: false, vertical: true)
@@ -64,7 +58,7 @@ struct CaptchaInputView: View {
     var body: some View {
         Group {
             if embedNavigationWrapper {
-                NavigationView {
+                NavigationStack {
                     scrollContent
                         .navigationBarTitleDisplayMode(.inline)
                 }
@@ -108,7 +102,7 @@ struct CaptchaInputView: View {
                 ProgressView()
                 Text("Loading…")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             .frame(height: 80)
             .frame(maxWidth: .infinity)
@@ -117,9 +111,8 @@ struct CaptchaInputView: View {
 
     private var captchaField: some View {
         TextField("Captcha", text: $captchaInput)
-            .font(.system(size: 17, weight: .medium))
-            .autocapitalization(.none)
-            .disableAutocorrection(true)
+            .vtopFont(size: 17, weight: .medium)            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
             .textContentType(.oneTimeCode)
             .focused($isFocused)
             .padding(.horizontal, 12)

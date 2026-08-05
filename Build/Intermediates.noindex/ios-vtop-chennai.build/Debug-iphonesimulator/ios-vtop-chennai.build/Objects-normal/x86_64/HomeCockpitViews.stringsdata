@@ -1,0 +1,144 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Components/HomeCockpitViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Opens your timetable",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
+        "key": "No upcoming class found",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 75
+        }
+      },
+      {
+        "comment": "",
+        "key": "Opens your exam schedule",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 120
+        }
+      },
+      {
+        "comment": "",
+        "key": "No upcoming exams found",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 113
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sync attendance to see course-level risk.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 156
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance chart",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 186
+        }
+      },
+      {
+        "comment": "",
+        "key": "Attendance",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 162
+        }
+      },
+      {
+        "comment": "",
+        "key": "Course",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 168
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sync marks to see component performance.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "Marks overview chart",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 251
+        }
+      },
+      {
+        "comment": "",
+        "key": "Average component scores by course",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 252
+        }
+      },
+      {
+        "comment": "",
+        "key": "Course",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 230
+        }
+      },
+      {
+        "comment": "",
+        "key": "Score",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 236
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 246
+        }
+      }
+    ]
+  },
+  "version": 1
+}

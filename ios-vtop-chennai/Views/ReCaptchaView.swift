@@ -7,20 +7,19 @@ struct ReCaptchaView: View {
     @State private var isLoading = true
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Header Info
                 VStack(spacing: 12) {
                     Image(systemName: "checkmark.shield.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.accentColor)
+                        .vtopFont(size: 40)
+.foregroundStyle(Color.accentColor)
 
                     Text("Security Verification")
-                        .font(.system(size: 20, weight: .semibold))
-
+                        .vtopFont(size: 20, weight: .semibold)
                     Text("Complete the reCAPTCHA and it will submit automatically")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 14)
+.foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -41,7 +40,7 @@ struct ReCaptchaView: View {
                         ProgressView("Loading reCAPTCHA...")
                             .padding()
                             .background(Color(uiColor: .systemBackground).opacity(0.9))
-                            .cornerRadius(10)
+                            .clipShape(.rect(cornerRadius: 10))
                     }
                 }
             }
@@ -51,7 +50,7 @@ struct ReCaptchaView: View {
                     Button("Cancel") {
                         isPresented = false
                     }
-                    .foregroundColor(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                 }
             }
             .onAppear {

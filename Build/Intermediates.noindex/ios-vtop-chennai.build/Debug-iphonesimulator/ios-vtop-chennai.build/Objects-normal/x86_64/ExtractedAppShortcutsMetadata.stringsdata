@@ -1,0 +1,77 @@
+{
+  "source" : "\/Users\/msnabiel\/Desktop\/vit-connect\/ios-vtop-chennai\/Services\/VTOPAppIntents.swift",
+  "tables" : {
+    "AppShortcuts" : [
+      {
+        "appShortcutMetadata" : [
+          {
+            "actionIdentifier" : "VTOPNextClassIntent",
+            "index" : 0,
+            "parameterDisplayRepresentations" : {
+
+            },
+            "parameterTypes" : {
+
+            },
+            "title" : "What's My Next Class?"
+          }
+        ],
+        "key" : "What's my next class in ${applicationName}",
+        "location" : {
+          "startingColumn" : 0,
+          "startingLine" : 62
+        },
+        "values" : [
+          "What's my next class in ${applicationName}"
+        ]
+      },
+      {
+        "appShortcutMetadata" : [
+          {
+            "actionIdentifier" : "VTOPAttendanceIntent",
+            "index" : 1,
+            "parameterDisplayRepresentations" : {
+
+            },
+            "parameterTypes" : {
+
+            },
+            "title" : "Show My Attendance"
+          }
+        ],
+        "key" : "Show my attendance in ${applicationName}",
+        "location" : {
+          "startingColumn" : 0,
+          "startingLine" : 62
+        },
+        "values" : [
+          "Show my attendance in ${applicationName}"
+        ]
+      },
+      {
+        "appShortcutMetadata" : [
+          {
+            "actionIdentifier" : "VTOPRefreshIntent",
+            "index" : 2,
+            "parameterDisplayRepresentations" : {
+
+            },
+            "parameterTypes" : {
+
+            },
+            "title" : "Refresh VTOP Data"
+          }
+        ],
+        "key" : "Refresh ${applicationName}",
+        "location" : {
+          "startingColumn" : 0,
+          "startingLine" : 62
+        },
+        "values" : [
+          "Refresh ${applicationName}"
+        ]
+      }
+    ]
+  },
+  "version" : 2
+}

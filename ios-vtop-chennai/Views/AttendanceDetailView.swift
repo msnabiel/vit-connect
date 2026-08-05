@@ -7,6 +7,8 @@ struct AttendanceDetailView: View {
     @State private var attendanceSemesterId: String = ""
     @State private var didLoadPicklist = false
     @State private var attendancePickerPrimed = false
+    @State private var attendanceFilter: VTOPAttendanceFilter = .all
+    @AppStorage(VTOPPersonalizationPreferences.attendanceThresholdKey) private var attendanceTarget = 75
 
     private var semesterChoices: [Semester] {
         let fromPage = dataManager.attendanceSemesterOptions
@@ -23,6 +25,18 @@ struct AttendanceDetailView: View {
         let t = rows.reduce(0) { $0 + $1.total }
         let pct = t > 0 ? Int(ceil(Double(a) * 100.0 / Double(t))) : 0
         return (a, t, pct)
+    }
+
+    private var filteredAttendance: [Attendance] {
+        dataManager.attendance
+            .filter { row in
+                switch attendanceFilter {
+                case .all: true
+                case .atRisk: row.percentage < attendanceTarget && row.percentage >= max(attendanceTarget - 10, 0)
+                case .critical: row.percentage < max(attendanceTarget - 10, 0)
+                }
+            }
+            .sorted { $0.percentage < $1.percentage }
     }
 
     @ViewBuilder
@@ -100,10 +114,6 @@ struct AttendanceDetailView: View {
         return "Critical — attendance needs urgent improvement."
     }
 
-    private static let semesterPickerHorizontalPadding: CGFloat = 16
-    private static let semesterPickerTopPadding: CGFloat = 10
-    private static let semesterPickerBottomPadding: CGFloat = 2
-
     var body: some View {
         VStack(spacing: 0) {
             OfflineDataBanner(showSyncMetadata: false)
@@ -112,43 +122,18 @@ struct AttendanceDetailView: View {
                     .ignoresSafeArea(edges: [.horizontal, .bottom])
                 VStack(spacing: 0) {
                     if !semesterChoices.isEmpty {
-                        Menu {
-                            ForEach(semesterChoices) { sem in
-                                Button(sem.name) {
-                                    attendanceSemesterId = sem.id
-                                    if attendancePickerPrimed {
-                                        dataManager.refreshAttendance(semesterSubId: sem.id, continueAfterMarks: false)
-                                    }
-                                }
+                        SemesterMenuView(
+                            choices: semesterChoices,
+                            selectedName: attendanceSemesterDisplayName,
+                            tint: Color(uiColor: .systemBlue),
+                            bottomPadding: 2,
+                            onSelect: { semester in
+                            attendanceSemesterId = semester.id
+                            if attendancePickerPrimed {
+                                dataManager.refreshAttendance(semesterSubId: semester.id, continueAfterMarks: false)
                             }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Text("Semester — \(attendanceSemesterDisplayName)")
-                                    .font(.body.weight(.medium))
-                                    .foregroundColor(.primary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
-                                Spacer(minLength: 8)
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(Color(uiColor: .systemBlue))
                             }
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 12)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(Color(uiColor: .separator).opacity(0.35), lineWidth: 0.5)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, Self.semesterPickerHorizontalPadding)
-                        .padding(.top, Self.semesterPickerTopPadding)
-                        .padding(.bottom, Self.semesterPickerBottomPadding)
+                        )
                     }
                     List {
                         if dataManager.attendance.isEmpty {
@@ -166,20 +151,42 @@ struct AttendanceDetailView: View {
                             .listRowBackground(Color.clear)
                         } else {
                             Section {
-                                overallAttendanceStrip
+                                AttendanceOverviewCard(
+                                    attended: overallAttendanceRollup.attended,
+                                    total: overallAttendanceRollup.total,
+                                    target: attendanceTarget,
+                                    isMasked: maskOverallAttendance
+                                )
                             }
                             .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 10, trailing: 0))
                             .listRowBackground(Color.clear)
 
                             Section {
-                                ForEach(dataManager.attendance) { attendance in
+                                AttendanceFilterPicker(selection: $attendanceFilter)
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 8, trailing: 0))
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                            }
+
+                            Section {
+                                if filteredAttendance.isEmpty {
+                                    Text("No courses match this filter.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                        .padding(.vertical, 16)
+                                        .listRowBackground(Color.clear)
+                                } else {
+                                    ForEach(filteredAttendance) { attendance in
                                     AttendanceCard(
                                         course: attendance.matchingCatalogCourse(in: dataManager.courses),
-                                        attendance: attendance
+                                        attendance: attendance,
+                                        target: attendanceTarget
                                     )
                                     .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
+                                    }
                                 }
                             }
                         }
@@ -198,15 +205,12 @@ struct AttendanceDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .vtopOpaqueNavigationBar()
         .refreshable {
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
-                    dataManager.refreshAttendance(semesterSubId: attendanceSemesterId, continueAfterMarks: false) {
-                        cont.resume()
-                    }
-                } else {
-                    dataManager.loadAttendanceSemesterPicklist {
-                        cont.resume()
-                    }
+            if attendancePickerPrimed, !attendanceSemesterId.isEmpty {
+                await dataManager.refreshAttendance(for: attendanceSemesterId)
+            } else {
+                await dataManager.loadAttendanceSemesterPicklist()
+                if !dataManager.attendanceSemesterOptions.isEmpty {
+                    attendancePickerPrimed = true
                 }
             }
         }
@@ -241,6 +245,7 @@ struct AttendanceDetailView: View {
 struct AttendanceCard: View {
     let course: Course?
     let attendance: Attendance
+    var target: Int = 75
 
     /// Prefer titles from the attendance page; catalog `course` is only a fallback and must not override when `courseId` was a bogus match.
     private var displayTitle: String {
@@ -256,11 +261,9 @@ struct AttendanceCard: View {
     }
 
     var attendanceColor: Color {
-        switch attendance.attendanceColor {
-        case .good: return .green
-        case .warning: return .orange
-        case .danger: return .red
-        }
+        if attendance.percentage >= target { return .green }
+        if attendance.percentage >= max(target - 10, 0) { return .orange }
+        return .red
     }
 
     /// Extra missed classes (attended −1 each, total unchanged) while keeping percentage ≥ 75%.
@@ -350,17 +353,17 @@ struct AttendanceCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(displayTitle)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .vtopFont(size: 17, weight: .semibold)
+.foregroundStyle(.primary)
 
                     Text(displayCode)
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 14)
+.foregroundStyle(.secondary)
 
                     if let slot = attendance.slot, !slot.isEmpty {
                         Text("Slot: \(slot)")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -368,8 +371,8 @@ struct AttendanceCard: View {
 
                 // Percentage Badge
                 Text("\(attendance.percentage)%")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(attendanceColor)
+                    .vtopFont(size: 20, weight: .bold)
+.foregroundStyle(attendanceColor)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
@@ -382,14 +385,14 @@ struct AttendanceCard: View {
             VStack(spacing: 8) {
                 HStack {
                     Text("Attended")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.secondary)
 
                     Spacer()
 
                     Text(attendance.attendanceRatio)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .vtopFont(size: 13, weight: .semibold)
+.foregroundStyle(.primary)
                 }
 
                 GeometryReader { geometry in
@@ -411,20 +414,20 @@ struct AttendanceCard: View {
             if let meta = attendanceMetaLine {
                 Text(meta)
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if !cushionLine.isEmpty {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "calendar.badge.minus")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(attendanceColor)
+                        .vtopFont(size: 14, weight: .semibold)
+.foregroundStyle(attendanceColor)
                         .frame(width: 20, alignment: .center)
 
                     Text(cushionLine)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.primary)
+                        .vtopFont(size: 13, weight: .medium)
+.foregroundStyle(.primary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.vertical, 8)
@@ -464,5 +467,6 @@ struct AttendanceCard: View {
         AttendanceDetailView()
             .environmentObject(AuthenticationViewModel())
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
     }
 }

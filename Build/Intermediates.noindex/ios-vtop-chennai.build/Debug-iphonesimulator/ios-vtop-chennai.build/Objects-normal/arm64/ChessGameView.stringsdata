@@ -1,0 +1,104 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/ChessGameView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Chess",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 86
+        }
+      },
+      {
+        "comment": "",
+        "key": "Start a new game?",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 104
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tap a piece, then tap a highlighted square. Castling, en passant, check, promotion, checkmate, and stalemate are supported.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld moves",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "Undo",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "New game",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Choose board theme",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 101
+        }
+      },
+      {
+        "comment": "",
+        "key": "Board theme",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 99
+        }
+      },
+      {
+        "comment": "",
+        "key": "New game",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 112
+        }
+      },
+      {
+        "comment": "",
+        "key": "Double tap to select or move",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 213
+        }
+      },
+      {
+        "comment": "",
+        "key": "Promote pawn",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 290
+        }
+      }
+    ]
+  },
+  "version": 1
+}

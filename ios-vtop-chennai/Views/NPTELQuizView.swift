@@ -137,25 +137,25 @@ struct NPTELQuizView: View {
                                     .fill(accent.opacity(0.15))
                                     .frame(width: 52, height: 52)
                                 Image(systemName: icon)
-                                    .font(.system(size: 22))
-                                    .foregroundColor(accent)
+                                    .vtopFont(size: 22)
+.foregroundStyle(accent)
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(course.name)
                                     .font(.headline)
-                                    .foregroundColor(.primary)
+                                    .foregroundStyle(.primary)
                                     .multilineTextAlignment(.leading)
                                 HStack(spacing: 8) {
                                     Text("\(totalWeeks) weeks")
                                         .font(.caption)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                     if completed > 0 {
                                         Text("·")
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                             .font(.caption)
                                         Text("\(completed)/\(totalWeeks) done")
                                             .font(.caption.weight(.medium))
-                                            .foregroundColor(accent)
+                                            .foregroundStyle(accent)
                                     }
                                 }
                                 if completed > 0 {
@@ -167,7 +167,7 @@ struct NPTELQuizView: View {
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .padding(16)
                         .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -186,10 +186,10 @@ struct NPTELQuizView: View {
     private func statPill(icon: String, color: Color, title: String, value: String) -> some View {
         VStack(spacing: 3) {
             HStack(spacing: 4) {
-                Image(systemName: icon).font(.caption).foregroundColor(color)
+                Image(systemName: icon).font(.caption).foregroundStyle(color)
                 Text(value).font(.caption.weight(.bold))
             }
-            Text(title).font(.caption2).foregroundColor(.secondary)
+            Text(title).font(.caption2).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
@@ -222,7 +222,7 @@ private struct NPTELWeekListView: View {
                     .font(.caption)
             }
 
-            Section(header: Text("Weeks")) {
+            Section("Weeks") {
                 let sortedWeeks = course.questionsByWeek.keys.sorted()
                 let allQuestions = sortedWeeks.flatMap { course.questionsByWeek[$0] ?? [] }
 
@@ -287,12 +287,12 @@ private struct NPTELWeekRow: View {
                     .frame(width: 40, height: 40)
                 if isAllWeeks {
                     Image(systemName: "books.vertical.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(accent)
+                        .vtopFont(size: 15, weight: .bold)
+.foregroundStyle(accent)
                 } else {
                     Text("\(week)")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(accent)
+                        .vtopFont(size: 15, weight: .bold)
+.foregroundStyle(accent)
                 }
             }
             HStack(spacing: 0) {
@@ -300,7 +300,7 @@ private struct NPTELWeekRow: View {
                     .font(.headline)
                 Text("  ·  \(questionCount)Q")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             if let rec = record {
@@ -316,7 +316,7 @@ private struct NPTELWeekRow: View {
         let color: Color = pct >= 0.8 ? .green : pct >= 0.6 ? .orange : .red
         Text("\(score)/\(total)")
             .font(.caption.weight(.bold))
-            .foregroundColor(color)
+            .foregroundStyle(color)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(color.opacity(0.12))
@@ -369,7 +369,7 @@ fileprivate struct NPTELWeekQuizView: View {
                 )
             } else if shuffledQuestions.isEmpty {
                 Text("No questions available.")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             } else {
                 quizBody
             }
@@ -381,7 +381,7 @@ fileprivate struct NPTELWeekQuizView: View {
                 if !finished {
                     Text(formatTime(elapsedSeconds))
                         .font(.caption.monospacedDigit())
-                        .foregroundColor(accent)
+                        .foregroundStyle(accent)
                 }
             }
         }
@@ -399,11 +399,11 @@ fileprivate struct NPTELWeekQuizView: View {
                     HStack {
                         Text("Q\(currentIndex + 1) / \(shuffledQuestions.count)")
                             .font(.caption.monospacedDigit())
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Text("Score: \(score)")
                             .font(.caption.weight(.semibold))
-                            .foregroundColor(accent)
+                            .foregroundStyle(accent)
                     }
                     ProgressView(value: Double(currentIndex + 1), total: Double(shuffledQuestions.count))
                         .tint(accent)
@@ -437,7 +437,7 @@ fileprivate struct NPTELWeekQuizView: View {
                             .font(.headline)
                             .padding()
                             .background(Color(uiColor: .secondarySystemGroupedBackground))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     Button(action: advance) {
@@ -446,7 +446,7 @@ fileprivate struct NPTELWeekQuizView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(accent)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
@@ -528,12 +528,12 @@ private struct OptionButton: View {
             HStack {
                 Text(text)
                     .font(.subheadline)
-                    .foregroundColor(foreground)
+                    .foregroundStyle(foreground)
                     .multilineTextAlignment(.leading)
                 Spacer()
                 if state != .neutral {
                     Image(systemName: state == .correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(state == .correct ? .green : .red)
+                        .foregroundStyle(state == .correct ? .green : .red)
                 }
             }
             .padding(12)
@@ -624,17 +624,17 @@ private struct NPTELResultView: View {
                             .animation(.easeOut(duration: 0.8), value: percentage)
                         VStack(spacing: 1) {
                             Text("\(score)/\(total)")
-                                .font(.system(size: 18, weight: .bold))
-                            Text("\(Int(percentage * 100))%")
+                                .vtopFont(size: 18, weight: .bold)
+Text("\(Int(percentage * 100))%")
                                 .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(gradeLabel)
                             .font(.title3.weight(.semibold))
-                            .foregroundColor(gradeColor)
+                            .foregroundStyle(gradeColor)
                         miniStat(icon: "checkmark.circle.fill", color: .green, label: "\(score) correct")
                         miniStat(icon: "xmark.circle.fill", color: .red, label: "\(wrong) wrong")
                         miniStat(icon: "minus.circle.fill", color: .secondary, label: "\(skipped) skipped")
@@ -695,7 +695,7 @@ private struct NPTELResultView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(accent)
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
@@ -710,14 +710,15 @@ private struct NPTELResultView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(Color(uiColor: .secondarySystemGroupedBackground))
-                            .foregroundColor(accent)
+                            .foregroundStyle(accent)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
 
                     Button { showShare = true } label: {
                         VStack(spacing: 3) {
-                            Image(systemName: "square.and.arrow.up")
+                        Image(systemName: "square.and.arrow.up")
+                            .accessibilityLabel("Share quiz results")
                                 .font(.body.weight(.semibold))
                             Text("Share")
                                 .font(.caption.weight(.semibold))
@@ -725,7 +726,7 @@ private struct NPTELResultView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(Color(uiColor: .secondarySystemGroupedBackground))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
@@ -746,19 +747,19 @@ private struct NPTELResultView: View {
     private func miniStat(icon: String, color: Color, label: String) -> some View {
         Label(label, systemImage: icon)
             .font(.caption.weight(.medium))
-            .foregroundColor(color)
+            .foregroundStyle(color)
     }
 
     private func compactStat(icon: String, color: Color, title: String, value: String) -> some View {
         VStack(spacing: 2) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundColor(color)
+                .foregroundStyle(color)
             Text(value)
                 .font(.caption.weight(.semibold))
             Text(title)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -770,8 +771,7 @@ private struct NPTELResultView: View {
                 .font(.title3.weight(.semibold))
                 .padding(.horizontal)
 
-            ForEach(shuffledQuestions.indices, id: \.self) { i in
-                let q = shuffledQuestions[i]
+            ForEach(Array(shuffledQuestions.enumerated()), id: \.element.id) { i, q in
                 let picked = selectedOptions.indices.contains(i) ? selectedOptions[i] : nil
                 let isSkipped = picked == nil
                 let isCorrect = picked == q.answer
@@ -779,7 +779,7 @@ private struct NPTELResultView: View {
 
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: isSkipped ? "minus.circle.fill" : isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundColor(cardColor)
+                        .foregroundStyle(cardColor)
                         .font(.body)
                         .padding(.top, 1)
 
@@ -793,19 +793,19 @@ private struct NPTELResultView: View {
                             HStack(spacing: 4) {
                                 Text("Yours:")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Text(picked)
                                     .font(.caption.weight(.medium))
-                                    .foregroundColor(.red)
+                                    .foregroundStyle(.red)
                             }
                         }
                         HStack(spacing: 4) {
                             Text(isSkipped ? "Answer:" : "Correct:")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text(q.answer)
                                 .font(.caption.weight(.medium))
-                                .foregroundColor(.green)
+                                .foregroundStyle(.green)
                         }
                     }
                 }

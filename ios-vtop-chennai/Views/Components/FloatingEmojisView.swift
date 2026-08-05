@@ -30,8 +30,7 @@ struct FloatingEmoji: View {
 
     var body: some View {
         Text(emoji)
-            .font(.system(size: CGFloat.random(in: 20...50)))
-            .opacity(opacity)
+            .vtopFont(size: CGFloat.random(in: 20...50))            .opacity(opacity)
             .offset(x: xOffset, y: yOffset)
             .rotationEffect(.degrees(rotation))
             .onAppear {

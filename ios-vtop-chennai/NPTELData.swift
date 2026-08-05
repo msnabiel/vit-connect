@@ -1,10 +1,18 @@
 // Auto-generated NPTEL quiz data
 import Foundation
 
-struct NPTELQuestion {
+struct NPTELQuestion: Identifiable {
+    let id: UUID
     let question: String
     let options: [String]
     let answer: String
+
+    init(id: UUID = UUID(), question: String, options: [String], answer: String) {
+        self.id = id
+        self.question = question
+        self.options = options
+        self.answer = answer
+    }
 }
 
 struct NPTELCourse {

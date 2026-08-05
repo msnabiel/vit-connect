@@ -2,12 +2,16 @@ import SwiftUI
 
 struct CacheManagementView: View {
     @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var syncState: DataManagerSyncState
     @EnvironmentObject var friendsStore: FriendsTimetableStore
     @EnvironmentObject var notesStore: NotesAndTodosStore
 
     @State private var confirmClearVtopCache = false
     @State private var confirmClearFriends = false
     @State private var confirmClearNotesTodos = false
+    @AppStorage(VTOPNotificationPreferences.classRemindersKey) private var classRemindersEnabled = true
+    @AppStorage(VTOPNotificationPreferences.examRemindersKey) private var examRemindersEnabled = false
+    @AppStorage(VTOPNotificationPreferences.attendanceWarningsKey) private var attendanceWarningsEnabled = false
 
     var body: some View {
         Form {
@@ -17,7 +21,7 @@ struct CacheManagementView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section(header: Text("Sign out behavior")) {
+            Section("Sign out behavior") {
                 Toggle(isOn: clearOnSignOutBinding) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Clear VTOP cache on sign out")
@@ -28,18 +32,18 @@ struct CacheManagementView: View {
                 }
             }
 
-            Section(header: Text("VTOP — save on device")) {
+            Section("VTOP — save on device") {
                 LabeledContent("Cache linked to register no.") {
                     Text(AppCacheSettings.activeRegisterNumber() ?? "Not linked yet")
                         .foregroundStyle(.secondary)
                 }
-                if let cached = dataManager.cachePersistedAt {
+                if let cached = syncState.cachePersistedAt {
                     LabeledContent("Last saved") {
                         Text(cached.formatted(date: .abbreviated, time: .shortened))
                             .foregroundStyle(.secondary)
                     }
                 }
-                if let last = dataManager.lastSuccessfulSyncAt {
+                if let last = syncState.lastSuccessfulSyncAt {
                     LabeledContent("Last sync") {
                         Text(last.formatted(date: .abbreviated, time: .shortened))
                             .foregroundStyle(.secondary)
@@ -65,7 +69,16 @@ struct CacheManagementView: View {
                 }
             }
 
-            Section(header: Text("Friends")) {
+            Section("Notifications") {
+                Toggle("Class reminders", isOn: $classRemindersEnabled)
+                Toggle("Exam reminders", isOn: $examRemindersEnabled)
+                Toggle("Attendance warnings", isOn: $attendanceWarningsEnabled)
+                Text("Reminders use the latest successful sync and are scheduled locally on this device.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Friends") {
                 Toggle(isOn: friendsBinding) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(AppCacheSettings.UserStore.friendsImports.title)
@@ -85,7 +98,7 @@ struct CacheManagementView: View {
                 }
             }
 
-            Section(header: Text("Notes & To‑Do")) {
+            Section("Notes & To‑Do") {
                 Toggle(isOn: notesBinding) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(AppCacheSettings.UserStore.notesAndTodos.title)
@@ -107,6 +120,15 @@ struct CacheManagementView: View {
         }
         .navigationTitle("Cache management")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: classRemindersEnabled) { _, _ in
+            deferNotificationRefresh()
+        }
+        .onChange(of: examRemindersEnabled) { _, _ in
+            deferNotificationRefresh()
+        }
+        .onChange(of: attendanceWarningsEnabled) { _, _ in
+            deferNotificationRefresh()
+        }
         .alert("Clear all VTOP cache?", isPresented: $confirmClearVtopCache) {
             Button("Cancel", role: .cancel) {}
             Button("Clear", role: .destructive) {
@@ -186,12 +208,20 @@ struct CacheManagementView: View {
             set: { AppCacheSettings.setClearCacheOnSignOutEnabled($0) }
         )
     }
+
+    private func deferNotificationRefresh() {
+        Task { @MainActor in
+            await Task.yield()
+            dataManager.refreshNotificationSchedule()
+        }
+    }
 }
 
 #Preview {
     NavigationStack {
         CacheManagementView()
             .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
             .environmentObject(FriendsTimetableStore())
             .environmentObject(NotesAndTodosStore())
     }

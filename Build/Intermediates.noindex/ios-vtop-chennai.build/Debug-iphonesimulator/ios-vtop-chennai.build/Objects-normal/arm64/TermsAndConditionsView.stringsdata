@@ -1,0 +1,16 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/Legal/TermsAndConditionsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Terms and conditions",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 12
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,19 @@
+{
+  "" : {
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios-vtop-chennaiTests-primary.dia",
+    "emit-module-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios-vtop-chennaiTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios-vtop-chennaiTests-primary-emit-module.dia",
+    "pch" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios-vtop-chennaiTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios-vtop-chennaiTests-primary.swiftdeps"
+  },
+  "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennaiTests/ios_vtop_chennaiTests.swift" : {
+    "const-values" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.swiftconstvalues",
+    "dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.d",
+    "diagnostics" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.dia",
+    "index-unit-output-path" : "/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.o",
+    "llvm-bc" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.bc",
+    "object" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.o",
+    "swift-dependencies" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests.swiftdeps",
+    "swiftmodule" : "/Users/msnabiel/Desktop/vit-connect/Build/Intermediates.noindex/ios-vtop-chennai.build/Debug-iphonesimulator/ios-vtop-chennaiTests.build/Objects-normal/arm64/ios_vtop_chennaiTests~partial.swiftmodule"
+  }
+}

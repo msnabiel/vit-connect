@@ -1,0 +1,64 @@
+{
+  "source": "/Users/msnabiel/Desktop/vit-connect/ios-vtop-chennai/Views/TimetableView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Timetable",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 33
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unable to share",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "Share timetable",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 43
+        }
+      },
+      {
+        "comment": "",
+        "key": "Share timetable",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "No class on this day",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Share tip: this exports timetable JSON for your friends to import from Profile > Friends.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 167
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -36,14 +36,14 @@ struct SpotlightView: View {
                                 }
                             }) {
                                 Text(category)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .padding(.vertical, 8)
+                                    .vtopFont(size: 14, weight: .semibold)
+.padding(.vertical, 8)
                                     .padding(.horizontal, 16)
                                     .background(
                                         Capsule()
                                             .fill(selectedCategory == category ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
                                     )
-                                    .foregroundColor(selectedCategory == category ? .white : .primary)
+                                    .foregroundStyle(selectedCategory == category ? .white : .primary)
                             }
                         }
                     }
@@ -71,9 +71,7 @@ struct SpotlightView: View {
                     .padding(.vertical, 20)
                 }
                 .refreshable {
-                    await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                        dataManager.refreshSpotlightsOnly { cont.resume() }
-                    }
+                    await dataManager.refreshSpotlightsOnly()
                 }
             }
         }
@@ -92,12 +90,11 @@ struct SpotlightCard: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: categoryIcon(spotlight.category))
-                        .font(.system(size: 12))
-
+                        .vtopFont(size: 12)
                     Text(spotlight.category)
-                        .font(.system(size: 12, weight: .bold))
-                }
-                .foregroundColor(.white)
+                        .vtopFont(size: 12, weight: .bold)
+}
+                .foregroundStyle(.white)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
@@ -109,15 +106,15 @@ struct SpotlightCard: View {
 
                 if spotlight.link != nil {
                     Image(systemName: "link.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.accentColor)
+                        .vtopFont(size: 20)
+.foregroundStyle(Color.accentColor)
                 }
             }
 
             // Announcement text
             Text(spotlight.announcement)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.primary)
+                .vtopFont(size: 15, weight: .medium)
+.foregroundStyle(.primary)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -130,12 +127,11 @@ struct SpotlightCard: View {
                 }) {
                     HStack {
                         Text("View Details")
-                            .font(.system(size: 14, weight: .semibold))
-
+                            .vtopFont(size: 14, weight: .semibold)
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 12, weight: .bold))
-                    }
-                    .foregroundColor(.accentColor)
+                            .vtopFont(size: 12, weight: .bold)
+}
+                    .foregroundStyle(Color.accentColor)
                     .padding(.top, 4)
                 }
             }
@@ -195,4 +191,5 @@ struct SpotlightCard: View {
 #Preview {
     SpotlightView()
         .environmentObject(DataManager())
+            .environmentObject(DataManagerSyncState())
 }
