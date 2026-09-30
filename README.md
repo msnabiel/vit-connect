@@ -49,6 +49,10 @@ VTOP sign-in uses WebKit. Saved credentials use Keychain; academic snapshots are
 | `ios-vtop-chennaiUITests/` | UI tests |
 | `docs/` | Plans, audit notes, and migration notes |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, privacy, and pull request guidance.
+
 ## Project notes
 
 - [Academic UI upgrade plan](docs/ACADEMIC_UI_UPGRADE_PLAN.md)
