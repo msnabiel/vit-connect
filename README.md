@@ -4,6 +4,8 @@ VIT Connect is an iOS app for viewing VTOP academic information in one place. It
 
 [Download VIT Connect on the App Store](https://apps.apple.com/in/app/vit-connect/id6764813035)
 
+![VIT Connect app screens](AppStoreImages/app-screenshots-16x9.png)
+
 ## Requirements
 
 - A Mac with Xcode and an iOS 18.2 or newer SDK
