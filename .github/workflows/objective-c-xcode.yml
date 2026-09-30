@@ -20,4 +20,6 @@ jobs:
           xcodebuild \
             -project "ios-vtop-chennai.xcodeproj" \
             -scheme "VIT Connect" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             clean build analyze
