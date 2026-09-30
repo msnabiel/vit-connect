@@ -2,6 +2,8 @@
 
 VIT Connect is an iOS app for viewing VTOP academic information in one place. It provides a daily overview, attendance and marks, timetable and exams, student profile tools, and a glance widget.
 
+[Download VIT Connect on the App Store](https://apps.apple.com/in/app/vit-connect/id6764813035)
+
 ## Requirements
 
 - A Mac with Xcode and an iOS 18.2 or newer SDK
