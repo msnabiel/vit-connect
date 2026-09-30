@@ -1,4 +1,0 @@
-Target dependency graph (2 targets)
-Target 'ios-vtop-chennai' in project 'ios-vtop-chennai'
-➜ Explicit dependency on target 'VTOPGlanceWidgetExtension' in project 'ios-vtop-chennai'
-Target 'VTOPGlanceWidgetExtension' in project 'ios-vtop-chennai' (no dependencies)

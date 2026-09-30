@@ -2,6 +2,10 @@
 
 VIT Connect is an iOS app for viewing VTOP academic information in one place. It provides a daily overview, attendance and marks, timetable and exams, student profile tools, and a glance widget.
 
+[Download VIT Connect on the App Store](https://apps.apple.com/in/app/vit-connect/id6764813035)
+
+![VIT Connect app screens](AppStoreImages/app-screenshots-16x9.png)
+
 ## Requirements
 
 - A Mac with Xcode and an iOS 18.2 or newer SDK
@@ -44,6 +48,10 @@ VTOP sign-in uses WebKit. Saved credentials use Keychain; academic snapshots are
 | `ios-vtop-chennaiTests/` | Unit tests |
 | `ios-vtop-chennaiUITests/` | UI tests |
 | `docs/` | Plans, audit notes, and migration notes |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, privacy, and pull request guidance.
 
 ## Project notes
 
